@@ -37,6 +37,11 @@ namespace Fun.Framework.Fsm
 
         public void Start(TStateId initial)
         {
+            if (IsStarted)
+            {
+                throw new InvalidOperationException("State machine is already started.");
+            }
+
             if (!_states.TryGetValue(initial, out var initialState))
             {
                 throw new InvalidOperationException($"Initial state '{initial}' is not registered.");
