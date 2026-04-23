@@ -138,6 +138,11 @@ namespace Fun.Runtime
             _delays.Clear();
             _repeats.Clear();
             _frames.Clear();
+            if (_gameObject != null)
+            {
+                UnityEngine.Object.Destroy(_gameObject);
+                _gameObject = null;
+            }
         }
 
         public static void EnsureExists()
