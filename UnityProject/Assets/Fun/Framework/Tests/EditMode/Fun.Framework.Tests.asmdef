@@ -4,9 +4,6 @@
   "references": [
     "Fun.Framework"
   ],
-  "optionalUnityReferences": [
-    "TestAssemblies"
-  ],
   "includePlatforms": [
     "Editor"
   ],
@@ -17,5 +14,8 @@
   "autoReferenced": false,
   "defineConstraints": [],
   "versionDefines": [],
-  "noEngineReferences": false
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
 }
