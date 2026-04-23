@@ -1,3 +1,4 @@
+using System;
 using Fun.Framework.Cqrs;
 using NUnit.Framework;
 
@@ -41,6 +42,54 @@ namespace Fun.Framework.Tests
             var result = bus.Query<GetScoreQuery, int>(new GetScoreQuery());
 
             Assert.AreEqual(27, result);
+        }
+
+        [Test]
+        public void Query_WithoutRegistration_ThrowsInvalidOperationException()
+        {
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<InvalidOperationException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
+        }
+
+        [Test]
+        public void RegisterQuery_DuplicateRegistration_ThrowsInvalidOperationException()
+        {
+            var state = new ScoreState();
+            var bus = new CqrsBus();
+
+            bus.RegisterQuery(new GetScoreQueryHandler(state));
+
+            Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
+        }
+
+        [Test]
+        public void RegisterQuery_AfterFreeze_ThrowsInvalidOperationException()
+        {
+            var state = new ScoreState();
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
+        }
+
+        [Test]
+        public void Query_BeforeFreeze_ThrowsInvalidOperationException()
+        {
+            var state = new ScoreState();
+            var bus = new CqrsBus();
+            bus.RegisterQuery(new GetScoreQueryHandler(state));
+
+            Assert.Throws<InvalidOperationException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
+        }
+
+        [Test]
+        public void RegisterQuery_NullHandler_ThrowsArgumentNullException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<ArgumentNullException>(() => bus.RegisterQuery<GetScoreQuery, int>(null));
         }
     }
 }
