@@ -6,12 +6,15 @@ namespace Fun.Framework.Fsm
     public sealed class StateMachine<TStateId, TEvent>
     {
         private readonly Dictionary<TStateId, IFsmState<TStateId, TEvent>> _states;
+        private readonly Queue<TEvent> _eventQueue;
         private IFsmState<TStateId, TEvent> _currentState;
+        private bool _isDrainingEvents;
         private long _sequence;
 
         public StateMachine(IEqualityComparer<TStateId> comparer = null)
         {
             _states = new Dictionary<TStateId, IFsmState<TStateId, TEvent>>(comparer ?? EqualityComparer<TStateId>.Default);
+            _eventQueue = new Queue<TEvent>();
         }
 
         public event Action<StateChange<TStateId, TEvent>> OnStateChanged;
@@ -58,12 +61,61 @@ namespace Fun.Framework.Fsm
         public void Fire(in TEvent evt)
         {
             EnsureStarted();
-            _currentState.OnEvent(in evt);
+
+            _eventQueue.Enqueue(evt);
+            if (_isDrainingEvents)
+            {
+                return;
+            }
+
+            _isDrainingEvents = true;
+            try
+            {
+                while (_eventQueue.Count > 0)
+                {
+                    var currentEvent = _eventQueue.Dequeue();
+                    var result = _currentState.OnEvent(in currentEvent);
+                    if (result.HasTransition)
+                    {
+                        ChangeStateInternal(result.NextStateId, currentEvent, true);
+                    }
+                }
+            }
+            finally
+            {
+                _isDrainingEvents = false;
+            }
         }
 
         public void ChangeState(TStateId next)
         {
             EnsureStarted();
+            ChangeStateInternal(next, default(TEvent), false);
+        }
+
+        private void ChangeStateInternal(TStateId next, TEvent causeEvent, bool hasCauseEvent)
+        {
+            if (!_states.TryGetValue(next, out var nextState))
+            {
+                throw new InvalidOperationException($"Target state '{next}' is not registered.");
+            }
+
+            if (EqualityComparer<TStateId>.Default.Equals(CurrentStateId, next))
+            {
+                return;
+            }
+
+            var fromState = _currentState;
+            var fromId = CurrentStateId;
+            var change = hasCauseEvent
+                ? StateChange<TStateId, TEvent>.Create(fromId, next, causeEvent, NextSequence())
+                : StateChange<TStateId, TEvent>.CreateWithoutEvent(fromId, next, NextSequence());
+
+            fromState.OnExit(in change);
+            _currentState = nextState;
+            CurrentStateId = next;
+            nextState.OnEnter(in change);
+            OnStateChanged?.Invoke(change);
         }
 
         private long NextSequence()
