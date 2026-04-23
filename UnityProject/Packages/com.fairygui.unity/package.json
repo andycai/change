@@ -1,0 +1,6 @@
+{
+  "name": "com.fairygui.unity",
+  "version": "5.2.0",
+  "displayName": "FairyGUI",
+  "description": "FairyGUI runtime and editor integration for Unity."
+}
