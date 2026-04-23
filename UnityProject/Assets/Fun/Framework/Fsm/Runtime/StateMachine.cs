@@ -5,16 +5,35 @@ namespace Fun.Framework.Fsm
 {
     public sealed class StateMachine<TStateId, TEvent>
     {
+        private readonly struct TransitionRequest
+        {
+            public TransitionRequest(TStateId nextStateId, TEvent causeEvent, bool hasCauseEvent)
+            {
+                NextStateId = nextStateId;
+                CauseEvent = causeEvent;
+                HasCauseEvent = hasCauseEvent;
+            }
+
+            public TStateId NextStateId { get; }
+
+            public TEvent CauseEvent { get; }
+
+            public bool HasCauseEvent { get; }
+        }
+
         private readonly Dictionary<TStateId, IFsmState<TStateId, TEvent>> _states;
         private readonly Queue<TEvent> _eventQueue;
+        private readonly Queue<TransitionRequest> _transitionQueue;
         private IFsmState<TStateId, TEvent> _currentState;
         private bool _isDrainingEvents;
+        private bool _isDrainingTransitions;
         private long _sequence;
 
         public StateMachine(IEqualityComparer<TStateId> comparer = null)
         {
             _states = new Dictionary<TStateId, IFsmState<TStateId, TEvent>>(comparer ?? EqualityComparer<TStateId>.Default);
             _eventQueue = new Queue<TEvent>();
+            _transitionQueue = new Queue<TransitionRequest>();
         }
 
         public event Action<StateChange<TStateId, TEvent>> OnStateChanged;
@@ -77,7 +96,7 @@ namespace Fun.Framework.Fsm
                     var result = _currentState.OnEvent(in currentEvent);
                     if (result.HasTransition)
                     {
-                        ChangeStateInternal(result.NextStateId, currentEvent, true);
+                        EnqueueTransition(result.NextStateId, currentEvent, true);
                     }
                 }
             }
@@ -90,30 +109,53 @@ namespace Fun.Framework.Fsm
         public void ChangeState(TStateId next)
         {
             EnsureStarted();
-            ChangeStateInternal(next, default(TEvent), false);
+            EnqueueTransition(next, default(TEvent), false);
         }
 
-        private void ChangeStateInternal(TStateId next, TEvent causeEvent, bool hasCauseEvent)
+        private void EnqueueTransition(TStateId next, TEvent causeEvent, bool hasCauseEvent)
         {
-            if (!_states.TryGetValue(next, out var nextState))
+            _transitionQueue.Enqueue(new TransitionRequest(next, causeEvent, hasCauseEvent));
+            if (_isDrainingTransitions)
             {
-                throw new InvalidOperationException($"Target state '{next}' is not registered.");
+                return;
             }
 
-            if (EqualityComparer<TStateId>.Default.Equals(CurrentStateId, next))
+            _isDrainingTransitions = true;
+            try
+            {
+                while (_transitionQueue.Count > 0)
+                {
+                    var request = _transitionQueue.Dequeue();
+                    ExecuteTransition(request);
+                }
+            }
+            finally
+            {
+                _isDrainingTransitions = false;
+            }
+        }
+
+        private void ExecuteTransition(TransitionRequest request)
+        {
+            if (!_states.TryGetValue(request.NextStateId, out var nextState))
+            {
+                throw new InvalidOperationException($"Target state '{request.NextStateId}' is not registered.");
+            }
+
+            if (EqualityComparer<TStateId>.Default.Equals(CurrentStateId, request.NextStateId))
             {
                 return;
             }
 
             var fromState = _currentState;
             var fromId = CurrentStateId;
-            var change = hasCauseEvent
-                ? StateChange<TStateId, TEvent>.Create(fromId, next, causeEvent, NextSequence())
-                : StateChange<TStateId, TEvent>.CreateWithoutEvent(fromId, next, NextSequence());
+            var change = request.HasCauseEvent
+                ? StateChange<TStateId, TEvent>.Create(fromId, request.NextStateId, request.CauseEvent, NextSequence())
+                : StateChange<TStateId, TEvent>.CreateWithoutEvent(fromId, request.NextStateId, NextSequence());
 
             fromState.OnExit(in change);
             _currentState = nextState;
-            CurrentStateId = next;
+            CurrentStateId = request.NextStateId;
             nextState.OnEnter(in change);
             OnStateChanged?.Invoke(change);
         }
