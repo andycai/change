@@ -153,10 +153,31 @@ namespace Fun.Framework.Fsm
                 ? StateChange<TStateId, TEvent>.Create(fromId, request.NextStateId, request.CauseEvent, NextSequence())
                 : StateChange<TStateId, TEvent>.CreateWithoutEvent(fromId, request.NextStateId, NextSequence());
 
-            fromState.OnExit(in change);
+            try
+            {
+                fromState.OnExit(in change);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"OnExit failed during transition '{fromId}' -> '{request.NextStateId}'.",
+                    ex);
+            }
+
             _currentState = nextState;
             CurrentStateId = request.NextStateId;
-            nextState.OnEnter(in change);
+
+            try
+            {
+                nextState.OnEnter(in change);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"OnEnter failed during transition '{fromId}' -> '{request.NextStateId}'.",
+                    ex);
+            }
+
             OnStateChanged?.Invoke(change);
         }
 
