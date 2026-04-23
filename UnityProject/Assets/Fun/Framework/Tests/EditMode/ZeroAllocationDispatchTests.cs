@@ -6,6 +6,9 @@ namespace Fun.Framework.Tests
 {
     public class ZeroAllocationDispatchTests
     {
+        private const int WarmupIterations = 1000;
+        private const int MeasuredIterations = 100000;
+
         private readonly struct TickCommand : ICommand
         {
             public TickCommand(int delta)
@@ -84,7 +87,7 @@ namespace Fun.Framework.Tests
             bus.Freeze();
 
             var command = new TickCommand(1);
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < WarmupIterations; i++)
             {
                 bus.Send(in command);
             }
@@ -92,13 +95,14 @@ namespace Fun.Framework.Tests
             ForceFullGc();
 
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 100000; i++)
+            for (var i = 0; i < MeasuredIterations; i++)
             {
                 bus.Send(in command);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 
             Assert.AreEqual(before, after);
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, state.Value);
         }
 
         [Test]
@@ -110,7 +114,7 @@ namespace Fun.Framework.Tests
             bus.Freeze();
 
             var query = new GetTickQuery();
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < WarmupIterations; i++)
             {
                 bus.Query<GetTickQuery, int>(in query);
             }
@@ -118,13 +122,15 @@ namespace Fun.Framework.Tests
             ForceFullGc();
 
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 100000; i++)
+            var sum = 0;
+            for (var i = 0; i < MeasuredIterations; i++)
             {
-                bus.Query<GetTickQuery, int>(in query);
+                sum += bus.Query<GetTickQuery, int>(in query);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 
             Assert.AreEqual(before, after);
+            Assert.AreEqual(7 * MeasuredIterations, sum);
         }
 
         [Test]
@@ -136,7 +142,7 @@ namespace Fun.Framework.Tests
             bus.Freeze();
 
             var @event = new TickEvent(1);
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < WarmupIterations; i++)
             {
                 bus.Publish(in @event);
             }
@@ -144,13 +150,14 @@ namespace Fun.Framework.Tests
             ForceFullGc();
 
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 100000; i++)
+            for (var i = 0; i < MeasuredIterations; i++)
             {
                 bus.Publish(in @event);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 
             Assert.AreEqual(before, after);
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, handler.Count);
         }
 
         private static void ForceFullGc()

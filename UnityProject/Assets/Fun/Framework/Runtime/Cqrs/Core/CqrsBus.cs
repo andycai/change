@@ -5,6 +5,10 @@ namespace Fun.Framework.Cqrs
 {
     public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
     {
+        private const string CommandRegisteredMessage = "Registered command handler.";
+        private const string QueryRegisteredMessage = "Registered query handler.";
+        private const string EventSubscribedMessage = "Subscribed event handler.";
+
         private readonly struct QueryKey : IEquatable<QueryKey>
         {
             public QueryKey(Type queryType, Type resultType)
@@ -42,7 +46,12 @@ namespace Fun.Framework.Cqrs
         private readonly ICqrsLogger _logger;
         private bool _isFrozen;
 
-        public CqrsBus(ICqrsLogger logger = null)
+        public CqrsBus()
+            : this(NullCqrsLogger.Instance)
+        {
+        }
+
+        public CqrsBus(ICqrsLogger logger)
         {
             _logger = logger ?? NullCqrsLogger.Instance;
         }
@@ -67,7 +76,7 @@ namespace Fun.Framework.Cqrs
             }
 
             _commandHandlers[commandType] = handler;
-            _logger.Info($"Registered command handler: {commandType.FullName}");
+            SafeInfo(CommandRegisteredMessage);
         }
 
         public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
@@ -93,7 +102,7 @@ namespace Fun.Framework.Cqrs
             }
 
             _queryHandlers[queryKey] = handler;
-            _logger.Info($"Registered query handler: {queryType.FullName} -> {resultType.FullName}");
+            SafeInfo(QueryRegisteredMessage);
         }
 
         public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
@@ -118,7 +127,7 @@ namespace Fun.Framework.Cqrs
 
             var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
             handlers.Add(handler);
-            _logger.Info($"Subscribed event handler: {eventType.FullName}");
+            SafeInfo(EventSubscribedMessage);
         }
 
         public void Freeze()
@@ -183,6 +192,17 @@ namespace Fun.Framework.Cqrs
             for (var i = 0; i < handlers.Count; i++)
             {
                 handlers[i].Handle(in @event);
+            }
+        }
+
+        private void SafeInfo(string message)
+        {
+            try
+            {
+                _logger.Info(message);
+            }
+            catch (Exception)
+            {
             }
         }
     }
