@@ -39,7 +39,13 @@ namespace Fun.Framework.Cqrs
         private readonly Dictionary<Type, object> _commandHandlers = new();
         private readonly Dictionary<QueryKey, object> _queryHandlers = new();
         private readonly Dictionary<Type, object> _eventHandlers = new();
+        private readonly ICqrsLogger _logger;
         private bool _isFrozen;
+
+        public CqrsBus(ICqrsLogger logger = null)
+        {
+            _logger = logger ?? NullCqrsLogger.Instance;
+        }
 
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
             where TCommand : struct, ICommand
@@ -61,6 +67,7 @@ namespace Fun.Framework.Cqrs
             }
 
             _commandHandlers[commandType] = handler;
+            _logger.Info($"Registered command handler: {commandType.FullName}");
         }
 
         public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
@@ -86,6 +93,7 @@ namespace Fun.Framework.Cqrs
             }
 
             _queryHandlers[queryKey] = handler;
+            _logger.Info($"Registered query handler: {queryType.FullName} -> {resultType.FullName}");
         }
 
         public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
@@ -110,6 +118,7 @@ namespace Fun.Framework.Cqrs
 
             var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
             handlers.Add(handler);
+            _logger.Info($"Subscribed event handler: {eventType.FullName}");
         }
 
         public void Freeze()
