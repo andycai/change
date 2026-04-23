@@ -7,6 +7,64 @@ namespace Fun.Runtime
 {
     public static class Timer
     {
+        public static IDisposable Delay(float seconds, Action callback,
+            CancellationToken ct = default, bool scaled = true)
+        {
+            TimerDriver.EnsureExists();
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var entry = new TimerEntry
+            {
+                interval = seconds,
+                elapsed = 0f,
+                callback = callback,
+                cts = cts,
+                scaled = scaled,
+                kind = TimerKind.Delay,
+                isDone = false
+            };
+            TimerDriver.AddDelay(entry);
+            return entry;
+        }
+
+        public static IDisposable Repeat(float interval, Action callback,
+            CancellationToken ct = default, bool scaled = true)
+        {
+            TimerDriver.EnsureExists();
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var entry = new TimerEntry
+            {
+                interval = interval,
+                elapsed = 0f,
+                callback = callback,
+                cts = cts,
+                scaled = scaled,
+                kind = TimerKind.Repeat,
+                isDone = false
+            };
+            TimerDriver.AddRepeat(entry);
+            return entry;
+        }
+
+        public static IDisposable EveryFrame(
+            Action<float, CancellationToken> onFrame,
+            CancellationToken ct = default, bool scaled = true)
+        {
+            TimerDriver.EnsureExists();
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var entry = new TimerEntry
+            {
+                interval = 0f,
+                elapsed = 0f,
+                callback = () => onFrame(scaled ? Time.deltaTime : Time.unscaledDeltaTime, cts.Token),
+                cts = cts,
+                scaled = scaled,
+                kind = TimerKind.Frame,
+                isDone = false
+            };
+            TimerDriver.AddFrame(entry);
+            return entry;
+        }
+
         private enum TimerKind { Delay, Repeat, Frame }
 
         private class TimerEntry : IDisposable
@@ -44,6 +102,10 @@ namespace Fun.Runtime
                 _gameObject.hideFlags = HideFlags.HideInHierarchy;
                 _gameObject.AddComponent<Driver>();
             }
+
+            internal static void AddDelay(TimerEntry entry) => _delays[entry.cts.Token] = entry;
+            internal static void AddRepeat(TimerEntry entry) => _repeats[entry.cts.Token] = entry;
+            internal static void AddFrame(TimerEntry entry) => _frames[entry.cts.Token] = entry;
 
             private class Driver : MonoBehaviour
             {
