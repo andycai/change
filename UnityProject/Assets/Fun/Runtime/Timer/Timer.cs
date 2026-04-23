@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using UnityEngine;
 
 namespace Fun.Runtime
 {
@@ -65,6 +66,12 @@ namespace Fun.Runtime
             return entry;
         }
 
+        public static Awaitable.Awaiter DelayAsync(float seconds,
+            CancellationToken ct = default, bool scaled = true)
+        {
+            return Awaitable.Delay(seconds, ct, scaled);
+        }
+
         private enum TimerKind { Delay, Repeat, Frame }
 
         private class TimerEntry : IDisposable
@@ -79,114 +86,151 @@ namespace Fun.Runtime
 
             public void Dispose() => isDone = true;
         }
+    }
 
-        private static class TimerDriver
+    public static class Awaitable
+    {
+        public class Awaiter : INotifyCompletion
         {
-            private static GameObject _gameObject;
-            private static readonly Dictionary<CancellationToken, TimerEntry> _delays = new();
-            private static readonly Dictionary<CancellationToken, TimerEntry> _repeats = new();
-            private static readonly Dictionary<CancellationToken, TimerEntry> _frames = new();
+            private readonly float _seconds;
+            private readonly bool _scaled;
+            private CancellationToken _ct;
+            private Action _continuation;
 
-            [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-            private static void Init()
+            public Awaiter(float seconds, bool scaled, CancellationToken ct)
             {
-                _delays.Clear();
-                _repeats.Clear();
-                _frames.Clear();
+                _seconds = seconds;
+                _scaled = scaled;
+                _ct = ct;
             }
 
-            public static void EnsureExists()
-            {
-                if (_gameObject != null) return;
-                _gameObject = new GameObject("[Fun.Timer]");
-                _gameObject.hideFlags = HideFlags.HideInHierarchy;
-                _gameObject.AddComponent<Driver>();
-            }
+            public bool IsCompleted => false;
 
-            internal static void AddDelay(TimerEntry entry) => _delays[entry.cts.Token] = entry;
-            internal static void AddRepeat(TimerEntry entry) => _repeats[entry.cts.Token] = entry;
-            internal static void AddFrame(TimerEntry entry) => _frames[entry.cts.Token] = entry;
+            public void GetResult() { }
 
-            private class Driver : MonoBehaviour
+            public void OnCompleted(Action continuation)
             {
-                void Update()
+                _continuation = continuation;
+                Timer.Delay(_seconds, () =>
                 {
-                    float dt = Time.deltaTime;
-                    float unscaledDt = Time.unscaledDeltaTime;
+                    if (!_ct.IsCancellationRequested)
+                        _continuation?.Invoke();
+                }, _ct, _scaled);
+            }
+        }
 
-                    Process(_delays, dt, unscaledDt);
-                    Process(_repeats, dt, unscaledDt);
-                    Process(_frames, dt, unscaledDt);
+        public static Awaiter Delay(float seconds, CancellationToken ct = default, bool scaled = true)
+        {
+            return new Awaiter(seconds, scaled, ct);
+        }
+    }
+
+    private static class TimerDriver
+    {
+        private static GameObject _gameObject;
+        private static readonly Dictionary<CancellationToken, TimerEntry> _delays = new();
+        private static readonly Dictionary<CancellationToken, TimerEntry> _repeats = new();
+        private static readonly Dictionary<CancellationToken, TimerEntry> _frames = new();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Init()
+        {
+            _delays.Clear();
+            _repeats.Clear();
+            _frames.Clear();
+        }
+
+        public static void EnsureExists()
+        {
+            if (_gameObject != null) return;
+            _gameObject = new GameObject("[Fun.Timer]");
+            _gameObject.hideFlags = HideFlags.HideInHierarchy;
+            _gameObject.AddComponent<Driver>();
+        }
+
+        internal static void AddDelay(TimerEntry entry) => _delays[entry.cts.Token] = entry;
+        internal static void AddRepeat(TimerEntry entry) => _repeats[entry.cts.Token] = entry;
+        internal static void AddFrame(TimerEntry entry) => _frames[entry.cts.Token] = entry;
+
+        private class Driver : MonoBehaviour
+        {
+            void Update()
+            {
+                float dt = Time.deltaTime;
+                float unscaledDt = Time.unscaledDeltaTime;
+
+                Process(_delays, dt, unscaledDt);
+                Process(_repeats, dt, unscaledDt);
+                Process(_frames, dt, unscaledDt);
+            }
+        }
+
+        private static void Process(Dictionary<CancellationToken, TimerEntry> dict, float dt, float unscaledDt)
+        {
+            List<CancellationToken> tokensToRemove = null;
+
+            foreach (var kvp in dict)
+            {
+                var entry = kvp.Value;
+
+                if (entry.isDone || entry.cts.IsCancellationRequested)
+                {
+                    if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
+                    tokensToRemove.Add(kvp.Key);
+                    continue;
                 }
-            }
 
-            private static void Process(Dictionary<CancellationToken, TimerEntry> dict, float dt, float unscaledDt)
-            {
-                List<CancellationToken> tokensToRemove = null;
-
-                foreach (var kvp in dict)
+                // Frame entries (interval == 0) are invoked every Update
+                if (entry.kind == TimerKind.Frame)
                 {
-                    var entry = kvp.Value;
+                    try
+                    {
+                        entry.callback?.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
+                    }
 
-                    if (entry.isDone || entry.cts.IsCancellationRequested)
+                    if (entry.cts.IsCancellationRequested)
                     {
                         if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
                         tokensToRemove.Add(kvp.Key);
-                        continue;
                     }
-
-                    // Frame entries (interval == 0) are invoked every Update
-                    if (entry.kind == TimerKind.Frame)
-                    {
-                        try
-                        {
-                            entry.callback?.Invoke();
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
-                        }
-
-                        if (entry.cts.IsCancellationRequested)
-                        {
-                            if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
-                            tokensToRemove.Add(kvp.Key);
-                        }
-                        continue;
-                    }
-
-                    float elapsed = entry.scaled ? (entry.elapsed + dt) : (entry.elapsed + unscaledDt);
-                    entry.elapsed = elapsed;
-
-                    if (elapsed >= entry.interval)
-                    {
-                        try
-                        {
-                            entry.callback?.Invoke();
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
-                        }
-
-                        if (entry.kind == TimerKind.Delay)
-                        {
-                            entry.isDone = true;
-                            if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
-                            tokensToRemove.Add(kvp.Key);
-                        }
-                        else
-                        {
-                            entry.elapsed = 0f; // reset for repeat
-                        }
-                    }
+                    continue;
                 }
 
-                if (tokensToRemove != null)
+                float elapsed = entry.scaled ? (entry.elapsed + dt) : (entry.elapsed + unscaledDt);
+                entry.elapsed = elapsed;
+
+                if (elapsed >= entry.interval)
                 {
-                    foreach (var token in tokensToRemove)
-                        dict.Remove(token);
+                    try
+                    {
+                        entry.callback?.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
+                    }
+
+                    if (entry.kind == TimerKind.Delay)
+                    {
+                        entry.isDone = true;
+                        if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
+                        tokensToRemove.Add(kvp.Key);
+                    }
+                    else
+                    {
+                        entry.elapsed = 0f; // reset for repeat
+                    }
                 }
+            }
+
+            if (tokensToRemove != null)
+            {
+                foreach (var token in tokensToRemove)
+                    dict.Remove(token);
             }
         }
     }
