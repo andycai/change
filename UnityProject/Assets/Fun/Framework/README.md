@@ -29,16 +29,17 @@ Dispatch phase (`ICqrsBus`):
 
 Lifecycle rule:
 1. register handlers/subscribers
-2. call `Freeze()` exactly once before runtime dispatch
+2. call `Freeze()` during bootstrap before runtime dispatch (recommended once; repeated calls are idempotent)
 3. call `Send`/`Query`/`Publish` after freeze
 
 ## Core constraints
 
 - message types are value types (`readonly struct`) implementing `ICommand`, `IQuery<TResult>`, or `IEvent`
-- handlers are class instances implementing `ICommandHandler<T>`, `IQueryHandler<TQuery, TResult>`, `IEventHandler<T>`
+- handlers implement `ICommandHandler<T>`, `IQueryHandler<TQuery, TResult>`, `IEventHandler<T>` (typically class instances by convention and performance tradeoff, but not an API-level restriction)
 - duplicate command/query registration is forbidden
 - registration APIs are unavailable after `Freeze()`
 - dispatch is synchronous; no async/await in CQRS core
+- `CqrsBus` supports optional logger injection via `new CqrsBus(ICqrsLogger logger)`
 
 ## Bootstrap example
 
