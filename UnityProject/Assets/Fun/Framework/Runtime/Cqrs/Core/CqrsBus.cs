@@ -13,7 +13,7 @@ namespace Fun.Framework.Cqrs
         {
             if (handler == null)
             {
-                throw new InvalidOperationException("Command handler cannot be null.");
+                throw new ArgumentNullException(nameof(handler));
             }
 
             if (_isFrozen)
@@ -38,6 +38,11 @@ namespace Fun.Framework.Cqrs
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
+            if (!_isFrozen)
+            {
+                throw new InvalidOperationException("Registry must be frozen before dispatch.");
+            }
+
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryGetValue(commandType, out var boxedHandler))
             {
