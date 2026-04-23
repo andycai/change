@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Fun.Framework.Cqrs;
 using NUnit.Framework;
@@ -55,6 +56,32 @@ namespace Fun.Framework.Tests
             bus.Freeze();
 
             Assert.DoesNotThrow(() => bus.Publish(new ScoreChangedEvent(1)));
+        }
+
+        [Test]
+        public void Publish_BeforeFreeze_ThrowsInvalidOperationException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<InvalidOperationException>(() => bus.Publish(new ScoreChangedEvent(1)));
+        }
+
+        [Test]
+        public void Subscribe_AfterFreeze_ThrowsInvalidOperationException()
+        {
+            var order = new List<int>();
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<InvalidOperationException>(() => bus.Subscribe(new OrderedEventHandler(order, 1)));
+        }
+
+        [Test]
+        public void Subscribe_NullHandler_ThrowsArgumentNullException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<ArgumentNullException>(() => bus.Subscribe<ScoreChangedEvent>(null));
         }
     }
 }
