@@ -1,0 +1,21 @@
+{
+  "name": "Fun.Framework.Fsm.Tests",
+  "rootNamespace": "Fun.Framework.Fsm.Tests",
+  "references": [
+    "Fun.Framework.Fsm"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": true
+}
