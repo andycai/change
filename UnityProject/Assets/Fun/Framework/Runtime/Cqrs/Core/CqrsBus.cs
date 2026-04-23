@@ -51,13 +51,13 @@ namespace Fun.Framework.Cqrs
 
             if (_isFrozen)
             {
-                throw new InvalidOperationException("Registry is frozen.");
+                throw new RegistryFrozenException("Registry is frozen.");
             }
 
             var commandType = typeof(TCommand);
             if (_commandHandlers.ContainsKey(commandType))
             {
-                throw new InvalidOperationException($"Command handler already registered: {commandType.FullName}");
+                throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
             }
 
             _commandHandlers[commandType] = handler;
@@ -73,7 +73,7 @@ namespace Fun.Framework.Cqrs
 
             if (_isFrozen)
             {
-                throw new InvalidOperationException("Registry is frozen.");
+                throw new RegistryFrozenException("Registry is frozen.");
             }
 
             var queryType = typeof(TQuery);
@@ -81,7 +81,7 @@ namespace Fun.Framework.Cqrs
             var queryKey = new QueryKey(queryType, resultType);
             if (_queryHandlers.ContainsKey(queryKey))
             {
-                throw new InvalidOperationException(
+                throw new DuplicateRegistrationException(
                     $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
             }
 
@@ -98,7 +98,7 @@ namespace Fun.Framework.Cqrs
 
             if (_isFrozen)
             {
-                throw new InvalidOperationException("Registry is frozen.");
+                throw new RegistryFrozenException("Registry is frozen.");
             }
 
             var eventType = typeof(TEvent);
@@ -128,7 +128,7 @@ namespace Fun.Framework.Cqrs
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryGetValue(commandType, out var boxedHandler))
             {
-                throw new InvalidOperationException($"Command handler not registered: {commandType.FullName}");
+                throw new HandlerNotRegisteredException($"Command handler not registered: {commandType.FullName}");
             }
 
             var handler = (ICommandHandler<TCommand>)boxedHandler;
@@ -148,7 +148,7 @@ namespace Fun.Framework.Cqrs
             var queryKey = new QueryKey(queryType, resultType);
             if (!_queryHandlers.TryGetValue(queryKey, out var boxedHandler))
             {
-                throw new InvalidOperationException(
+                throw new HandlerNotRegisteredException(
                     $"Query handler not registered: {queryType.FullName} -> {resultType.FullName}");
             }
 
