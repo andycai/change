@@ -38,6 +38,7 @@ namespace Fun.Framework.Cqrs
 
         private readonly Dictionary<Type, object> _commandHandlers = new();
         private readonly Dictionary<QueryKey, object> _queryHandlers = new();
+        private readonly Dictionary<Type, object> _eventHandlers = new();
         private bool _isFrozen;
 
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
@@ -87,6 +88,30 @@ namespace Fun.Framework.Cqrs
             _queryHandlers[queryKey] = handler;
         }
 
+        public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            if (_isFrozen)
+            {
+                throw new InvalidOperationException("Registry is frozen.");
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
+            {
+                boxedHandlers = new List<IEventHandler<TEvent>>();
+                _eventHandlers[eventType] = boxedHandlers;
+            }
+
+            var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            handlers.Add(handler);
+        }
+
         public void Freeze()
         {
             _isFrozen = true;
@@ -129,6 +154,27 @@ namespace Fun.Framework.Cqrs
 
             var handler = (IQueryHandler<TQuery, TResult>)boxedHandler;
             return handler.Handle(in query);
+        }
+
+        public void Publish<TEvent>(in TEvent @event)
+            where TEvent : struct, IEvent
+        {
+            if (!_isFrozen)
+            {
+                throw new InvalidOperationException("Registry must be frozen before dispatch.");
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
+            {
+                return;
+            }
+
+            var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            for (var i = 0; i < handlers.Count; i++)
+            {
+                handlers[i].Handle(in @event);
+            }
         }
     }
 }

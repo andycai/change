@@ -8,6 +8,9 @@ namespace Fun.Framework.Cqrs
         void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
             where TQuery : struct, IQuery<TResult>;
 
+        void Subscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent;
+
         void Freeze();
     }
 }
