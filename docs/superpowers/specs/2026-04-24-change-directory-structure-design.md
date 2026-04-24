@@ -20,7 +20,7 @@ Assets/Change/
 │   ├── Logging/          (namespace Change.Framework, 抽象层)
 │   └── Tests/
 │       └── EditMode/
-│           ├── Change.Framework.Tests.asmdef
+│           ├── Change.Framework.EditModeTests.asmdef
 │           └── *.cs      (namespace Change.Framework)
 └── Runtime/
     ├── Change.Runtime.asmdef
@@ -41,7 +41,7 @@ Assets/Change/
 |--------|------|------|
 | `Change.Editor` | Editor | Editor 代码 |
 | `Change.Framework` | Runtime | 引擎无关框架（Cqrs, Pooling, Collections, Fsm, Logging 抽象） |
-| `Change.Framework.Tests` | EditMode | Framework EditMode 测试 |
+| `Change.Framework.EditModeTests` | EditMode | Framework EditMode 测试 |
 | `Change.Runtime` | Runtime | Runtime 代码（Timer, Logging 实现） |
 | `Change.Runtime.EditModeTests` | EditMode | Runtime EditMode 测试 |
 | `Change.Runtime.PlayModeTests` | PlayMode | Runtime PlayMode 测试 |
@@ -71,7 +71,7 @@ Assets/Change/
 | 原名称 | 新名称 |
 |--------|--------|
 | `Fun.Framework` | `Change.Framework` |
-| `Fun.Framework.Tests` | `Change.Framework.Tests` |
+| `Fun.Framework.Tests` | `Change.Framework.EditModeTests` |
 | `Fun.Runtime` | `Change.Runtime` |
 | `Fun.Runtime.Timer` | (合并到 Change.Runtime) |
 | `Fun.Runtime.Timer.PlayModeTests` | `Change.Runtime.PlayModeTests` |
@@ -114,10 +114,10 @@ Assets/Change/
 }
 ```
 
-### Change.Framework.Tests / Change.Runtime.EditModeTests
+### Change.Framework.EditModeTests / Change.Runtime.EditModeTests
 ```json
 {
-    "name": "Change.Framework.Tests",
+    "name": "Change.Framework.EditModeTests",
     "rootNamespace": "Change.Framework",
     "references": ["Change.Framework", "UnityEngine.TestRunner"],
     "optionalUnityReferences": ["UnityEngine.TestRunner"],
