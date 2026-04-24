@@ -1,3 +1,7 @@
 # Local git worktrees
 .worktrees/
 worktrees/
+
+# Unity test artifacts
+UnityProject/TestResults/
+UnityProject/TestResutls/
