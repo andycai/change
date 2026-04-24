@@ -45,33 +45,33 @@ namespace Fun.Framework.Tests
         }
 
         [Test]
-        public void Query_WithoutRegistration_ThrowsInvalidOperationException()
+        public void Query_WithoutRegistration_ThrowsHandlerNotRegisteredException()
         {
             var bus = new CqrsBus();
             bus.Freeze();
 
-            Assert.Throws<InvalidOperationException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
+            Assert.Throws<HandlerNotRegisteredException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
         }
 
         [Test]
-        public void RegisterQuery_DuplicateRegistration_ThrowsInvalidOperationException()
+        public void RegisterQuery_DuplicateRegistration_ThrowsDuplicateRegistrationException()
         {
             var state = new ScoreState();
             var bus = new CqrsBus();
 
             bus.RegisterQuery(new GetScoreQueryHandler(state));
 
-            Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
+            Assert.Throws<DuplicateRegistrationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
         }
 
         [Test]
-        public void RegisterQuery_AfterFreeze_ThrowsInvalidOperationException()
+        public void RegisterQuery_AfterFreeze_ThrowsRegistryFrozenException()
         {
             var state = new ScoreState();
             var bus = new CqrsBus();
             bus.Freeze();
 
-            Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
+            Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
         }
 
         [Test]

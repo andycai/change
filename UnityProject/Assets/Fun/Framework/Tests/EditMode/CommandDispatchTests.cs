@@ -50,33 +50,33 @@ namespace Fun.Framework.Tests
         }
 
         [Test]
-        public void Send_WithoutRegistration_ThrowsInvalidOperationException()
+        public void Send_WithoutRegistration_ThrowsHandlerNotRegisteredException()
         {
             var bus = new CqrsBus();
             bus.Freeze();
 
-            Assert.Throws<InvalidOperationException>(() => bus.Send(new IncrementCounterCommand(1)));
+            Assert.Throws<HandlerNotRegisteredException>(() => bus.Send(new IncrementCounterCommand(1)));
         }
 
         [Test]
-        public void RegisterCommand_DuplicateRegistration_ThrowsInvalidOperationException()
+        public void RegisterCommand_DuplicateRegistration_ThrowsDuplicateRegistrationException()
         {
             var state = new CounterState();
             var bus = new CqrsBus();
 
             bus.RegisterCommand(new IncrementCounterHandler(state));
 
-            Assert.Throws<InvalidOperationException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
+            Assert.Throws<DuplicateRegistrationException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
         }
 
         [Test]
-        public void RegisterCommand_AfterFreeze_ThrowsInvalidOperationException()
+        public void RegisterCommand_AfterFreeze_ThrowsRegistryFrozenException()
         {
             var state = new CounterState();
             var bus = new CqrsBus();
             bus.Freeze();
 
-            Assert.Throws<InvalidOperationException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
+            Assert.Throws<RegistryFrozenException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
         }
 
         [Test]

@@ -67,13 +67,13 @@ namespace Fun.Framework.Tests
         }
 
         [Test]
-        public void Subscribe_AfterFreeze_ThrowsInvalidOperationException()
+        public void Subscribe_AfterFreeze_ThrowsRegistryFrozenException()
         {
             var order = new List<int>();
             var bus = new CqrsBus();
             bus.Freeze();
 
-            Assert.Throws<InvalidOperationException>(() => bus.Subscribe(new OrderedEventHandler(order, 1)));
+            Assert.Throws<RegistryFrozenException>(() => bus.Subscribe(new OrderedEventHandler(order, 1)));
         }
 
         [Test]
