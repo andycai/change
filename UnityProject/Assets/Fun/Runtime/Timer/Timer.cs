@@ -23,7 +23,7 @@ namespace Fun.Runtime
                 kind = TimerKind.Delay,
                 isDone = false
             };
-            TimerDriver.AddDelay(entry);
+            TimerDriver.Add(entry, TimerKind.Delay);
             return entry;
         }
 
@@ -42,7 +42,7 @@ namespace Fun.Runtime
                 kind = TimerKind.Repeat,
                 isDone = false
             };
-            TimerDriver.AddRepeat(entry);
+            TimerDriver.Add(entry, TimerKind.Repeat);
             return entry;
         }
 
@@ -62,14 +62,14 @@ namespace Fun.Runtime
                 kind = TimerKind.Frame,
                 isDone = false
             };
-            TimerDriver.AddFrame(entry);
+            TimerDriver.Add(entry, TimerKind.Frame);
             return entry;
         }
 
-        public static Awaitable.Awaiter DelayAsync(float seconds,
+        public static TimerAwaiter DelayAsync(float seconds,
             CancellationToken ct = default, bool scaled = true)
         {
-            return Awaitable.Delay(seconds, ct, scaled);
+            return new TimerAwaiter(seconds, scaled, ct);
         }
 
         private enum TimerKind { Delay, Repeat, Frame }
@@ -88,44 +88,36 @@ namespace Fun.Runtime
         }
     }
 
-    public static class Awaitable
+    public sealed class TimerAwaiter : INotifyCompletion
     {
-        public class Awaiter : INotifyCompletion
+        private readonly float _seconds;
+        private readonly bool _scaled;
+        private CancellationToken _ct;
+        private Action _continuation;
+
+        public TimerAwaiter(float seconds, bool scaled, CancellationToken ct)
         {
-            private readonly float _seconds;
-            private readonly bool _scaled;
-            private CancellationToken _ct;
-            private Action _continuation;
-
-            public Awaiter(float seconds, bool scaled, CancellationToken ct)
-            {
-                _seconds = seconds;
-                _scaled = scaled;
-                _ct = ct;
-            }
-
-            public bool IsCompleted => false;
-
-            public void GetResult() { }
-
-            public void OnCompleted(Action continuation)
-            {
-                _continuation = continuation;
-                Timer.Delay(_seconds, () =>
-                {
-                    if (!_ct.IsCancellationRequested)
-                        _continuation?.Invoke();
-                }, _ct, _scaled);
-            }
+            _seconds = seconds;
+            _scaled = scaled;
+            _ct = ct;
         }
 
-        public static Awaiter Delay(float seconds, CancellationToken ct = default, bool scaled = true)
+        public bool IsCompleted => false;
+
+        public void GetResult() { }
+
+        public void OnCompleted(Action continuation)
         {
-            return new Awaiter(seconds, scaled, ct);
+            _continuation = continuation;
+            Timer.Delay(_seconds, () =>
+            {
+                if (!_ct.IsCancellationRequested)
+                    _continuation?.Invoke();
+            }, _ct, _scaled);
         }
     }
 
-    private static class TimerDriver
+    internal static class TimerDriver
     {
         private static GameObject _gameObject;
         private static readonly Dictionary<CancellationToken, TimerEntry> _delays = new();
@@ -153,89 +145,100 @@ namespace Fun.Runtime
             _gameObject.AddComponent<Driver>();
         }
 
-        internal static void AddDelay(TimerEntry entry) => _delays[entry.cts.Token] = entry;
-        internal static void AddRepeat(TimerEntry entry) => _repeats[entry.cts.Token] = entry;
-        internal static void AddFrame(TimerEntry entry) => _frames[entry.cts.Token] = entry;
-
-        private class Driver : MonoBehaviour
+        internal static void Add(TimerEntry entry, TimerKind kind)
         {
-            void Update()
+            switch (kind)
+            {
+                case TimerKind.Delay:
+                    _delays[entry.cts.Token] = entry;
+                    break;
+                case TimerKind.Repeat:
+                    _repeats[entry.cts.Token] = entry;
+                    break;
+                case TimerKind.Frame:
+                    _frames[entry.cts.Token] = entry;
+                    break;
+            }
+        }
+
+        private sealed class Driver : MonoBehaviour
+        {
+            private void Update()
             {
                 float dt = Time.deltaTime;
                 float unscaledDt = Time.unscaledDeltaTime;
 
-                Process(_delays, dt, unscaledDt);
-                Process(_repeats, dt, unscaledDt);
-                Process(_frames, dt, unscaledDt);
+                Process(_delays, dt, unscaledDt, TimerKind.Delay);
+                Process(_repeats, dt, unscaledDt, TimerKind.Repeat);
+                Process(_frames, dt, unscaledDt, TimerKind.Frame);
             }
-        }
 
-        private static void Process(Dictionary<CancellationToken, TimerEntry> dict, float dt, float unscaledDt)
-        {
-            List<CancellationToken> tokensToRemove = null;
-
-            foreach (var kvp in dict)
+            private static void Process(Dictionary<CancellationToken, TimerEntry> dict, float dt, float unscaledDt, TimerKind kind)
             {
-                var entry = kvp.Value;
+                List<CancellationToken> tokensToRemove = null;
 
-                if (entry.isDone || entry.cts.IsCancellationRequested)
+                foreach (var kvp in dict)
                 {
-                    if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
-                    tokensToRemove.Add(kvp.Key);
-                    continue;
-                }
+                    var entry = kvp.Value;
 
-                // Frame entries (interval == 0) are invoked every Update
-                if (entry.kind == TimerKind.Frame)
-                {
-                    try
-                    {
-                        entry.callback?.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
-                    }
-
-                    if (entry.cts.IsCancellationRequested)
+                    if (entry.isDone || entry.cts.IsCancellationRequested)
                     {
                         if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
                         tokensToRemove.Add(kvp.Key);
+                        continue;
                     }
-                    continue;
+
+                    if (entry.kind == TimerKind.Frame)
+                    {
+                        try
+                        {
+                            entry.callback?.Invoke();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
+                        }
+
+                        if (entry.cts.IsCancellationRequested)
+                        {
+                            if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
+                            tokensToRemove.Add(kvp.Key);
+                        }
+                        continue;
+                    }
+
+                    float elapsed = entry.scaled ? (entry.elapsed + dt) : (entry.elapsed + unscaledDt);
+                    entry.elapsed = elapsed;
+
+                    if (elapsed >= entry.interval)
+                    {
+                        try
+                        {
+                            entry.callback?.Invoke();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
+                        }
+
+                        if (entry.kind == TimerKind.Delay)
+                        {
+                            entry.isDone = true;
+                            if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
+                            tokensToRemove.Add(kvp.Key);
+                        }
+                        else
+                        {
+                            entry.elapsed = 0f;
+                        }
+                    }
                 }
 
-                float elapsed = entry.scaled ? (entry.elapsed + dt) : (entry.elapsed + unscaledDt);
-                entry.elapsed = elapsed;
-
-                if (elapsed >= entry.interval)
+                if (tokensToRemove != null)
                 {
-                    try
-                    {
-                        entry.callback?.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
-                    }
-
-                    if (entry.kind == TimerKind.Delay)
-                    {
-                        entry.isDone = true;
-                        if (tokensToRemove == null) tokensToRemove = new List<CancellationToken>();
-                        tokensToRemove.Add(kvp.Key);
-                    }
-                    else
-                    {
-                        entry.elapsed = 0f; // reset for repeat
-                    }
+                    foreach (var token in tokensToRemove)
+                        dict.Remove(token);
                 }
-            }
-
-            if (tokensToRemove != null)
-            {
-                foreach (var token in tokensToRemove)
-                    dict.Remove(token);
             }
         }
     }
