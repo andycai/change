@@ -6,6 +6,21 @@ using UnityEngine;
 
 namespace Fun.Runtime
 {
+    internal enum TimerKind { Delay, Repeat, Frame }
+
+    internal class TimerEntry : IDisposable
+    {
+        public float interval;
+        public float elapsed;
+        public Action callback;
+        public CancellationTokenSource cts;
+        public bool scaled;
+        public TimerKind kind;
+        public bool isDone;
+
+        public void Dispose() => isDone = true;
+    }
+
     public static class Timer
     {
         public static IDisposable Delay(float seconds, Action callback,
@@ -70,21 +85,6 @@ namespace Fun.Runtime
             CancellationToken ct = default, bool scaled = true)
         {
             return new TimerAwaiter(seconds, scaled, ct);
-        }
-
-        private enum TimerKind { Delay, Repeat, Frame }
-
-        private class TimerEntry : IDisposable
-        {
-            public float interval;
-            public float elapsed;
-            public Action callback;
-            public CancellationTokenSource cts;
-            public bool scaled;
-            public TimerKind kind;
-            public bool isDone;
-
-            public void Dispose() => isDone = true;
         }
     }
 
