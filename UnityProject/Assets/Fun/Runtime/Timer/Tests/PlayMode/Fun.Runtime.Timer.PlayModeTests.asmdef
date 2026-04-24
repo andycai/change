@@ -1,0 +1,19 @@
+{
+  "name": "Fun.Runtime.Timer.PlayModeTests",
+  "rootNamespace": "Fun.Runtime.Tests.PlayMode",
+  "references": [
+    "Fun.Runtime.Timer"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": false
+}
