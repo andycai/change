@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 
@@ -78,6 +79,51 @@ namespace Change.Framework.Fsm.Tests
 
             Assert.That(stateA.EnterCount, Is.EqualTo(1));
             Assert.That(stateA.ExitCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ChangeState_EquivalentStateIdByCustomComparer_IsNoOp()
+        {
+            var fsm = new StateMachine<string, TestEvent>(StringComparer.OrdinalIgnoreCase);
+            var stateA = new RecordingStringState("A");
+
+            fsm.Register(stateA);
+            fsm.Start("A");
+
+            fsm.ChangeState("a");
+
+            Assert.That(fsm.CurrentStateId, Is.EqualTo("A"));
+            Assert.That(stateA.EnterCount, Is.EqualTo(1));
+            Assert.That(stateA.ExitCount, Is.EqualTo(0));
+        }
+
+        private sealed class RecordingStringState : IFsmState<string, TestEvent>
+        {
+            public RecordingStringState(string id)
+            {
+                Id = id;
+            }
+
+            public string Id { get; }
+
+            public int EnterCount { get; private set; }
+
+            public int ExitCount { get; private set; }
+
+            public void OnEnter(in StateChange<string, TestEvent> change)
+            {
+                EnterCount++;
+            }
+
+            public void OnExit(in StateChange<string, TestEvent> change)
+            {
+                ExitCount++;
+            }
+
+            public FsmResult<string> OnEvent(in TestEvent evt)
+            {
+                return FsmResult<string>.Ignored();
+            }
         }
     }
 }

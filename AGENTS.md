@@ -196,6 +196,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Build & Tooling Notes
 
+- Unity executable path (local machine): `/Applications/Unity/Unity.app/Contents/MacOS/Unity`
 - HybridCLR menu: `HybridCLR/CompileDll`, `GenerateAOTReference`, `GenerateLinkXml`, etc.
 - Obfuz menu: `HybridCLR/ObfuzExtension/GenerateAll`, `CompileAndObfuscateDll`, `GeneratePolymorphicCodes`
 - YooAsset: Use YooAsset editor window for asset collection and bundle building
@@ -229,40 +230,21 @@ Rules:
 <claude-mem-context>
 # Memory Context
 
-# [fun] recent context, 2026-04-24 11:22pm GMT+8
+# [fun] recent context, 2026-04-24 11:38pm GMT+8
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (10,008t read) | 545,658t work | 98% savings
+Stats: 50 obs (8,407t read) | 1,303,688t work | 99% savings
 
 ### Apr 24, 2026
-1336 6:13p ⚖️ Runtime Logging Required with Unity and File Sinks
 S488 Editor Code Needs Emerging for Fun Framework (Apr 24 at 6:13 PM)
-1337 6:15p 🔵 Editor Code Needs Emerging for Fun Framework
 S489 Runtime Test Directory Structure Unification Decision (Apr 24 at 6:15 PM)
-1338 6:20p ⚖️ Runtime Test Directory Structure Unification Decision
-1339 " ⚖️ Unified Namespace Architecture Decision
 S490 EditMode Test Assembly Naming Standardized (Apr 24 at 6:20 PM)
-1340 6:22p ✅ EditMode Test Assembly Naming Standardized
 S493 Change Directory Structure Implementation Plan Created (Apr 24 at 6:22 PM)
 S559 Namespace reorganization Fun.* → Change.* for Unity framework (Apr 24 at 6:27 PM)
-1345 6:29p 🟣 Change Namespace Directory Reorganization Initiated
-1346 6:31p 🔄 Framework Modules Migrated to Change Namespace
-1347 6:32p 🔄 Framework Source Files Moved, Tests Remaining
-1348 " 🔄 Framework Modules Committed to Git (Commit 91b5cad)
-1349 6:36p 🔄 Runtime Modules Moved to Change Namespace
-1350 6:37p 🔄 Runtime Modules Committed (Commit 18b7679)
-1351 6:38p 🔄 Runtime Module Migration Verified Complete
-1353 6:39p 🔄 Test File Reorganization (Task 4) In Progress
-1354 " 🔄 Test Files Reorganized to Centralized Structure
-1355 6:40p 🔄 Test File Reorganization Completed (Commit b472d8a)
-1356 " 🟣 Task 5: Create New Assembly Definition Files
-1357 6:41p 🔄 New Assembly Definition Files Created (Commit 0ef7478)
-1359 " 🔄 Namespace Replacement in Progress (Task 6)
-1360 6:42p 🔄 Namespace Replacement Committed (Commit b9cf28a)
-1361 " 🔵 String Literals with "Fun.Timer" Remain in Timer.cs
+1361 6:42p 🔵 String Literals with "Fun.Timer" Remain in Timer.cs
 1362 6:43p 🔴 Timer.cs Namespace Not Replaced
 1377 9:32p ✅ Namespace Reorganization Fun.* → Change.* Completed
 S562 Fix Unity EditMode test assembly duplicate reference errors in Change.Runtime.EditModeTests.asmdef and Change.Framework.EditModeTests.asmdef (Apr 24 at 9:33 PM)
@@ -298,6 +280,25 @@ S571 Namespace Reorganization Exposed Internal Access Issues (Apr 24 at 9:46 PM)
 1414 " 🔴 Pool.cs Simplification Introduced Compiler Errors
 1415 11:18p 🔴 Pool.cs Naming Conflict Resolved - Tests Passing
 1416 " 🔄 Pool.cs Lease Tracking Simplified Using ConditionalWeakTable Marker Pattern
+1418 11:22p 🔴 StateMachine Re-entry Protection Committed to Repository
+1420 11:27p 🟣 Unity Timer 模块代码审查已启动
+1421 11:28p 🔵 Timer 模块实现完整的异步等待模式
+1422 " 🔵 TimerDriver 使用分层字典和待处理列表实现安全的迭代修改
+1423 " 🔵 Timer 模块支持缩放时间和非缩放时间两种模式
+1424 " 🔵 Timer 模块使用 RuntimeInitializeOnLoadMethod 确保场景切换时清理
+1425 " 🔵 Timer 模块通过 Callback 隔离确保日志系统异常不影响计时器
+1426 11:29p 🟣 Timer 模块新增行为约束测试用例
+1428 " 🔵 PlayMode 测试过滤器导致"无测试执行"
+1429 " 🔴 PlayMode asmdef 配置错误导致测试在 Editor 中不可执行
+1430 11:30p ✅ Unity Path Configured in AGENTS.md
+1431 11:31p ✅ Unity Executable Path Documented in AGENTS.md
+1432 " 🔵 Unity CLI Batchmode FSM EditMode Tests Pass
+1433 " 🟣 Timer PlayMode TDD Tests Expanded with Invalid Input and Error Isolation
+1437 11:32p 🔄 Timer 模块从单文件重构为多文件分离
+1438 " 🔴 Timer 模块新增参数校验和主线程保护
+1439 " 🔴 Timer 回调异常处理策略修正为停止触发
+1440 11:33p 🟣 Timer 模块代码审查与修复完成
+1446 11:34p 🟣 Timer 模块代码审查完成，仓库ahead of origin/main 3个提交
 
-Access 546k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 1304k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

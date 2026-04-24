@@ -84,5 +84,49 @@ namespace Change.Framework.Fsm.Tests
             }));
             Assert.That(fsm.CurrentStateId, Is.EqualTo(TestStateId.B));
         }
+
+        [Test]
+        public void Fire_InsideOnEnter_IsQueuedUntilOnEnterReturns()
+        {
+            var trace = new List<string>();
+            var fsm = new StateMachine<TestStateId, TestEvent>();
+
+            var stateA = new RecordingState(TestStateId.A)
+            {
+                OnEnterAction = _ =>
+                {
+                    trace.Add("Enter:A");
+                    fsm.Fire(TestEvent.Named("GoB"));
+                    trace.Add("Enter:A:AfterFire");
+                },
+                OnEventHandler = evt =>
+                {
+                    trace.Add($"OnEvent:{evt.Name}");
+                    return evt.Name == "GoB"
+                        ? FsmResult<TestStateId>.TransitionTo(TestStateId.B)
+                        : FsmResult<TestStateId>.Ignored();
+                },
+                OnExitAction = _ => trace.Add("Exit:A")
+            };
+            var stateB = new RecordingState(TestStateId.B)
+            {
+                OnEnterAction = _ => trace.Add("Enter:B")
+            };
+
+            fsm.Register(stateA);
+            fsm.Register(stateB);
+
+            fsm.Start(TestStateId.A);
+
+            Assert.That(trace, Is.EqualTo(new[]
+            {
+                "Enter:A",
+                "Enter:A:AfterFire",
+                "OnEvent:GoB",
+                "Exit:A",
+                "Enter:B"
+            }));
+            Assert.That(fsm.CurrentStateId, Is.EqualTo(TestStateId.B));
+        }
     }
 }

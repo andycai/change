@@ -36,6 +36,8 @@ namespace Change.Framework.Fsm.Tests
             Assert.That(ex.Message, Does.Contain("OnExit"));
             Assert.That(ex.Message, Does.Contain("A"));
             Assert.That(ex.Message, Does.Contain("B"));
+            Assert.That(ex.Message, Does.Contain("GoB"));
+            Assert.That(ex.Message, Does.Contain("sequence="));
             Assert.That(ex.InnerException, Is.Not.Null);
             Assert.That(ex.InnerException.Message, Is.EqualTo("exit crash"));
         }
@@ -61,6 +63,8 @@ namespace Change.Framework.Fsm.Tests
             Assert.That(ex.Message, Does.Contain("OnEnter"));
             Assert.That(ex.Message, Does.Contain("A"));
             Assert.That(ex.Message, Does.Contain("B"));
+            Assert.That(ex.Message, Does.Contain("GoB"));
+            Assert.That(ex.Message, Does.Contain("sequence="));
             Assert.That(ex.InnerException, Is.Not.Null);
             Assert.That(ex.InnerException.Message, Is.EqualTo("enter crash"));
         }
