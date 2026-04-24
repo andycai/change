@@ -1,0 +1,17 @@
+{
+    "name": "Change.Runtime.PlayModeTests",
+    "rootNamespace": "Change.Runtime",
+    "references": [
+        "Change.Runtime",
+        "UnityEngine.TestRunner"
+    ],
+    "optionalUnityReferences": [
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [
+        "WindowsStandalone",
+        "MacStandalone",
+        "LinuxStandalone"
+    ],
+    "excludePlatforms": []
+}

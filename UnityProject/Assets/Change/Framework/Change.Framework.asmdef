@@ -1,0 +1,8 @@
+{
+    "name": "Change.Framework",
+    "rootNamespace": "Change.Framework",
+    "references": [],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": []
+}

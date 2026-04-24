@@ -1,0 +1,10 @@
+{
+    "name": "Change.Runtime",
+    "rootNamespace": "Change.Runtime",
+    "references": [
+        "Change.Framework"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": []
+}

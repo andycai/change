@@ -1,0 +1,13 @@
+{
+    "name": "Change.Editor",
+    "rootNamespace": "Change.Editor",
+    "references": [
+        "Change.Framework",
+        "Change.Runtime"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

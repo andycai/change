@@ -1,0 +1,18 @@
+{
+    "name": "Change.Runtime.EditModeTests",
+    "rootNamespace": "Change.Runtime",
+    "references": [
+        "Change.Runtime",
+        "Change.Framework",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "optionalUnityReferences": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}
