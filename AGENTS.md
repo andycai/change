@@ -164,6 +164,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 *These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.*
 
+## Superpowers Worktree Rule
+
+- When running superpowers `subagent-driven-development` or `executing-plans`, always create a git worktree under `.worktrees/` and execute the workflow there.
+- Do not run these two superpowers workflows directly in the main workspace.
+
 ## Build & Tooling Notes
 
 - HybridCLR menu: `HybridCLR/CompileDll`, `GenerateAOTReference`, `GenerateLinkXml`, etc.
@@ -186,3 +191,89 @@ All design specs and implementation plans live under `docs/superpowers/`:
 - `plans/` - Detailed implementation plans
 
 When implementing framework modules, refer to the corresponding spec first. Specs define contracts, constraints, and acceptance criteria. Plans translate specs into implementation steps.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+
+<claude-mem-context>
+# Memory Context
+
+# [fun] recent context, 2026-04-24 5:30pm GMT+8
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 50 obs (11,040t read) | 915,054t work | 99% savings
+
+### Apr 23, 2026
+S60 Unity Timer System: Simplicity-First Architecture (Apr 23 at 10:55 PM)
+S63 Timer Implementation Plan Created with 5 Tasks (Apr 23 at 10:56 PM)
+S66 Unity Timer System: Implementation Planning (Apr 23 at 10:56 PM)
+S77 Unity Timer System: All 5 Tasks Complete (Apr 23 at 10:57 PM)
+S79 Unity 生产级定时器系统实现 - Simplicity-First 架构 (Apr 23 at 11:07 PM)
+S340 Fun.Framework Cqrs 代码审查启动 (Apr 23 at 11:07 PM)
+### Apr 24, 2026
+S341 Fun.Framework Cqrs 模块代码审查完成 (Apr 24 at 1:25 PM)
+S385 Unity .meta Files Git Commit Initiated (Apr 24 at 1:25 PM)
+S386 Fix graphify-out/ directory being generated inside UnityProject instead of only at project root (Apr 24 at 3:41 PM)
+S387 Commit missing Unity .meta files for Framework and Timer modules (Apr 24 at 3:42 PM)
+1233 4:17p 🟣 Fun Framework Logging System MVP Implemented via TDD
+1234 4:18p ✅ Fun Framework Logging MVP Task 3 Complete, Task 4 In Progress
+1238 4:20p ✅ Fun Framework README Documented Logging Module
+1239 " 🔵 Logging Regression Tests All Pass
+1241 4:22p ✅ Graphify Code Graph Refreshed with 35094 Nodes
+1242 " ✅ Fun Framework Logging MVP Documentation Committed
+1244 4:23p 🟣 Fun Framework Logging MVP Task 4 Documentation Complete
+1245 4:24p 🟣 Fun Framework Logging System MVP Implemented for Engine-Agnostic Use
+1246 " 🟣 Fun Framework Logging MVP Fully Verified - All 4 Tasks Complete
+1247 " ✅ Fun Framework Logging MVP Complete - Task 4 Documentation and Verification
+1251 4:28p 🔵 Graphify Manifest Contains Machine-Local PackageCache Entries
+1252 " ✅ Graphify Manifest Artifact Removed from Source Control
+1253 4:29p ✅ Graphify manifest.json Removed from Repository
+1258 4:30p ✅ Graphify Manifest Artifact Removed as Unstable
+1264 4:32p 🟣 Fun Framework Logging System MVP Implemented via TDD
+1265 " ⚖️ Fun Framework Logging CQRS Architecture Decision
+1266 " 🔵 Unity Batchmode Test Execution Requires EditorLock Workaround
+1267 " 🔵 Graphify Manifest.json Missing from Task 4 Deliverables
+1269 4:34p ✅ Task 4 Verification Passed After Manifest Fix
+1270 " 🟣 Fun Framework Logging MVP Complete - All Tasks Verified
+1271 4:35p 🔵 CQRS Migration Fail-First Compile Error Proof Captured
+1272 " 🟣 CQRS Logger Abstraction Migration Approved
+1273 4:36p 🔵 Graphify Manifest Structure Verified as Aligned with Graph Scope
+1274 4:37p 🟣 Engine-Agnostic Logging System Brainstorming Initiated
+1275 " ⚖️ Fun Framework Logging MVP Design Finalized with CQRS Infrastructure
+1276 " ⚖️ LogRouter Uses Register-Then-Freeze Lifecycle
+1277 " 🟣 Sink Exception Isolation Ensures Resilient Logging
+1278 " 🔵 Unity Batchmode Tests Require EditorLock Workaround
+1279 " 🔄 CqrsBus Migrated to Shared Framework Logger
+1280 " 🟣 Fun Framework Logging MVP Implemented via TDD
+1281 " ✅ Framework README Documented with Logging Module
+1282 4:38p 🟣 Fun Framework Logging MVP Final Verification Passed
+1283 " 🔵 Graph Manifest Verified with Consistent Metadata
+1284 " 🔵 CQRS Logger Types Fully Removed from Codebase
+1291 4:39p 🔵 All Framework Tests Pass - 73 Total Test Coverage
+1292 4:40p 🟣 Fun Framework Logging MVP Final Review READY
+1293 " 🟣 Fun Framework Logging Implementation Plan Complete
+1300 4:44p 🔄 Graphify Commits Squashed into Single Commit
+1304 4:45p 🟣 Fun Framework Logging Branch Merged into Main
+1305 4:46p 🔴 Orphaned .meta Files Remain After CQRS Logger Removal
+1307 4:59p ✅ feat/framework-logging Branch and Worktree Cleaned Up
+1309 5:01p ✅ Timer Module Committed: Runtime Hardening + PlayMode Test Suite
+1311 5:12p ⚖️ Fun Framework Logging MVP Design Finalized
+1313 5:14p 🟣 Fun.Runtime.Logging Sinks Implemented
+1314 5:15p 🟣 Fun.Runtime.Logging Module Created with Unity and File Sinks
+1315 " 🔵 Fun.Runtime.Logging Files Created on Main Branch
+1317 5:16p 🔵 Unity Editor Running with Current Project Open
+1318 5:17p ⚖️ Fun Framework Logging Uses Runtime Sink Injection Pattern
+1326 5:20p 🔵 Unity Batchmode Test Results XML Not Generated
+1327 5:21p 🔴 Fun.Runtime.Logging Tests All Passed
+
+Access 915k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>
