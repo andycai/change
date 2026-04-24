@@ -180,3 +180,93 @@ pool.Prewarm(128);
 var item = pool.Rent();
 pool.Return(item);
 ```
+
+## Pooling (`Fun.Framework.Pooling`)
+
+`Fun.Framework.Pooling` is the production static generic pool track for pure C# objects.
+It coexists with the legacy `Fun.Framework.Collections.ObjectPool<T>` implementation.
+
+Core contract:
+
+```csharp
+public interface IPoolable
+{
+    void Reset();
+}
+```
+
+Usage:
+
+```csharp
+using Fun.Framework.Pooling;
+
+public sealed class DamageEvent : IPoolable
+{
+    public int SourceId;
+    public int Value;
+
+    public void Reset()
+    {
+        SourceId = 0;
+        Value = 0;
+    }
+}
+
+Pool<DamageEvent>.SetMaxSize(256);
+Pool<DamageEvent>.Prewarm(64);
+
+var evt = Pool<DamageEvent>.Get();
+// use evt...
+Pool<DamageEvent>.Release(evt);
+```
+
+Notes:
+- `Pool<T>` requires `where T : class, IPoolable, new()`.
+- Pool miss auto-creates via `new T()`.
+- In Editor/Development builds, invalid release patterns fail fast with exceptions.
+- In release/non-dev builds, invalid releases are ignored to avoid corrupting pool state.
+- Existing `Fun.Framework.Collections.ObjectPool<T>` remains supported for compatibility.
+
+## Pooling (`Fun.Framework.Pooling`)
+
+`Fun.Framework.Pooling` is the production static generic pool track for pure C# objects.
+
+Core contract:
+
+```csharp
+public interface IPoolable
+{
+    void Reset();
+}
+```
+
+Usage:
+
+```csharp
+using Fun.Framework.Pooling;
+
+public sealed class DamageEvent : IPoolable
+{
+    public int SourceId;
+    public int Value;
+
+    public void Reset()
+    {
+        SourceId = 0;
+        Value = 0;
+    }
+}
+
+Pool<DamageEvent>.SetMaxSize(256);
+Pool<DamageEvent>.Prewarm(64);
+
+var evt = Pool<DamageEvent>.Get();
+// use evt...
+Pool<DamageEvent>.Release(evt);
+```
+
+Notes:
+- `Pool<T>` requires `where T : class, IPoolable, new()`.
+- Pool miss auto-creates via `new T()`.
+- In Editor/Development builds, invalid release patterns fail fast with exceptions.
+- Existing `Fun.Framework.Collections.ObjectPool<T>` remains supported for compatibility.
