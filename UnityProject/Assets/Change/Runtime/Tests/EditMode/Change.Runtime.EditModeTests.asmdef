@@ -3,9 +3,7 @@
     "rootNamespace": "Change.Runtime",
     "references": [
         "Change.Runtime",
-        "Change.Framework",
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "Change.Framework"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",

@@ -2,9 +2,7 @@
     "name": "Change.Framework.EditModeTests",
     "rootNamespace": "Change.Framework",
     "references": [
-        "Change.Framework",
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "Change.Framework"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",
