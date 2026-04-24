@@ -1,3 +1,4 @@
+using System;
 using Fun.Framework.Cqrs;
 using NUnit.Framework;
 
@@ -46,6 +47,54 @@ namespace Fun.Framework.Tests
             bus.Send(new IncrementCounterCommand(3));
 
             Assert.AreEqual(3, state.Value);
+        }
+
+        [Test]
+        public void Send_WithoutRegistration_ThrowsHandlerNotRegisteredException()
+        {
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<HandlerNotRegisteredException>(() => bus.Send(new IncrementCounterCommand(1)));
+        }
+
+        [Test]
+        public void RegisterCommand_DuplicateRegistration_ThrowsDuplicateRegistrationException()
+        {
+            var state = new CounterState();
+            var bus = new CqrsBus();
+
+            bus.RegisterCommand(new IncrementCounterHandler(state));
+
+            Assert.Throws<DuplicateRegistrationException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
+        }
+
+        [Test]
+        public void RegisterCommand_AfterFreeze_ThrowsRegistryFrozenException()
+        {
+            var state = new CounterState();
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<RegistryFrozenException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
+        }
+
+        [Test]
+        public void Send_BeforeFreeze_ThrowsInvalidOperationException()
+        {
+            var state = new CounterState();
+            var bus = new CqrsBus();
+            bus.RegisterCommand(new IncrementCounterHandler(state));
+
+            Assert.Throws<InvalidOperationException>(() => bus.Send(new IncrementCounterCommand(1)));
+        }
+
+        [Test]
+        public void RegisterCommand_NullHandler_ThrowsArgumentNullException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<ArgumentNullException>(() => bus.RegisterCommand<IncrementCounterCommand>(null));
         }
     }
 }

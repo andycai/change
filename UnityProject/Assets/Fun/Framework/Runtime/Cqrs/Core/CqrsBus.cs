@@ -5,29 +5,129 @@ namespace Fun.Framework.Cqrs
 {
     public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
     {
+        private const string CommandRegisteredMessage = "Registered command handler.";
+        private const string QueryRegisteredMessage = "Registered query handler.";
+        private const string EventSubscribedMessage = "Subscribed event handler.";
+
+        private readonly struct QueryKey : IEquatable<QueryKey>
+        {
+            public QueryKey(Type queryType, Type resultType)
+            {
+                QueryType = queryType;
+                ResultType = resultType;
+            }
+
+            public Type QueryType { get; }
+            public Type ResultType { get; }
+
+            public bool Equals(QueryKey other)
+            {
+                return QueryType == other.QueryType && ResultType == other.ResultType;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is QueryKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((QueryType != null ? QueryType.GetHashCode() : 0) * 397) ^
+                           (ResultType != null ? ResultType.GetHashCode() : 0);
+                }
+            }
+        }
+
         private readonly Dictionary<Type, object> _commandHandlers = new();
+        private readonly Dictionary<QueryKey, object> _queryHandlers = new();
+        private readonly Dictionary<Type, object> _eventHandlers = new();
+        private readonly ICqrsLogger _logger;
         private bool _isFrozen;
+
+        public CqrsBus()
+            : this(NullCqrsLogger.Instance)
+        {
+        }
+
+        public CqrsBus(ICqrsLogger logger)
+        {
+            _logger = logger ?? NullCqrsLogger.Instance;
+        }
 
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
             where TCommand : struct, ICommand
         {
             if (handler == null)
             {
-                throw new InvalidOperationException("Command handler cannot be null.");
+                throw new ArgumentNullException(nameof(handler));
             }
 
             if (_isFrozen)
             {
-                throw new InvalidOperationException("Registry is frozen.");
+                throw new RegistryFrozenException("Registry is frozen.");
             }
 
             var commandType = typeof(TCommand);
             if (_commandHandlers.ContainsKey(commandType))
             {
-                throw new InvalidOperationException($"Command handler already registered: {commandType.FullName}");
+                throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
             }
 
             _commandHandlers[commandType] = handler;
+            SafeInfo(CommandRegisteredMessage);
+        }
+
+        public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
+            where TQuery : struct, IQuery<TResult>
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            if (_isFrozen)
+            {
+                throw new RegistryFrozenException("Registry is frozen.");
+            }
+
+            var queryType = typeof(TQuery);
+            var resultType = typeof(TResult);
+            var queryKey = new QueryKey(queryType, resultType);
+            if (_queryHandlers.ContainsKey(queryKey))
+            {
+                throw new DuplicateRegistrationException(
+                    $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
+            }
+
+            _queryHandlers[queryKey] = handler;
+            SafeInfo(QueryRegisteredMessage);
+        }
+
+        public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            if (_isFrozen)
+            {
+                throw new RegistryFrozenException("Registry is frozen.");
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
+            {
+                boxedHandlers = new List<IEventHandler<TEvent>>();
+                _eventHandlers[eventType] = boxedHandlers;
+            }
+
+            var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            handlers.Add(handler);
+            SafeInfo(EventSubscribedMessage);
         }
 
         public void Freeze()
@@ -38,14 +138,72 @@ namespace Fun.Framework.Cqrs
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
+            if (!_isFrozen)
+            {
+                throw new InvalidOperationException("Registry must be frozen before dispatch.");
+            }
+
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryGetValue(commandType, out var boxedHandler))
             {
-                throw new InvalidOperationException($"Command handler not registered: {commandType.FullName}");
+                throw new HandlerNotRegisteredException($"Command handler not registered: {commandType.FullName}");
             }
 
             var handler = (ICommandHandler<TCommand>)boxedHandler;
             handler.Handle(in command);
+        }
+
+        public TResult Query<TQuery, TResult>(in TQuery query)
+            where TQuery : struct, IQuery<TResult>
+        {
+            if (!_isFrozen)
+            {
+                throw new InvalidOperationException("Registry must be frozen before dispatch.");
+            }
+
+            var queryType = typeof(TQuery);
+            var resultType = typeof(TResult);
+            var queryKey = new QueryKey(queryType, resultType);
+            if (!_queryHandlers.TryGetValue(queryKey, out var boxedHandler))
+            {
+                throw new HandlerNotRegisteredException(
+                    $"Query handler not registered: {queryType.FullName} -> {resultType.FullName}");
+            }
+
+            var handler = (IQueryHandler<TQuery, TResult>)boxedHandler;
+            return handler.Handle(in query);
+        }
+
+        public void Publish<TEvent>(in TEvent @event)
+            where TEvent : struct, IEvent
+        {
+            if (!_isFrozen)
+            {
+                throw new InvalidOperationException("Registry must be frozen before dispatch.");
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
+            {
+                return;
+            }
+
+            var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            for (var i = 0; i < handlers.Count; i++)
+            {
+                handlers[i].Handle(in @event);
+            }
+        }
+
+        private void SafeInfo(string message)
+        {
+            try
+            {
+                _logger.Info(message);
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 }
