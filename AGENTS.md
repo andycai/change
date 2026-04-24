@@ -171,6 +171,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - YooAsset: Use YooAsset editor window for asset collection and bundle building
 - FairyGUI: Use FairyGUI editor for UI editing; publish to Unity project
 - Luban: Configuration generation (to be set up)
+- Unity Test Framework (`com.unity.test-framework@1.1.33`) CLI runs: avoid `-quit` with `-runTests`, or command-line test args may not execute; run without `-quit` to generate XML results.
 
 ## Version Control
 
