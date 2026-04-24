@@ -7,12 +7,8 @@ namespace Fun.Framework.Pooling
     public static class Pool<T> where T : class, IPoolable, new()
     {
         private static readonly Stack<T> Inactive = new Stack<T>(PoolDefaults.DefaultMaxSize);
-        private static int s_maxSize = PoolDefaults.DefaultMaxSize;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private static readonly HashSet<T> Known = new HashSet<T>(ReferenceEqualityComparer<T>.Instance);
         private static readonly HashSet<T> Rented = new HashSet<T>(ReferenceEqualityComparer<T>.Instance);
-#endif
+        private static int s_maxSize = PoolDefaults.DefaultMaxSize;
 
         private static long s_created;
         private static long s_rented;
@@ -28,18 +24,13 @@ namespace Fun.Framework.Pooling
             if (Inactive.Count > 0)
             {
                 var reused = Inactive.Pop();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Rented.Add(reused);
-#endif
                 return reused;
             }
 
             s_created++;
             var created = new T();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Known.Add(created);
             Rented.Add(created);
-#endif
             return created;
         }
 
@@ -57,23 +48,17 @@ namespace Fun.Framework.Pooling
             }
 #endif
 
+            if (!Rented.Remove(item))
+            {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!Known.Contains(item))
-            {
-                throw new InvalidOperationException($"Cannot release unknown instance of {typeof(T).FullName}.");
-            }
-
-            if (!Rented.Contains(item))
-            {
-                throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not rented.");
-            }
+                throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not currently rented by this pool.");
+#else
+                return;
 #endif
+            }
 
             s_released++;
             item.Reset();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Rented.Remove(item);
-#endif
 
             if (Inactive.Count >= s_maxSize)
             {
@@ -97,9 +82,6 @@ namespace Fun.Framework.Pooling
                 s_created++;
                 var created = new T();
                 Inactive.Push(created);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Known.Add(created);
-#endif
             }
         }
 
