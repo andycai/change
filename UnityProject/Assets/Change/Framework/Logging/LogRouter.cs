@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Fun.Framework.Logging
+namespace Change.Framework.Logging
 {
     public sealed class LogRouter : ILogger
     {

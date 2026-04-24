@@ -1,6 +1,6 @@
 {
-  "name": "Fun.Framework.Tests",
-  "rootNamespace": "Fun.Framework.Tests",
+  "name": "Change.Framework.Tests",
+  "rootNamespace": "Change.Framework.Tests",
   "references": [
     "Fun.Framework"
   ],

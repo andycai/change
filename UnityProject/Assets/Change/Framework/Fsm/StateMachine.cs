@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Fun.Framework.Fsm
+namespace Change.Framework.Fsm
 {
     public sealed class StateMachine<TStateId, TEvent>
     {

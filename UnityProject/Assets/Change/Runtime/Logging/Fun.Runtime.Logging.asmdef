@@ -1,6 +1,6 @@
 {
-  "name": "Fun.Runtime.Logging",
-  "rootNamespace": "Fun.Runtime.Logging",
+  "name": "Change.Runtime.Logging",
+  "rootNamespace": "Change.Runtime.Logging",
   "references": [
     "Fun.Framework"
   ],

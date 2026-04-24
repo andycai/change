@@ -3,9 +3,9 @@ using System.Collections.Generic;
 #if !UNITY_EDITOR && !DEVELOPMENT_BUILD
 using System.Runtime.CompilerServices;
 #endif
-using Fun.Framework.Pooling.Internal;
+using Change.Framework.Pooling.Internal;
 
-namespace Fun.Framework.Pooling
+namespace Change.Framework.Pooling
 {
     public static class Pool<T> where T : class, IPoolable, new()
     {

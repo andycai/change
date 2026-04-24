@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Fun.Framework.Logging;
+using Change.Framework.Logging;
 
-namespace Fun.Framework.Cqrs
+namespace Change.Framework.Cqrs
 {
     public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
     {

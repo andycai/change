@@ -1,7 +1,7 @@
-using Fun.Framework.Logging;
+using Change.Framework.Logging;
 using UnityEngine;
 
-namespace Fun.Runtime.Logging
+namespace Change.Runtime.Logging
 {
     public sealed class UnityLogSink : ILogSink
     {

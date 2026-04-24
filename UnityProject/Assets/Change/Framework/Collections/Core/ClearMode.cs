@@ -1,4 +1,4 @@
-namespace Fun.Framework.Collections
+namespace Change.Framework.Collections
 {
     public enum ClearMode
     {

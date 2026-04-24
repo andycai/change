@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Fun.Framework.Collections
+namespace Change.Framework.Collections
 {
     public sealed class FastPriorityQueue<T> : IClearable
     {

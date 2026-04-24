@@ -1,4 +1,4 @@
-namespace Fun.Framework.Fsm
+namespace Change.Framework.Fsm
 {
     public readonly struct StateChange<TStateId, TEvent>
     {

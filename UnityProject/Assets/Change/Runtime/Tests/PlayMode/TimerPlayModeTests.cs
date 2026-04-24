@@ -5,7 +5,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace Fun.Runtime.Tests.PlayMode
+namespace Change.Runtime.Tests.PlayMode
 {
     public sealed class TimerPlayModeTests
     {
@@ -31,7 +31,7 @@ namespace Fun.Runtime.Tests.PlayMode
             var cts = new CancellationTokenSource();
             cts.Cancel();
 
-            TimerAwaiter awaiter = global::Fun.Runtime.Timer.DelayAsync(1f, cts.Token, true).GetAwaiter();
+            TimerAwaiter awaiter = global::Change.Runtime.Timer.DelayAsync(1f, cts.Token, true).GetAwaiter();
 
             Assert.IsTrue(awaiter.IsCompleted);
             var ex = CaptureGetResultException(awaiter);
@@ -42,7 +42,7 @@ namespace Fun.Runtime.Tests.PlayMode
         public IEnumerator DelayAsync_WhenCanceledWhileWaiting_ContinuationResumesAndGetResultThrowsOperationCanceledException()
         {
             var cts = new CancellationTokenSource();
-            TimerAwaiter awaiter = global::Fun.Runtime.Timer.DelayAsync(10f, cts.Token, true).GetAwaiter();
+            TimerAwaiter awaiter = global::Change.Runtime.Timer.DelayAsync(10f, cts.Token, true).GetAwaiter();
             bool resumed = false;
 
             awaiter.OnCompleted(() => resumed = true);
@@ -80,10 +80,10 @@ namespace Fun.Runtime.Tests.PlayMode
 
             try
             {
-                global::Fun.Runtime.Timer.Delay(0f, () =>
+                global::Change.Runtime.Timer.Delay(0f, () =>
                 {
                     firstTriggered = true;
-                    global::Fun.Runtime.Timer.Delay(0f, () => secondTriggered = true, CancellationToken.None, true);
+                    global::Change.Runtime.Timer.Delay(0f, () => secondTriggered = true, CancellationToken.None, true);
                 }, CancellationToken.None, true);
 
                 yield return WaitUntil(() => secondTriggered, 1f, "Nested delay callback was not executed.");
@@ -100,7 +100,7 @@ namespace Fun.Runtime.Tests.PlayMode
         [UnityTest]
         public IEnumerator Delay_WhenDriverCreated_IsMovedToDontDestroyOnLoadScene()
         {
-            var handle = global::Fun.Runtime.Timer.Delay(0.5f, () => { }, CancellationToken.None, true);
+            var handle = global::Change.Runtime.Timer.Delay(0.5f, () => { }, CancellationToken.None, true);
             try
             {
                 yield return null;
@@ -121,7 +121,7 @@ namespace Fun.Runtime.Tests.PlayMode
             Time.captureFramerate = 10;
 
             int invokeCount = 0;
-            var handle = global::Fun.Runtime.Timer.Repeat(0.15f, () => invokeCount++, CancellationToken.None, true);
+            var handle = global::Change.Runtime.Timer.Repeat(0.15f, () => invokeCount++, CancellationToken.None, true);
             try
             {
                 yield return null;
@@ -144,7 +144,7 @@ namespace Fun.Runtime.Tests.PlayMode
         public IEnumerator Repeat_WhenDisposed_StopsFurtherCallbacks()
         {
             int invokeCount = 0;
-            var handle = global::Fun.Runtime.Timer.Repeat(0f, () => invokeCount++, CancellationToken.None, true);
+            var handle = global::Change.Runtime.Timer.Repeat(0f, () => invokeCount++, CancellationToken.None, true);
 
             yield return WaitUntil(() => invokeCount > 0, 1f, "Repeat callback never invoked before dispose.");
 

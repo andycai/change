@@ -1,6 +1,6 @@
 using System;
 
-namespace Fun.Framework.Collections
+namespace Change.Framework.Collections
 {
     internal static class GrowPolicy
     {

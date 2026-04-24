@@ -1,4 +1,4 @@
-namespace Fun.Framework.Logging
+namespace Change.Framework.Logging
 {
     public interface ILogger
     {

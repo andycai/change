@@ -1,9 +1,9 @@
 {
-  "name": "Fun.Runtime.Logging.Tests",
-  "rootNamespace": "Fun.Runtime.Logging.Tests",
+  "name": "Change.Runtime.Logging.Tests",
+  "rootNamespace": "Change.Runtime.Logging.Tests",
   "references": [
     "Fun.Framework",
-    "Fun.Runtime.Logging"
+    "Change.Runtime.Logging"
   ],
   "includePlatforms": [
     "Editor"

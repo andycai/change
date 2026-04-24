@@ -1,6 +1,6 @@
 {
-  "name": "Fun.Framework.Fsm",
-  "rootNamespace": "Fun.Framework.Fsm",
+  "name": "Change.Framework.Fsm",
+  "rootNamespace": "Change.Framework.Fsm",
   "references": [],
   "includePlatforms": [],
   "excludePlatforms": [],

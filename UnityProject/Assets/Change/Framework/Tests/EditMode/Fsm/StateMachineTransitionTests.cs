@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace Fun.Framework.Fsm.Tests
+namespace Change.Framework.Fsm.Tests
 {
     public class StateMachineTransitionTests
     {

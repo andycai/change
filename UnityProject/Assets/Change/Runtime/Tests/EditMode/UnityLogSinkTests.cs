@@ -1,9 +1,9 @@
-using Fun.Framework.Logging;
+using Change.Framework.Logging;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace Fun.Runtime.Logging.Tests
+namespace Change.Runtime.Logging.Tests
 {
     public class UnityLogSinkTests
     {

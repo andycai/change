@@ -1,4 +1,4 @@
-namespace Fun.Framework.Cqrs
+namespace Change.Framework.Cqrs
 {
     public interface ICommandHandler<TCommand>
         where TCommand : struct, ICommand

@@ -1,4 +1,4 @@
-namespace Fun.Framework.Cqrs
+namespace Change.Framework.Cqrs
 {
     public interface IQueryHandler<TQuery, TResult>
         where TQuery : struct, IQuery<TResult>

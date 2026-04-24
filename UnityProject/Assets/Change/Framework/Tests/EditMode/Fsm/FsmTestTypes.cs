@@ -1,7 +1,7 @@
 using System;
-using Fun.Framework.Fsm;
+using Change.Framework.Fsm;
 
-namespace Fun.Framework.Fsm.Tests
+namespace Change.Framework.Fsm.Tests
 {
     internal enum TestStateId
     {

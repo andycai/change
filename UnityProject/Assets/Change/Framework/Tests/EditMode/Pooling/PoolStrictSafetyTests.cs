@@ -1,8 +1,8 @@
 using System;
-using Fun.Framework.Pooling;
+using Change.Framework.Pooling;
 using NUnit.Framework;
 
-namespace Fun.Framework.Tests.Pooling
+namespace Change.Framework.Tests.Pooling
 {
     public class PoolStrictSafetyTests
     {

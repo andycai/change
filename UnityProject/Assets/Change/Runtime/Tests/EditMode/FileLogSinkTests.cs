@@ -1,9 +1,9 @@
 using System;
 using System.IO;
-using Fun.Framework.Logging;
+using Change.Framework.Logging;
 using NUnit.Framework;
 
-namespace Fun.Runtime.Logging.Tests
+namespace Change.Runtime.Logging.Tests
 {
     public class FileLogSinkTests
     {

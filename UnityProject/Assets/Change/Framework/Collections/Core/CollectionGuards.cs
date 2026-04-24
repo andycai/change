@@ -1,9 +1,9 @@
 using System;
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Fun.Framework.Tests")]
+[assembly: InternalsVisibleTo("Change.Framework.Tests")]
 
-namespace Fun.Framework.Collections
+namespace Change.Framework.Collections
 {
     internal static class CollectionGuards
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Fun.Framework.Collections
+namespace Change.Framework.Collections
 {
     public sealed class ObjectPool<T> where T : class
     {

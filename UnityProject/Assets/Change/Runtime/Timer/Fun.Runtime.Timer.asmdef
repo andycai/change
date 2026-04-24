@@ -1,5 +1,5 @@
 {
-  "name": "Fun.Runtime.Timer",
+  "name": "Change.Runtime.Timer",
   "rootNamespace": "Fun.Runtime",
   "references": [],
   "includePlatforms": [],

@@ -1,8 +1,8 @@
 using System;
-using Fun.Framework.Cqrs;
+using Change.Framework.Cqrs;
 using NUnit.Framework;
 
-namespace Fun.Framework.Tests
+namespace Change.Framework.Tests
 {
     public class QueryDispatchTests
     {

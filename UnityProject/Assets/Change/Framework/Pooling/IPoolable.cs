@@ -1,4 +1,4 @@
-namespace Fun.Framework.Pooling
+namespace Change.Framework.Pooling
 {
     public interface IPoolable
     {

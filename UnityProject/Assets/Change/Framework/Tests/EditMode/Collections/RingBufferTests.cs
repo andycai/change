@@ -1,7 +1,7 @@
-using Fun.Framework.Collections;
+using Change.Framework.Collections;
 using NUnit.Framework;
 
-namespace Fun.Framework.Tests.Collections
+namespace Change.Framework.Tests.Collections
 {
     public class RingBufferTests
     {

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Fun.Framework.Pooling.Internal
+namespace Change.Framework.Pooling.Internal
 {
     internal sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
     {

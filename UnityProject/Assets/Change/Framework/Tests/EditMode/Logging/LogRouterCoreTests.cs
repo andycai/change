@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Fun.Framework.Logging;
+using Change.Framework.Logging;
 using NUnit.Framework;
 
-namespace Fun.Framework.Tests.Logging
+namespace Change.Framework.Tests.Logging
 {
     public class LogRouterCoreTests
     {

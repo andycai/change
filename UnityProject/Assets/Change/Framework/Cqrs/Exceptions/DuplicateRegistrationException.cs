@@ -1,6 +1,6 @@
 using System;
 
-namespace Fun.Framework.Cqrs
+namespace Change.Framework.Cqrs
 {
     public sealed class DuplicateRegistrationException : InvalidOperationException
     {

@@ -1,8 +1,8 @@
 {
-  "name": "Fun.Runtime.Timer.PlayModeTests",
-  "rootNamespace": "Fun.Runtime.Tests.PlayMode",
+  "name": "Change.Runtime.Timer.PlayModeTests",
+  "rootNamespace": "Change.Runtime.Tests.PlayMode",
   "references": [
-    "Fun.Runtime.Timer"
+    "Change.Runtime.Timer"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

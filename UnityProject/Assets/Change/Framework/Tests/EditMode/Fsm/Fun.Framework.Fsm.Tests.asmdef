@@ -1,8 +1,8 @@
 {
-  "name": "Fun.Framework.Fsm.Tests",
-  "rootNamespace": "Fun.Framework.Fsm.Tests",
+  "name": "Change.Framework.Fsm.Tests",
+  "rootNamespace": "Change.Framework.Fsm.Tests",
   "references": [
-    "Fun.Framework.Fsm"
+    "Change.Framework.Fsm"
   ],
   "includePlatforms": [
     "Editor"

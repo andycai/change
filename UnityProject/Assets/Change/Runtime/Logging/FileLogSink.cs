@@ -1,9 +1,9 @@
 using System;
 using System.Globalization;
 using System.IO;
-using Fun.Framework.Logging;
+using Change.Framework.Logging;
 
-namespace Fun.Runtime.Logging
+namespace Change.Runtime.Logging
 {
     public sealed class FileLogSink : ILogSink, IDisposable
     {

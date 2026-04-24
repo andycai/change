@@ -1,4 +1,4 @@
-namespace Fun.Framework.Fsm
+namespace Change.Framework.Fsm
 {
     public interface IFsmState<TStateId, TEvent>
     {
