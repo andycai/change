@@ -9,7 +9,7 @@ namespace Change.Runtime.Tests.PlayMode
 {
     public sealed class TimerPlayModeTests
     {
-        private const string DriverGameObjectName = "[Fun.Timer]";
+        private const string DriverGameObjectName = "[Change.Timer]";
 
         [UnityTearDown]
         public IEnumerator TearDown()

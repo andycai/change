@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using UnityEngine;
 
-namespace Fun.Runtime
+namespace Change.Runtime
 {
     internal enum TimerKind { Delay, Repeat, Frame }
 
@@ -198,10 +198,10 @@ namespace Fun.Runtime
             if (_gameObject != null) return;
             if (!Application.isPlaying)
             {
-                throw new InvalidOperationException("[Fun.Timer] Timer can only be used in Play Mode.");
+                throw new InvalidOperationException("[Change.Timer] Timer can only be used in Play Mode.");
             }
 
-            _gameObject = new GameObject("[Fun.Timer]");
+            _gameObject = new GameObject("[Change.Timer]");
             _gameObject.hideFlags = HideFlags.HideInHierarchy;
             UnityEngine.Object.DontDestroyOnLoad(_gameObject);
             _gameObject.AddComponent<Driver>();
@@ -344,7 +344,7 @@ namespace Fun.Runtime
                             }
                             catch (Exception ex)
                             {
-                                Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
+                                Debug.LogWarning($"[Change.Timer] Callback threw: {ex.Message}");
                             }
 
                             if (entry.cts.IsCancellationRequested)
@@ -366,7 +366,7 @@ namespace Fun.Runtime
                             }
                             catch (Exception ex)
                             {
-                                Debug.LogWarning($"[Fun.Timer] Callback threw: {ex.Message}");
+                                Debug.LogWarning($"[Change.Timer] Callback threw: {ex.Message}");
                             }
 
                             if (entry.kind == TimerKind.Delay)
