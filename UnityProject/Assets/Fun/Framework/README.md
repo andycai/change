@@ -4,8 +4,9 @@
 
 `Fun/Framework` hosts business-agnostic runtime infrastructure shared by AOT and hot-update code.
 
-Current runtime module in this directory:
+Current runtime modules in this directory:
 - `Runtime/Cqrs`: synchronous CQRS bus with explicit registration and fail-fast dispatch.
+- `Runtime/Collections`: pure-managed high-performance containers for hot-path gameplay loops.
 
 Design goals:
 - no reflection-based runtime auto-scan
@@ -123,3 +124,59 @@ Framework CQRS fails fast with explicit exception types:
 - `ArgumentNullException`: null handler passed to `RegisterCommand`/`RegisterQuery`/`Subscribe`
 
 `Publish` with no subscribers is a no-op (no exception).
+
+## Collections (`Fun.Framework.Collections`)
+
+### Available containers
+
+- `FastList<T>`
+- `FastDictionary<TKey, TValue>`
+- `FastHashSet<T>`
+- `RingBuffer<T>`
+- `FastPriorityQueue<T>`
+- `ObjectPool<T>`
+
+### 0GC contract
+
+1. Pre-size via constructor capacity (or `EnsureCapacity` where available) before entering hot paths.
+2. Prefer `NoResize` APIs in gameplay loops (`AddNoResize`, `TryAddNoResize`, `EnqueueNoResize`).
+3. Treat capacity overflow as a configuration/programming error and fix sizing up-front.
+4. Reuse memory with `Clear(ClearMode.Logical)` and object pooling.
+
+### Usage samples
+
+FastList hot loop:
+
+```csharp
+var list = new FastList<int>(1024);
+for (var i = 0; i < 1024; i++)
+{
+    list.AddNoResize(i);
+}
+list.Clear(ClearMode.Logical);
+```
+
+FastDictionary lookup loop:
+
+```csharp
+var map = new FastDictionary<int, int>(2048);
+for (var i = 0; i < 1024; i++)
+{
+    map.TryAddNoResize(i, i);
+}
+
+for (var i = 0; i < 1024; i++)
+{
+    map.TryGetValue(i, out _);
+}
+```
+
+ObjectPool reuse:
+
+```csharp
+var pool = new ObjectPool<MyReusable>(() => new MyReusable(), 256);
+pool.Prewarm(128);
+
+var item = pool.Rent();
+pool.Return(item);
+```
