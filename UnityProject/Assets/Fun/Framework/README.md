@@ -7,6 +7,7 @@
 Current runtime modules in this directory:
 - `Runtime/Cqrs`: synchronous CQRS bus with explicit registration and fail-fast dispatch.
 - `Runtime/Collections`: pure-managed high-performance containers for hot-path gameplay loops.
+- `Runtime/Pooling`: static generic object pooling for pure C# reusable objects.
 
 Design goals:
 - no reflection-based runtime auto-scan
@@ -183,7 +184,7 @@ pool.Return(item);
 
 ## Pooling (`Fun.Framework.Pooling`)
 
-`Fun.Framework.Pooling` is the production static generic pool track for pure C# objects.
+`Fun.Framework.Pooling` is the production static generic pool implementation for pure C# objects.
 It coexists with the legacy `Fun.Framework.Collections.ObjectPool<T>` implementation.
 
 Core contract:
