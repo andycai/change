@@ -5,3 +5,10 @@ worktrees/
 # Unity test artifacts
 UnityProject/TestResults/
 UnityProject/TestResutls/
+
+# Graphify artifacts
+.graphify_scope/
+.graphify_chunks.json
+.graphify_python
+graphify-out/
+**/graphify-out/
