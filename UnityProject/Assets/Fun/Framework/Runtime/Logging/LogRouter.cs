@@ -72,7 +72,13 @@ namespace Fun.Framework.Logging
                     continue;
                 }
 
-                registration.Sink.Write(level, normalizedMessage);
+                try
+                {
+                    registration.Sink.Write(level, normalizedMessage);
+                }
+                catch (Exception)
+                {
+                }
             }
         }
     }
