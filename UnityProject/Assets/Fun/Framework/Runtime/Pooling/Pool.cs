@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+using System.Runtime.CompilerServices;
+#endif
 using Fun.Framework.Pooling.Internal;
 
 namespace Fun.Framework.Pooling
@@ -7,7 +10,11 @@ namespace Fun.Framework.Pooling
     public static class Pool<T> where T : class, IPoolable, new()
     {
         private static readonly Stack<T> Inactive = new Stack<T>(PoolDefaults.DefaultMaxSize);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private static readonly HashSet<T> Rented = new HashSet<T>(ReferenceEqualityComparer<T>.Instance);
+#else
+        private static readonly ConditionalWeakTable<T, LeaseState> LeaseStates = new ConditionalWeakTable<T, LeaseState>();
+#endif
         private static int s_maxSize = PoolDefaults.DefaultMaxSize;
 
         private static long s_created;
@@ -24,13 +31,13 @@ namespace Fun.Framework.Pooling
             if (Inactive.Count > 0)
             {
                 var reused = Inactive.Pop();
-                Rented.Add(reused);
+                MarkRented(reused);
                 return reused;
             }
 
             s_created++;
             var created = new T();
-            Rented.Add(created);
+            MarkRented(created);
             return created;
         }
 
@@ -48,14 +55,17 @@ namespace Fun.Framework.Pooling
             }
 #endif
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!Rented.Remove(item))
             {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not currently rented by this pool.");
-#else
-                return;
-#endif
             }
+#else
+            if (!TryMarkReleased(item))
+            {
+                return;
+            }
+#endif
 
             s_released++;
             item.Reset();
@@ -108,5 +118,39 @@ namespace Fun.Framework.Pooling
         {
             return new PoolStats(s_created, s_rented, s_released, s_dropped, s_maxSize, Inactive.Count);
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private static void MarkRented(T item)
+        {
+            Rented.Add(item);
+        }
+#else
+        private sealed class LeaseState
+        {
+            public bool IsRented;
+        }
+
+        private static void MarkRented(T item)
+        {
+            if (!LeaseStates.TryGetValue(item, out var state))
+            {
+                state = new LeaseState();
+                LeaseStates.Add(item, state);
+            }
+
+            state.IsRented = true;
+        }
+
+        private static bool TryMarkReleased(T item)
+        {
+            if (!LeaseStates.TryGetValue(item, out var state) || !state.IsRented)
+            {
+                return false;
+            }
+
+            state.IsRented = false;
+            return true;
+        }
+#endif
     }
 }
