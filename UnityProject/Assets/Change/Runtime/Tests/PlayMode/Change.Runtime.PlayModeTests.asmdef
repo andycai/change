@@ -2,8 +2,7 @@
     "name": "Change.Runtime.PlayModeTests",
     "rootNamespace": "Change.Runtime",
     "references": [
-        "Change.Runtime",
-        "UnityEngine.TestRunner"
+        "Change.Runtime"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner"
