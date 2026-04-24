@@ -6,8 +6,10 @@ namespace Change.Framework.Pooling
 {
     public static class Pool<T> where T : class, IPoolable, new()
     {
+        // Not thread-safe; pool operations are expected on a single thread.
         private static readonly Stack<T> Inactive = new Stack<T>(PoolDefaults.DefaultMaxSize);
-        private static ConditionalWeakTable<T, LeaseState> s_leaseStates = new ConditionalWeakTable<T, LeaseState>();
+        private static readonly object s_rentedMarker = new object();
+        private static ConditionalWeakTable<T, object> s_rentedItems = new ConditionalWeakTable<T, object>();
         private static int s_maxSize = PoolDefaults.DefaultMaxSize;
 
         private static long s_created;
@@ -106,7 +108,7 @@ namespace Change.Framework.Pooling
         public static void Clear()
         {
             Inactive.Clear();
-            s_leaseStates = new ConditionalWeakTable<T, LeaseState>();
+            s_rentedItems = new ConditionalWeakTable<T, object>();
         }
 
         public static PoolStats GetStats()
@@ -114,38 +116,23 @@ namespace Change.Framework.Pooling
             return new PoolStats(s_created, s_rented, s_released, s_dropped, s_maxSize, Inactive.Count);
         }
 
-        private sealed class LeaseState
-        {
-            public bool IsRented;
-        }
-
         private static void MarkRented(T item)
         {
-            if (!s_leaseStates.TryGetValue(item, out var state))
+            if (s_rentedItems.TryGetValue(item, out _))
             {
-                state = new LeaseState();
-                s_leaseStates.Add(item, state);
-            }
-
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (state.IsRented)
-            {
                 throw new InvalidOperationException($"Cannot rent instance of {typeof(T).FullName} because it is already marked as rented.");
-            }
+#else
+                return;
 #endif
+            }
 
-            state.IsRented = true;
+            s_rentedItems.Add(item, s_rentedMarker);
         }
 
         private static bool TryMarkReleased(T item)
         {
-            if (!s_leaseStates.TryGetValue(item, out var state) || !state.IsRented)
-            {
-                return false;
-            }
-
-            state.IsRented = false;
-            return true;
+            return s_rentedItems.Remove(item);
         }
     }
 }
