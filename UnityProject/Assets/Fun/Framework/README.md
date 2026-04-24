@@ -8,6 +8,7 @@ Current runtime modules in this directory:
 - `Runtime/Cqrs`: synchronous CQRS bus with explicit registration and fail-fast dispatch.
 - `Runtime/Collections`: pure-managed high-performance containers for hot-path gameplay loops.
 - `Runtime/Pooling`: static generic object pooling for pure C# reusable objects.
+- `Runtime/Logging`: engine-agnostic logger abstraction and multi-sink routing.
 
 Design goals:
 - no reflection-based runtime auto-scan
@@ -41,7 +42,32 @@ Lifecycle rule:
 - duplicate command/query registration is forbidden
 - registration APIs are unavailable after `Freeze()`
 - dispatch is synchronous; no async/await in CQRS core
-- `CqrsBus` supports optional logger injection via `new CqrsBus(ICqrsLogger logger)`
+- `CqrsBus` supports optional logger injection via `new CqrsBus(ILogger logger)`
+
+## Logging (`Fun.Framework.Logging`)
+
+Core types:
+- `ILogger`
+- `ILogSink`
+- `LogRouter`
+- `NullLogger`
+- `LogLevel` (`Debug`, `Info`, `Warn`, `Error`)
+
+Usage:
+
+```csharp
+using Fun.Framework.Logging;
+
+var router = new LogRouter();
+router.AddSink(new MyRuntimeSink(), LogLevel.Info);
+router.AddSink(new MyErrorSink(), LogLevel.Error);
+router.Freeze();
+
+ILogger logger = router;
+logger.Info("bootstrap complete");
+```
+
+`MyRuntimeSink` / `MyErrorSink` are runtime adapter implementations outside `Fun.Framework` core.
 
 ## Bootstrap example
 
