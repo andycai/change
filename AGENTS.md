@@ -1,8 +1,8 @@
-# Fun - Unity Game Project
+# Change (嫦娥) - Unity Game Project
 
 ## Project Overview
 
-Fun is a Unity mobile game project built with a hot-update architecture centered on HybridCLR. The project follows a layered framework design pattern with business-agnostic reusable infrastructure under `Fun/Framework`.
+Change is a Unity mobile game project built with a hot-update architecture centered on HybridCLR. The project follows a layered framework design pattern with business-agnostic reusable infrastructure under `Change/Framework`.
 
 ## Tech Stack
 
@@ -28,18 +28,28 @@ fun/
 ├── docs/
 │   └── superpowers/
 │       ├── specs/               # Design specifications
-│       │   ├── *-fsm-design.md
-│       │   ├── *-cqrs-design.md
-│       │   └── *-high-performance-collections-design.md
+│       │   └── *-change-directory-structure-design.md
 │       └── plans/               # Implementation plans
-│           ├── *-fsm-implementation.md
-│           └── *-cqrs.md
+│           └── *-change-directory-structure-plan.md
 └── UnityProject/                # Unity project root
     ├── Assets/
-    │   ├── Fun/                 # Main game code
-    │   │   ├── Framework/       # Business-agnostic framework (FSM, CQRS, etc.)
-    │   │   ├── Runtime/         # Game runtime code
-    │   │   └── Editor/          # Editor tools & extensions
+    │   ├── Change/              # Main game code
+    │   │   ├── Editor/          # Editor tools & extensions (Change.Editor)
+    │   │   ├── Framework/       # Business-agnostic framework (Change.Framework)
+    │   │   │   ├── Cqrs/        # CQRS module
+    │   │   │   ├── Pooling/     # Object pooling module
+    │   │   │   ├── Collections/ # High-performance collections module
+    │   │   │   ├── Fsm/         # Finite state machine module
+    │   │   │   ├── Logging/     # Logging abstractions (ILogSink, LogRouter)
+    │   │   │   ├── AssemblyInfo.cs  # InternalsVisibleTo for test assemblies
+    │   │   │   └── Tests/EditMode/  # Framework EditMode tests
+    │   │   └── Runtime/         # Game runtime code (Change.Runtime)
+    │   │       ├── Timer/       # Timer module
+    │   │       ├── Logging/     # Logging implementations (UnitySink, FileSink)
+    │   │       ├── AssemblyInfo.cs  # InternalsVisibleTo for test assemblies
+    │   │       └── Tests/       # Runtime tests
+    │   │           ├── EditMode/    # Runtime EditMode tests
+    │   │           └── PlayMode/    # Runtime PlayMode tests
     │   ├── GameScript/          # Game scripts (hot-update assembly)
     │   ├── Resources/           # Unity Resources folder
     │   └── Samples/             # Package samples (gitignored)
@@ -54,9 +64,9 @@ fun/
 
 ## Architecture & Design Conventions
 
-### Framework Layer (`Fun/Framework`)
+### Framework Layer (`Change/Framework`)
 
-Business-agnostic reusable infrastructure. Key principles:
+Business-agnostic reusable infrastructure (engine-agnostic, usable in any C# environment). Key principles:
 
 1. **Zero external dependencies** - Framework code must not depend on third-party libraries.
 2. **Business-agnostic** - No domain coupling; framework never depends on business assemblies.
@@ -68,9 +78,24 @@ Business-agnostic reusable infrastructure. Key principles:
 
 ### Designed Framework Modules
 
-- **FSM** (`Fun/Framework/Fsm`) - Event-driven finite state machine with `IFsmState<TStateId, TEvent>`, single active state, FIFO event queue, serial processing. Spec: `docs/superpowers/specs/*-fsm-design.md`
-- **CQRS** (`Fun/Framework/Cqrs`) - Command/Query/Responsibility Segregation with struct messages, class handlers, generic strongly typed dispatch. Spec: `docs/superpowers/specs/*-cqrs-design.md`
-- **High-Performance Collections** - Spec: `docs/superpowers/specs/*-high-performance-collections-design.md`
+- **FSM** (`Change/Framework/Fsm`) - Event-driven finite state machine with `IFsmState<TStateId, TEvent>`, single active state, FIFO event queue, serial processing.
+- **CQRS** (`Change/Framework/Cqrs`) - Command/Query/Responsibility Segregation with struct messages, class handlers, generic strongly typed dispatch.
+- **High-Performance Collections** (`Change/Framework/Collections`) - FastDictionary, FastList, FastHashSet, RingBuffer, FastPriorityQueue.
+- **Pooling** (`Change/Framework/Pooling`) - Object pooling with zero-GC dispatch paths.
+- **Logging** (`Change/Framework/Logging`) - Engine-agnostic logging abstractions (ILogger, ILogSink, LogRouter). Concrete sinks (UnitySink, FileSink) live in `Change/Runtime/Logging`.
+
+### Assembly Definitions
+
+6 assemblies total:
+
+| Assembly | Platform | Purpose |
+|----------|----------|---------|
+| `Change.Framework` | Any | Engine-agnostic framework |
+| `Change.Framework.EditModeTests` | Editor | Framework tests |
+| `Change.Runtime` | Any | Runtime code (depends on Framework) |
+| `Change.Runtime.EditModeTests` | Editor | Runtime EditMode tests |
+| `Change.Runtime.PlayModeTests` | Standalone | Runtime PlayMode tests |
+| `Change.Editor` | Editor | Editor tools & extensions |
 
 ### Hot-Update Architecture (HybridCLR)
 
@@ -95,8 +120,8 @@ Business-agnostic reusable infrastructure. Key principles:
 ## Coding Conventions
 
 - **Language**: C# targeting .NET Standard 2.1 compatible with Unity 2022.3
-- **Assembly definitions**: Use `.asmdef` files; framework assemblies under `Fun/Framework/`
-- **Namespace convention**: `Fun.Framework.{Module}` for framework code
+- **Assembly definitions**: 6 assemblies (see table above); `InternalsVisibleTo` declared in `AssemblyInfo.cs` for test access
+- **Namespace convention**: Single root namespace per assembly — `Change.Framework`, `Change.Runtime`, `Change.Editor`
 - **Generic constraints**: Use `where T : struct` for message types to enforce value-type semantics
 - **`in` keyword**: Use `in` parameters for struct passing to avoid copy overhead
 - **No reflection on hot paths**: Generic strongly-typed dispatch only; no `object`-based or reflection-based dispatch at runtime
@@ -204,76 +229,75 @@ Rules:
 <claude-mem-context>
 # Memory Context
 
-# [fun] recent context, 2026-04-24 5:30pm GMT+8
+# [fun] recent context, 2026-04-24 11:22pm GMT+8
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (11,040t read) | 915,054t work | 99% savings
+Stats: 50 obs (10,008t read) | 545,658t work | 98% savings
 
-### Apr 23, 2026
-S60 Unity Timer System: Simplicity-First Architecture (Apr 23 at 10:55 PM)
-S63 Timer Implementation Plan Created with 5 Tasks (Apr 23 at 10:56 PM)
-S66 Unity Timer System: Implementation Planning (Apr 23 at 10:56 PM)
-S77 Unity Timer System: All 5 Tasks Complete (Apr 23 at 10:57 PM)
-S79 Unity 生产级定时器系统实现 - Simplicity-First 架构 (Apr 23 at 11:07 PM)
-S340 Fun.Framework Cqrs 代码审查启动 (Apr 23 at 11:07 PM)
 ### Apr 24, 2026
-S341 Fun.Framework Cqrs 模块代码审查完成 (Apr 24 at 1:25 PM)
-S385 Unity .meta Files Git Commit Initiated (Apr 24 at 1:25 PM)
-S386 Fix graphify-out/ directory being generated inside UnityProject instead of only at project root (Apr 24 at 3:41 PM)
-S387 Commit missing Unity .meta files for Framework and Timer modules (Apr 24 at 3:42 PM)
-1233 4:17p 🟣 Fun Framework Logging System MVP Implemented via TDD
-1234 4:18p ✅ Fun Framework Logging MVP Task 3 Complete, Task 4 In Progress
-1238 4:20p ✅ Fun Framework README Documented Logging Module
-1239 " 🔵 Logging Regression Tests All Pass
-1241 4:22p ✅ Graphify Code Graph Refreshed with 35094 Nodes
-1242 " ✅ Fun Framework Logging MVP Documentation Committed
-1244 4:23p 🟣 Fun Framework Logging MVP Task 4 Documentation Complete
-1245 4:24p 🟣 Fun Framework Logging System MVP Implemented for Engine-Agnostic Use
-1246 " 🟣 Fun Framework Logging MVP Fully Verified - All 4 Tasks Complete
-1247 " ✅ Fun Framework Logging MVP Complete - Task 4 Documentation and Verification
-1251 4:28p 🔵 Graphify Manifest Contains Machine-Local PackageCache Entries
-1252 " ✅ Graphify Manifest Artifact Removed from Source Control
-1253 4:29p ✅ Graphify manifest.json Removed from Repository
-1258 4:30p ✅ Graphify Manifest Artifact Removed as Unstable
-1264 4:32p 🟣 Fun Framework Logging System MVP Implemented via TDD
-1265 " ⚖️ Fun Framework Logging CQRS Architecture Decision
-1266 " 🔵 Unity Batchmode Test Execution Requires EditorLock Workaround
-1267 " 🔵 Graphify Manifest.json Missing from Task 4 Deliverables
-1269 4:34p ✅ Task 4 Verification Passed After Manifest Fix
-1270 " 🟣 Fun Framework Logging MVP Complete - All Tasks Verified
-1271 4:35p 🔵 CQRS Migration Fail-First Compile Error Proof Captured
-1272 " 🟣 CQRS Logger Abstraction Migration Approved
-1273 4:36p 🔵 Graphify Manifest Structure Verified as Aligned with Graph Scope
-1274 4:37p 🟣 Engine-Agnostic Logging System Brainstorming Initiated
-1275 " ⚖️ Fun Framework Logging MVP Design Finalized with CQRS Infrastructure
-1276 " ⚖️ LogRouter Uses Register-Then-Freeze Lifecycle
-1277 " 🟣 Sink Exception Isolation Ensures Resilient Logging
-1278 " 🔵 Unity Batchmode Tests Require EditorLock Workaround
-1279 " 🔄 CqrsBus Migrated to Shared Framework Logger
-1280 " 🟣 Fun Framework Logging MVP Implemented via TDD
-1281 " ✅ Framework README Documented with Logging Module
-1282 4:38p 🟣 Fun Framework Logging MVP Final Verification Passed
-1283 " 🔵 Graph Manifest Verified with Consistent Metadata
-1284 " 🔵 CQRS Logger Types Fully Removed from Codebase
-1291 4:39p 🔵 All Framework Tests Pass - 73 Total Test Coverage
-1292 4:40p 🟣 Fun Framework Logging MVP Final Review READY
-1293 " 🟣 Fun Framework Logging Implementation Plan Complete
-1300 4:44p 🔄 Graphify Commits Squashed into Single Commit
-1304 4:45p 🟣 Fun Framework Logging Branch Merged into Main
-1305 4:46p 🔴 Orphaned .meta Files Remain After CQRS Logger Removal
-1307 4:59p ✅ feat/framework-logging Branch and Worktree Cleaned Up
-1309 5:01p ✅ Timer Module Committed: Runtime Hardening + PlayMode Test Suite
-1311 5:12p ⚖️ Fun Framework Logging MVP Design Finalized
-1313 5:14p 🟣 Fun.Runtime.Logging Sinks Implemented
-1314 5:15p 🟣 Fun.Runtime.Logging Module Created with Unity and File Sinks
-1315 " 🔵 Fun.Runtime.Logging Files Created on Main Branch
-1317 5:16p 🔵 Unity Editor Running with Current Project Open
-1318 5:17p ⚖️ Fun Framework Logging Uses Runtime Sink Injection Pattern
-1326 5:20p 🔵 Unity Batchmode Test Results XML Not Generated
-1327 5:21p 🔴 Fun.Runtime.Logging Tests All Passed
+1336 6:13p ⚖️ Runtime Logging Required with Unity and File Sinks
+S488 Editor Code Needs Emerging for Fun Framework (Apr 24 at 6:13 PM)
+1337 6:15p 🔵 Editor Code Needs Emerging for Fun Framework
+S489 Runtime Test Directory Structure Unification Decision (Apr 24 at 6:15 PM)
+1338 6:20p ⚖️ Runtime Test Directory Structure Unification Decision
+1339 " ⚖️ Unified Namespace Architecture Decision
+S490 EditMode Test Assembly Naming Standardized (Apr 24 at 6:20 PM)
+1340 6:22p ✅ EditMode Test Assembly Naming Standardized
+S493 Change Directory Structure Implementation Plan Created (Apr 24 at 6:22 PM)
+S559 Namespace reorganization Fun.* → Change.* for Unity framework (Apr 24 at 6:27 PM)
+1345 6:29p 🟣 Change Namespace Directory Reorganization Initiated
+1346 6:31p 🔄 Framework Modules Migrated to Change Namespace
+1347 6:32p 🔄 Framework Source Files Moved, Tests Remaining
+1348 " 🔄 Framework Modules Committed to Git (Commit 91b5cad)
+1349 6:36p 🔄 Runtime Modules Moved to Change Namespace
+1350 6:37p 🔄 Runtime Modules Committed (Commit 18b7679)
+1351 6:38p 🔄 Runtime Module Migration Verified Complete
+1353 6:39p 🔄 Test File Reorganization (Task 4) In Progress
+1354 " 🔄 Test Files Reorganized to Centralized Structure
+1355 6:40p 🔄 Test File Reorganization Completed (Commit b472d8a)
+1356 " 🟣 Task 5: Create New Assembly Definition Files
+1357 6:41p 🔄 New Assembly Definition Files Created (Commit 0ef7478)
+1359 " 🔄 Namespace Replacement in Progress (Task 6)
+1360 6:42p 🔄 Namespace Replacement Committed (Commit b9cf28a)
+1361 " 🔵 String Literals with "Fun.Timer" Remain in Timer.cs
+1362 6:43p 🔴 Timer.cs Namespace Not Replaced
+1377 9:32p ✅ Namespace Reorganization Fun.* → Change.* Completed
+S562 Fix Unity EditMode test assembly duplicate reference errors in Change.Runtime.EditModeTests.asmdef and Change.Framework.EditModeTests.asmdef (Apr 24 at 9:33 PM)
+1379 9:42p 🔴 Unity EditMode Test ASMDEF Duplicate References Fixed
+S565 PlayMode Test Assembly Platform Names Updated (Apr 24 at 9:42 PM)
+1381 9:43p ✅ PlayMode Test Assembly Platform Names Updated
+S566 PlayMode Test ASMDEF Duplicate Reference Removed (Apr 24 at 9:43 PM)
+1382 9:44p 🔴 PlayMode Test ASMDEF Duplicate Reference Removed
+S568 Fix Unity test assembly duplicate reference errors across all EditMode and PlayMode asmdef files (Apr 24 at 9:44 PM)
+S571 Namespace Reorganization Exposed Internal Access Issues (Apr 24 at 9:46 PM)
+1385 10:51p 🟣 代码审查启动：Change Framework Pooling 目录
+1386 10:52p 🟣 Unity Framework 代码审查任务启动 - Pooling 目录
+1388 10:53p ✅ Code Review Initiated for Unity FSM Framework
+1389 10:54p 🟣 代码审查启动 - Unity Fsm 状态机框架
+1390 " ✅ Unity Fsm Framework Code Review Initiated
+1391 10:59p ✅ Code Review Initiated for Unity Pooling Framework
+1392 11:00p 🔄 Pool.cs 代码简化：统一 ConditionalWeakTable 追踪机制
+1394 " 🟣 新增安全测试：Clear 操作和构造函数异常处理
+1395 " ✅ 清理无用代码：删除 ReferenceEqualityComparer
+1396 11:01p 🔵 Unity 安装路径发现：/Applications/Unity/Unity.app
+1397 " 🔵 Unity EditMode 测试执行失败：进程退出码 2，XML 结果文件未生成
+1398 11:02p 🔴 Pool 测试修复：异常类型断言修正
+1400 11:03p 🔴 Pool 测试修复：Assert.Throws 改为 Assert.Catch
+1401 11:04p 🔵 Unity FSM 框架代码简洁且设计良好
+1402 11:05p 🟣 FSM 框架代码审查已启动
+1403 11:09p 🟣 Code Review Initiated for Unity Fsm Framework
+1405 11:10p 🔴 FSM Callback Depth Tracking Prevents Premature Event Draining
+1406 11:11p ✅ Changes Committed to Repository
+1407 11:12p 🔵 FSM Framework Code Review Completed Successfully
+1409 " 🔴 FSM Transition Drain Guard Fixed
+1411 11:13p 🔴 Pooling Framework Lease Tracking Simplified and Hardened
+1412 11:17p 🔴 StateMachine Re-entry Protection and FSM Test Updates
+1414 " 🔴 Pool.cs Simplification Introduced Compiler Errors
+1415 11:18p 🔴 Pool.cs Naming Conflict Resolved - Tests Passing
+1416 " 🔄 Pool.cs Lease Tracking Simplified Using ConditionalWeakTable Marker Pattern
 
-Access 915k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 546k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
