@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Fun.Framework.Logging;
 
 namespace Fun.Framework.Cqrs
 {
@@ -43,17 +44,17 @@ namespace Fun.Framework.Cqrs
         private readonly Dictionary<Type, object> _commandHandlers = new();
         private readonly Dictionary<QueryKey, object> _queryHandlers = new();
         private readonly Dictionary<Type, object> _eventHandlers = new();
-        private readonly ICqrsLogger _logger;
+        private readonly ILogger _logger;
         private bool _isFrozen;
 
         public CqrsBus()
-            : this(NullCqrsLogger.Instance)
+            : this(NullLogger.Instance)
         {
         }
 
-        public CqrsBus(ICqrsLogger logger)
+        public CqrsBus(ILogger logger)
         {
-            _logger = logger ?? NullCqrsLogger.Instance;
+            _logger = logger ?? NullLogger.Instance;
         }
 
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
