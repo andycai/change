@@ -1,0 +1,16 @@
+{
+  "name": "Fun.Runtime.Logging",
+  "rootNamespace": "Fun.Runtime.Logging",
+  "references": [
+    "Fun.Framework"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

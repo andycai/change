@@ -1,0 +1,22 @@
+{
+  "name": "Fun.Runtime.Logging.Tests",
+  "rootNamespace": "Fun.Runtime.Logging.Tests",
+  "references": [
+    "Fun.Framework",
+    "Fun.Runtime.Logging"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
