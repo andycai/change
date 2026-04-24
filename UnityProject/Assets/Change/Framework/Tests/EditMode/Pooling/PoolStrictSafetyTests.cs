@@ -82,5 +82,25 @@ namespace Change.Framework.Tests.Pooling
             Assert.AreEqual(before.Released, after.Released);
             Assert.AreEqual(before.Dropped, after.Dropped);
         }
+
+        [Test]
+        public void Clear_InvalidatesOutstandingRental_FollowsBuildPolicy()
+        {
+            var item = Pool<StrictPayload>.Get();
+            var before = Pool<StrictPayload>.GetStats();
+
+            Pool<StrictPayload>.Clear();
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Assert.Throws<InvalidOperationException>(() => Pool<StrictPayload>.Release(item));
+#else
+            Assert.DoesNotThrow(() => Pool<StrictPayload>.Release(item));
+#endif
+
+            var after = Pool<StrictPayload>.GetStats();
+            Assert.AreEqual(0, Pool<StrictPayload>.InactiveCount);
+            Assert.AreEqual(before.Released, after.Released);
+            Assert.AreEqual(before.Dropped, after.Dropped);
+        }
     }
 }

@@ -1,20 +1,13 @@
 using System;
 using System.Collections.Generic;
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
 using System.Runtime.CompilerServices;
-#endif
-using Change.Framework.Pooling.Internal;
 
 namespace Change.Framework.Pooling
 {
     public static class Pool<T> where T : class, IPoolable, new()
     {
         private static readonly Stack<T> Inactive = new Stack<T>(PoolDefaults.DefaultMaxSize);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private static readonly HashSet<T> Rented = new HashSet<T>(ReferenceEqualityComparer<T>.Instance);
-#else
-        private static readonly ConditionalWeakTable<T, LeaseState> LeaseStates = new ConditionalWeakTable<T, LeaseState>();
-#endif
+        private static ConditionalWeakTable<T, LeaseState> s_leaseStates = new ConditionalWeakTable<T, LeaseState>();
         private static int s_maxSize = PoolDefaults.DefaultMaxSize;
 
         private static long s_created;
@@ -26,19 +19,20 @@ namespace Change.Framework.Pooling
 
         public static T Get()
         {
-            s_rented++;
-
+            T item;
             if (Inactive.Count > 0)
             {
-                var reused = Inactive.Pop();
-                MarkRented(reused);
-                return reused;
+                item = Inactive.Pop();
+            }
+            else
+            {
+                item = new T();
+                s_created++;
             }
 
-            s_created++;
-            var created = new T();
-            MarkRented(created);
-            return created;
+            MarkRented(item);
+            s_rented++;
+            return item;
         }
 
         public static void Release(T item)
@@ -56,7 +50,7 @@ namespace Change.Framework.Pooling
 #endif
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!Rented.Remove(item))
+            if (!TryMarkReleased(item))
             {
                 throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not currently rented by this pool.");
             }
@@ -89,9 +83,9 @@ namespace Change.Framework.Pooling
             var target = Math.Min(count, s_maxSize);
             while (Inactive.Count < target)
             {
-                s_created++;
                 var created = new T();
                 Inactive.Push(created);
+                s_created++;
             }
         }
 
@@ -112,6 +106,7 @@ namespace Change.Framework.Pooling
         public static void Clear()
         {
             Inactive.Clear();
+            s_leaseStates = new ConditionalWeakTable<T, LeaseState>();
         }
 
         public static PoolStats GetStats()
@@ -119,12 +114,6 @@ namespace Change.Framework.Pooling
             return new PoolStats(s_created, s_rented, s_released, s_dropped, s_maxSize, Inactive.Count);
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private static void MarkRented(T item)
-        {
-            Rented.Add(item);
-        }
-#else
         private sealed class LeaseState
         {
             public bool IsRented;
@@ -132,18 +121,25 @@ namespace Change.Framework.Pooling
 
         private static void MarkRented(T item)
         {
-            if (!LeaseStates.TryGetValue(item, out var state))
+            if (!s_leaseStates.TryGetValue(item, out var state))
             {
                 state = new LeaseState();
-                LeaseStates.Add(item, state);
+                s_leaseStates.Add(item, state);
             }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (state.IsRented)
+            {
+                throw new InvalidOperationException($"Cannot rent instance of {typeof(T).FullName} because it is already marked as rented.");
+            }
+#endif
 
             state.IsRented = true;
         }
 
         private static bool TryMarkReleased(T item)
         {
-            if (!LeaseStates.TryGetValue(item, out var state) || !state.IsRented)
+            if (!s_leaseStates.TryGetValue(item, out var state) || !state.IsRented)
             {
                 return false;
             }
@@ -151,6 +147,5 @@ namespace Change.Framework.Pooling
             state.IsRented = false;
             return true;
         }
-#endif
     }
 }

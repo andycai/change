@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using Change.Framework.Pooling;
 using NUnit.Framework;
 
@@ -12,11 +14,32 @@ namespace Change.Framework.Tests.Pooling
             }
         }
 
+        private sealed class ThrowingPayload : IPoolable
+        {
+            public static bool ThrowOnCreate;
+
+            public ThrowingPayload()
+            {
+                if (ThrowOnCreate)
+                {
+                    throw new InvalidOperationException("ctor failure");
+                }
+            }
+
+            public void Reset()
+            {
+            }
+        }
+
         [SetUp]
         public void SetUp()
         {
             Pool<CapacityPayload>.SetMaxSize(PoolDefaults.DefaultMaxSize);
             Pool<CapacityPayload>.Clear();
+
+            ThrowingPayload.ThrowOnCreate = false;
+            Pool<ThrowingPayload>.SetMaxSize(PoolDefaults.DefaultMaxSize);
+            Pool<ThrowingPayload>.Clear();
         }
 
         [Test]
@@ -67,6 +90,41 @@ namespace Change.Framework.Tests.Pooling
             Assert.AreEqual(before.Created + 1, after.Created);
             Assert.AreEqual(before.Rented + 1, after.Rented);
             Assert.AreEqual(before.Released + 1, after.Released);
+        }
+
+        [Test]
+        public void Get_WhenCtorThrows_DoesNotIncrementCreatedOrRented()
+        {
+            var before = Pool<ThrowingPayload>.GetStats();
+            ThrowingPayload.ThrowOnCreate = true;
+
+            var ex = Assert.Catch<Exception>(() => Pool<ThrowingPayload>.Get());
+            Assert.IsTrue(ex is InvalidOperationException || ex is TargetInvocationException);
+            if (ex is TargetInvocationException tie)
+            {
+                Assert.IsInstanceOf<InvalidOperationException>(tie.InnerException);
+            }
+
+            var after = Pool<ThrowingPayload>.GetStats();
+            Assert.AreEqual(before.Created, after.Created);
+            Assert.AreEqual(before.Rented, after.Rented);
+        }
+
+        [Test]
+        public void Prewarm_WhenCtorThrows_DoesNotIncrementCreated()
+        {
+            var before = Pool<ThrowingPayload>.GetStats();
+            ThrowingPayload.ThrowOnCreate = true;
+
+            var ex = Assert.Catch<Exception>(() => Pool<ThrowingPayload>.Prewarm(1));
+            Assert.IsTrue(ex is InvalidOperationException || ex is TargetInvocationException);
+            if (ex is TargetInvocationException tie)
+            {
+                Assert.IsInstanceOf<InvalidOperationException>(tie.InnerException);
+            }
+
+            var after = Pool<ThrowingPayload>.GetStats();
+            Assert.AreEqual(before.Created, after.Created);
         }
     }
 }
