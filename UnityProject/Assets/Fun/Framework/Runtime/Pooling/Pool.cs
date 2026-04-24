@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Fun.Framework.Pooling.Internal;
 
 namespace Fun.Framework.Pooling
 {
@@ -7,6 +8,11 @@ namespace Fun.Framework.Pooling
     {
         private static readonly Stack<T> Inactive = new Stack<T>(PoolDefaults.DefaultMaxSize);
         private static int s_maxSize = PoolDefaults.DefaultMaxSize;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private static readonly HashSet<T> Known = new HashSet<T>(ReferenceEqualityComparer<T>.Instance);
+        private static readonly HashSet<T> Rented = new HashSet<T>(ReferenceEqualityComparer<T>.Instance);
+#endif
 
         private static long s_created;
         private static long s_rented;
@@ -21,22 +27,53 @@ namespace Fun.Framework.Pooling
 
             if (Inactive.Count > 0)
             {
-                return Inactive.Pop();
+                var reused = Inactive.Pop();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Rented.Add(reused);
+#endif
+                return reused;
             }
 
             s_created++;
-            return new T();
+            var created = new T();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Known.Add(created);
+            Rented.Add(created);
+#endif
+            return created;
         }
 
         public static void Release(T item)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (item == null)
             {
                 throw new ArgumentNullException(nameof(item));
             }
+#else
+            if (item == null)
+            {
+                return;
+            }
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!Known.Contains(item))
+            {
+                throw new InvalidOperationException($"Cannot release unknown instance of {typeof(T).FullName}.");
+            }
+
+            if (!Rented.Contains(item))
+            {
+                throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not rented.");
+            }
+#endif
 
             s_released++;
             item.Reset();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Rented.Remove(item);
+#endif
 
             if (Inactive.Count >= s_maxSize)
             {
@@ -58,7 +95,11 @@ namespace Fun.Framework.Pooling
             while (Inactive.Count < target)
             {
                 s_created++;
-                Inactive.Push(new T());
+                var created = new T();
+                Inactive.Push(created);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Known.Add(created);
+#endif
             }
         }
 
