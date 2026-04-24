@@ -9,9 +9,9 @@
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [
-        "WindowsStandalone",
-        "MacStandalone",
-        "LinuxStandalone"
+        "WindowsStandalone64",
+        "macOSStandalone",
+        "LinuxStandalone64"
     ],
     "excludePlatforms": []
 }
