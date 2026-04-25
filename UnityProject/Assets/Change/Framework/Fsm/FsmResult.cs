@@ -1,3 +1,5 @@
+using System;
+
 namespace Change.Framework.Fsm
 {
     public readonly struct FsmResult<TStateId>
@@ -19,6 +21,10 @@ namespace Change.Framework.Fsm
         {
             get
             {
+                if (!HasTransition)
+                {
+                    throw new InvalidOperationException("Cannot access NextStateId when HasTransition is false.");
+                }
                 return _nextStateId;
             }
         }

@@ -1,8 +1,15 @@
 using System;
 using System.Collections.Generic;
+using Change.Framework.Collections;
 
 namespace Change.Framework.Fsm
 {
+    /// <summary>
+    /// 事件驱动的状态机。支持重入、FIFO 事件处理和状态切换。
+    /// 该类非线程安全，应在单线程（如 Unity 主线程）中使用。
+    /// </summary>
+    /// <typeparam name="TStateId">状态 ID 类型</typeparam>
+    /// <typeparam name="TEvent">事件类型</typeparam>
     public sealed class StateMachine<TStateId, TEvent>
     {
         private readonly struct TransitionRequest
@@ -23,20 +30,29 @@ namespace Change.Framework.Fsm
 
         private readonly IEqualityComparer<TStateId> _stateIdComparer;
         private readonly Dictionary<TStateId, IFsmState<TStateId, TEvent>> _states;
-        private readonly Queue<TEvent> _eventQueue;
-        private readonly Queue<TransitionRequest> _transitionQueue;
+        private readonly RingBuffer<TEvent> _eventQueue;
+        private readonly RingBuffer<TransitionRequest> _transitionQueue;
+        private readonly bool _allowSelfTransition;
+        
         private IFsmState<TStateId, TEvent> _currentState;
         private bool _isDrainingEvents;
         private bool _isDrainingTransitions;
         private int _stateCallbackDepth;
         private long _sequence;
 
-        public StateMachine(IEqualityComparer<TStateId> comparer = null)
+        /// <summary>
+        /// 创建状态机实例。
+        /// </summary>
+        /// <param name="comparer">状态 ID 比较器</param>
+        /// <param name="initialCapacity">内部环形缓冲区初始容量。若超出此容量将抛出异常，需根据业务预估。</param>
+        /// <param name="allowSelfTransition">是否允许切换到当前相同状态（触发 OnExit -> OnEnter）</param>
+        public StateMachine(IEqualityComparer<TStateId> comparer = null, int initialCapacity = 8, bool allowSelfTransition = false)
         {
             _stateIdComparer = comparer ?? EqualityComparer<TStateId>.Default;
             _states = new Dictionary<TStateId, IFsmState<TStateId, TEvent>>(_stateIdComparer);
-            _eventQueue = new Queue<TEvent>();
-            _transitionQueue = new Queue<TransitionRequest>();
+            _eventQueue = new RingBuffer<TEvent>(initialCapacity);
+            _transitionQueue = new RingBuffer<TransitionRequest>(initialCapacity);
+            _allowSelfTransition = allowSelfTransition;
         }
 
         public event Action<StateChange<TStateId, TEvent>> OnStateChanged;
@@ -45,11 +61,19 @@ namespace Change.Framework.Fsm
 
         public TStateId CurrentStateId { get; private set; }
 
+        /// <summary>
+        /// 注册状态。必须在 Start 之前调用。
+        /// </summary>
         public void Register(IFsmState<TStateId, TEvent> state)
         {
             if (state == null)
             {
                 throw new ArgumentNullException(nameof(state));
+            }
+
+            if (IsStarted)
+            {
+                throw new InvalidOperationException("Cannot register states after the state machine has started.");
             }
 
             if (_states.ContainsKey(state.Id))
@@ -60,6 +84,9 @@ namespace Change.Framework.Fsm
             _states.Add(state.Id, state);
         }
 
+        /// <summary>
+        /// 启动状态机。
+        /// </summary>
         public void Start(TStateId initial)
         {
             if (IsStarted)
@@ -77,23 +104,28 @@ namespace Change.Framework.Fsm
             CurrentStateId = initial;
 
             var change = StateChange<TStateId, TEvent>.Initial(initial, NextSequence());
-            var onEnterSucceeded = false;
+            
             _stateCallbackDepth++;
             try
             {
                 initialState.OnEnter(in change);
-                onEnterSucceeded = true;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to enter initial state '{initial}'. State machine is now in an inconsistent state.", 
+                    ex);
             }
             finally
             {
                 _stateCallbackDepth--;
-                if (onEnterSucceeded)
-                {
-                    DrainEventsIfPossible();
-                }
+                DrainEventsIfPossible();
             }
         }
 
+        /// <summary>
+        /// 触发一个事件。如果当前正在处理回调，事件将被加入队列延迟处理。
+        /// </summary>
         public void Fire(in TEvent evt)
         {
             EnsureStarted();
@@ -102,6 +134,9 @@ namespace Change.Framework.Fsm
             DrainEventsIfPossible();
         }
 
+        /// <summary>
+        /// 手动请求状态切换。
+        /// </summary>
         public void ChangeState(TStateId next)
         {
             EnsureStarted();
@@ -110,6 +145,11 @@ namespace Change.Framework.Fsm
 
         private void EnqueueTransition(TStateId next, TEvent causeEvent, bool hasCauseEvent)
         {
+            if (!_allowSelfTransition && _stateIdComparer.Equals(CurrentStateId, next))
+            {
+                return;
+            }
+
             _transitionQueue.Enqueue(new TransitionRequest(next, causeEvent, hasCauseEvent));
             if (_isDrainingTransitions)
             {
@@ -117,37 +157,34 @@ namespace Change.Framework.Fsm
             }
 
             _isDrainingTransitions = true;
-            var transitionDrainSucceeded = false;
             try
             {
                 while (_transitionQueue.Count > 0)
                 {
-                    var request = _transitionQueue.Dequeue();
-                    ExecuteTransition(request);
+                    if (_transitionQueue.TryDequeue(out var request))
+                    {
+                        ExecuteTransition(request);
+                    }
                 }
-
-                transitionDrainSucceeded = true;
             }
             finally
             {
                 _isDrainingTransitions = false;
-                if (transitionDrainSucceeded)
-                {
-                    DrainEventsIfPossible();
-                }
+                DrainEventsIfPossible();
             }
         }
 
         private void ExecuteTransition(TransitionRequest request)
         {
+            // 再次检查自循环，因为队列中可能存在失效的请求
+            if (!_allowSelfTransition && _stateIdComparer.Equals(CurrentStateId, request.NextStateId))
+            {
+                return;
+            }
+
             if (!_states.TryGetValue(request.NextStateId, out var nextState))
             {
                 throw new InvalidOperationException($"Target state '{request.NextStateId}' is not registered.");
-            }
-
-            if (_stateIdComparer.Equals(CurrentStateId, request.NextStateId))
-            {
-                return;
             }
 
             var fromState = _currentState;
@@ -156,54 +193,56 @@ namespace Change.Framework.Fsm
                 ? StateChange<TStateId, TEvent>.Create(fromId, request.NextStateId, request.CauseEvent, NextSequence())
                 : StateChange<TStateId, TEvent>.CreateWithoutEvent(fromId, request.NextStateId, NextSequence());
 
-            var onExitSucceeded = false;
+            // 1. 执行 Exit 回调
             try
             {
                 _stateCallbackDepth++;
                 fromState.OnExit(in change);
-                onExitSucceeded = true;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException(
-                    $"OnExit failed during {FormatTransitionContext(in change)}.",
+                    $"OnExit failed during {FormatTransitionContext(in change)}. The state machine remains in state '{fromId}'.",
                     ex);
             }
             finally
             {
                 _stateCallbackDepth--;
-                if (onExitSucceeded)
-                {
-                    DrainEventsIfPossible();
-                }
+                // 即使 Exit 失败，我们也可能需要处理在此期间加入的事件，
+                // 但为了严谨，如果抛出异常，外层 Drain 会被中断。
             }
 
+            // 2. 更新当前状态
             _currentState = nextState;
             CurrentStateId = request.NextStateId;
 
-            var onEnterSucceeded = false;
+            // 3. 执行 Enter 回调
             try
             {
                 _stateCallbackDepth++;
                 nextState.OnEnter(in change);
-                onEnterSucceeded = true;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException(
-                    $"OnEnter failed during {FormatTransitionContext(in change)}.",
+                    $"OnEnter failed during {FormatTransitionContext(in change)}. The state machine is now in state '{request.NextStateId}' but failed to initialize.",
                     ex);
             }
             finally
             {
                 _stateCallbackDepth--;
-                if (onEnterSucceeded)
-                {
-                    DrainEventsIfPossible();
-                }
             }
 
-            OnStateChanged?.Invoke(change);
+            // 4. 触发通知
+            try
+            {
+                OnStateChanged?.Invoke(change);
+            }
+            catch (Exception ex)
+            {
+                // 事件通知异常不应破坏状态机核心逻辑，但需上报
+                throw new InvalidOperationException("An error occurred in OnStateChanged event handler.", ex);
+            }
         }
 
         private void DrainEventsIfPossible()
@@ -218,11 +257,13 @@ namespace Change.Framework.Fsm
             {
                 while (_eventQueue.Count > 0)
                 {
-                    var currentEvent = _eventQueue.Dequeue();
-                    var result = _currentState.OnEvent(in currentEvent);
-                    if (result.HasTransition)
+                    if (_eventQueue.TryDequeue(out var currentEvent))
                     {
-                        EnqueueTransition(result.NextStateId, currentEvent, true);
+                        var result = _currentState.OnEvent(in currentEvent);
+                        if (result.HasTransition)
+                        {
+                            EnqueueTransition(result.NextStateId, currentEvent, true);
+                        }
                     }
                 }
             }
