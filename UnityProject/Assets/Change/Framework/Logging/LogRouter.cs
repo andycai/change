@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using Change.Framework.Collections;
 
 namespace Change.Framework.Logging
 {
@@ -17,7 +17,7 @@ namespace Change.Framework.Logging
             public LogLevel MinLevel { get; }
         }
 
-        private readonly List<SinkRegistration> _registrations = new List<SinkRegistration>();
+        private readonly FastList<SinkRegistration> _registrations = new FastList<SinkRegistration>();
         private bool _isFrozen;
 
         public void AddSink(ILogSink sink, LogLevel minLevel)
