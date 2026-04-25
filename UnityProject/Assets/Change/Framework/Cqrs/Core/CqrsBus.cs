@@ -45,7 +45,7 @@ namespace Change.Framework.Cqrs
         private readonly Dictionary<QueryKey, object> _queryHandlers = new();
         private readonly Dictionary<Type, object> _eventHandlers = new();
         private readonly ILogger _logger;
-        private bool _isFrozen;
+        private volatile bool _isFrozen;
 
         /// <summary>
         /// Gets whether the registry is frozen and ready for dispatch.
@@ -194,8 +194,11 @@ namespace Change.Framework.Cqrs
             }
 
             var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            var count = handlers.Count;
+            if (count == 0) return;
+
             List<Exception> exceptions = null;
-            for (var i = 0; i < handlers.Count; i++)
+            for (var i = 0; i < count; i++)
             {
                 try
                 {
@@ -228,7 +231,9 @@ namespace Change.Framework.Cqrs
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[CqrsBus] Logger failed: {ex.Message}");
+#if UNITY_EDITOR || DEBUG
+                System.Diagnostics.Debug.WriteLine($"[CqrsBus] Logger error: {ex.Message}");
+#endif
             }
         }
     }
