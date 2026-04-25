@@ -77,6 +77,15 @@ namespace Change.Framework.Tests
         }
 
         [Test]
+        public void Subscribe_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
+        {
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<RegistryFrozenException>(() => bus.Subscribe<ScoreChangedEvent>(null));
+        }
+
+        [Test]
         public void Subscribe_NullHandler_ThrowsArgumentNullException()
         {
             var bus = new CqrsBus();

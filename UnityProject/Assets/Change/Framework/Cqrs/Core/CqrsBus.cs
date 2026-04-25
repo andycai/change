@@ -65,14 +65,14 @@ namespace Change.Framework.Cqrs
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
             where TCommand : struct, ICommand
         {
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-
             if (_isFrozen)
             {
                 throw new RegistryFrozenException("Registry is frozen.");
+            }
+
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
             }
 
             var commandType = typeof(TCommand);
@@ -88,14 +88,14 @@ namespace Change.Framework.Cqrs
         public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
             where TQuery : struct, IQuery<TResult>
         {
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-
             if (_isFrozen)
             {
                 throw new RegistryFrozenException("Registry is frozen.");
+            }
+
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
             }
 
             var queryType = typeof(TQuery);
@@ -114,14 +114,14 @@ namespace Change.Framework.Cqrs
         public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
             where TEvent : struct, IEvent
         {
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-
             if (_isFrozen)
             {
                 throw new RegistryFrozenException("Registry is frozen.");
+            }
+
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
             }
 
             var eventType = typeof(TEvent);

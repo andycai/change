@@ -75,6 +75,15 @@ namespace Change.Framework.Tests
         }
 
         [Test]
+        public void RegisterQuery_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
+        {
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery<GetScoreQuery, int>(null));
+        }
+
+        [Test]
         public void Query_BeforeFreeze_ThrowsInvalidOperationException()
         {
             var state = new ScoreState();

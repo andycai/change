@@ -80,6 +80,15 @@ namespace Change.Framework.Tests
         }
 
         [Test]
+        public void RegisterCommand_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
+        {
+            var bus = new CqrsBus();
+            bus.Freeze();
+
+            Assert.Throws<RegistryFrozenException>(() => bus.RegisterCommand<IncrementCounterCommand>(null));
+        }
+
+        [Test]
         public void Send_BeforeFreeze_ThrowsInvalidOperationException()
         {
             var state = new CounterState();
