@@ -36,8 +36,7 @@ namespace Change.Framework.Cqrs
             {
                 unchecked
                 {
-                    return ((QueryType != null ? QueryType.GetHashCode() : 0) * 397) ^
-                           (ResultType != null ? ResultType.GetHashCode() : 0);
+                    return (QueryType.GetHashCode() * 397) ^ ResultType.GetHashCode();
                 }
             }
         }
@@ -146,10 +145,7 @@ namespace Change.Framework.Cqrs
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
-            if (!_isFrozen)
-            {
-                throw new InvalidOperationException("Registry must be frozen before dispatch.");
-            }
+            ThrowIfNotFrozen();
 
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryGetValue(commandType, out var boxedHandler))
@@ -165,10 +161,7 @@ namespace Change.Framework.Cqrs
         public TResult Query<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
-            if (!_isFrozen)
-            {
-                throw new InvalidOperationException("Registry must be frozen before dispatch.");
-            }
+            ThrowIfNotFrozen();
 
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
@@ -185,20 +178,14 @@ namespace Change.Framework.Cqrs
 
         /// <summary>
         /// Publishes an event to all subscribed handlers in registration order.
+        /// All handlers are invoked even if one throws. If any handler throws,
+        /// exceptions are collected and re-thrown as an <see cref="AggregateException"/>.
         /// </summary>
-        /// <remarks>
-        /// Handler exceptions propagate to the caller. If a handler throws, subsequent handlers
-        /// will not be invoked. This follows the fail-fast principle and matches the design spec
-        /// §7: "Handler exceptions are not swallowed; they propagate to caller."
-        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Publish<TEvent>(in TEvent @event)
             where TEvent : struct, IEvent
         {
-            if (!_isFrozen)
-            {
-                throw new InvalidOperationException("Registry must be frozen before dispatch.");
-            }
+            ThrowIfNotFrozen();
 
             var eventType = typeof(TEvent);
             if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
@@ -207,10 +194,30 @@ namespace Change.Framework.Cqrs
             }
 
             var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            List<Exception> exceptions = null;
             for (var i = 0; i < handlers.Count; i++)
             {
-                handlers[i].Handle(in @event);
+                try
+                {
+                    handlers[i].Handle(in @event);
+                }
+                catch (Exception ex)
+                {
+                    exceptions ??= new List<Exception>();
+                    exceptions.Add(ex);
+                }
             }
+
+            if (exceptions != null)
+            {
+                throw new AggregateException(exceptions);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ThrowIfNotFrozen()
+        {
+            if (!_isFrozen) throw new InvalidOperationException("Registry must be frozen before dispatch.");
         }
 
         private void SafeInfo(string message)
@@ -219,17 +226,10 @@ namespace Change.Framework.Cqrs
             {
                 _logger.Info(message);
             }
-#if DEBUG
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CqrsBus] Logger failed: {ex.Message}");
             }
-#else
-            catch
-            {
-                // Intentionally suppressed - registration logging is non-critical and must not break registration.
-            }
-#endif
         }
     }
 }

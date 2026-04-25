@@ -85,7 +85,7 @@ namespace Change.Framework.Tests
         }
 
         [Test]
-        public void Publish_WhenHandlerThrows_StopsPropagationAndRethrows()
+        public void Publish_WhenHandlerThrows_InvokesAllHandlersAndThrowsAggregateException()
         {
             var order = new List<int>();
             var bus = new CqrsBus();
@@ -95,11 +95,13 @@ namespace Change.Framework.Tests
             bus.Subscribe(new OrderedEventHandler(order, 2));
             bus.Freeze();
 
-            var exception = Assert.Throws<InvalidOperationException>(() => bus.Publish(new ScoreChangedEvent(10)));
+            var exception = Assert.Throws<AggregateException>(() => bus.Publish(new ScoreChangedEvent(10)));
 
-            Assert.AreEqual("Handler failed", exception.Message);
-            // Handler 1 executed before throw, handler 2 never executed
-            CollectionAssert.AreEqual(new[] { 1 }, order);
+            Assert.AreEqual(1, exception.InnerExceptions.Count);
+            Assert.IsInstanceOf<InvalidOperationException>(exception.InnerExceptions[0]);
+            Assert.AreEqual("Handler failed", exception.InnerExceptions[0].Message);
+            // All handlers are invoked despite the exception
+            CollectionAssert.AreEqual(new[] { 1, 2 }, order);
         }
 
         private sealed class ThrowingEventHandler : IEventHandler<ScoreChangedEvent>
