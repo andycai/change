@@ -1,4 +1,6 @@
 # Fun.Framework Pooling Implementation Plan
+> Historical note (2026-04-26): The dual-track coexistence model in this document is superseded.
+> The active architecture uses a single pooling entry: `Change.Framework.Pooling.Pool<T>`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

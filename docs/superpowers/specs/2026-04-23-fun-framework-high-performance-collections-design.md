@@ -1,4 +1,6 @@
 # Fun.Framework 高性能数据结构设计文档（生产级第一期）
+> Historical note (2026-04-26): Object pooling is no longer part of `Change.Framework.Collections`.
+> `ObjectPool<T>`/`IResettable` were removed during pooling unification; use `Change.Framework.Pooling.Pool<T>` + `IPoolable`.
 
 - 日期：2026-04-23
 - 目标目录：`UnityProject/Assets/Fun/Framework/Collections`
