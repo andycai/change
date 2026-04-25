@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Change.Framework.Pooling.Internal;
+using System.Runtime.CompilerServices;
 
 namespace Change.Framework.Pooling
 {
@@ -8,7 +8,8 @@ namespace Change.Framework.Pooling
     {
         // Not thread-safe; pool operations are expected on a single thread.
         private static readonly Stack<T> Inactive = new Stack<T>(PoolDefaults.DefaultMaxSize);
-        private static HashSet<T> s_rentedItems = CreateRentedSet(PoolDefaults.DefaultMaxSize);
+        private static readonly object s_rentedMarker = new object();
+        private static ConditionalWeakTable<T, object> s_rentedItems = new ConditionalWeakTable<T, object>();
         private static int s_maxSize = PoolDefaults.DefaultMaxSize;
 
         private static long s_created;
@@ -102,27 +103,12 @@ namespace Change.Framework.Pooling
             {
                 Inactive.Pop();
             }
-
-            var capacity = Math.Max(s_maxSize, s_rentedItems.Count);
-            if (capacity == 0)
-            {
-                s_rentedItems = CreateRentedSet(0);
-                return;
-            }
-
-            var resized = CreateRentedSet(capacity);
-            foreach (var rentedItem in s_rentedItems)
-            {
-                resized.Add(rentedItem);
-            }
-
-            s_rentedItems = resized;
         }
 
         public static void Clear()
         {
             Inactive.Clear();
-            s_rentedItems = CreateRentedSet(s_maxSize);
+            s_rentedItems = new ConditionalWeakTable<T, object>();
         }
 
         public static PoolStats GetStats()
@@ -132,7 +118,7 @@ namespace Change.Framework.Pooling
 
         private static void MarkRented(T item)
         {
-            if (!s_rentedItems.Add(item))
+            if (s_rentedItems.TryGetValue(item, out _))
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 throw new InvalidOperationException($"Cannot rent instance of {typeof(T).FullName} because it is already marked as rented.");
@@ -140,16 +126,13 @@ namespace Change.Framework.Pooling
                 return;
 #endif
             }
+
+            s_rentedItems.Add(item, s_rentedMarker);
         }
 
         private static bool TryMarkReleased(T item)
         {
             return s_rentedItems.Remove(item);
-        }
-
-        private static HashSet<T> CreateRentedSet(int capacity)
-        {
-            return new HashSet<T>(capacity, ReferenceEqualityComparer<T>.Instance);
         }
     }
 }
