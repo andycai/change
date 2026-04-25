@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Change.Framework.Collections;
 using Change.Framework.Logging;
 
 namespace Change.Framework.Cqrs
@@ -10,6 +10,46 @@ namespace Change.Framework.Cqrs
         private const string CommandRegisteredMessage = "Registered command handler.";
         private const string QueryRegisteredMessage = "Registered query handler.";
         private const string EventSubscribedMessage = "Subscribed event handler.";
+
+        private interface ICommandHandlerRegistration
+        {
+        }
+
+        private interface IQueryHandlerRegistration
+        {
+        }
+
+        private interface IEventHandlerList
+        {
+        }
+
+        private sealed class CommandHandlerRegistration<TCommand> : ICommandHandlerRegistration
+            where TCommand : struct, ICommand
+        {
+            public CommandHandlerRegistration(ICommandHandler<TCommand> handler)
+            {
+                Handler = handler;
+            }
+
+            public ICommandHandler<TCommand> Handler { get; }
+        }
+
+        private sealed class QueryHandlerRegistration<TQuery, TResult> : IQueryHandlerRegistration
+            where TQuery : struct, IQuery<TResult>
+        {
+            public QueryHandlerRegistration(IQueryHandler<TQuery, TResult> handler)
+            {
+                Handler = handler;
+            }
+
+            public IQueryHandler<TQuery, TResult> Handler { get; }
+        }
+
+        private sealed class EventHandlerList<TEvent> : IEventHandlerList
+            where TEvent : struct, IEvent
+        {
+            public FastList<IEventHandler<TEvent>> Handlers { get; } = new();
+        }
 
         private readonly struct QueryKey : IEquatable<QueryKey>
         {
@@ -41,9 +81,9 @@ namespace Change.Framework.Cqrs
             }
         }
 
-        private readonly Dictionary<Type, object> _commandHandlers = new();
-        private readonly Dictionary<QueryKey, object> _queryHandlers = new();
-        private readonly Dictionary<Type, object> _eventHandlers = new();
+        private readonly FastDictionary<Type, ICommandHandlerRegistration> _commandHandlers = new();
+        private readonly FastDictionary<QueryKey, IQueryHandlerRegistration> _queryHandlers = new();
+        private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
         private readonly ILogger _logger;
         private volatile bool _isFrozen;
 
@@ -76,12 +116,11 @@ namespace Change.Framework.Cqrs
             }
 
             var commandType = typeof(TCommand);
-            if (_commandHandlers.ContainsKey(commandType))
+            if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
             {
                 throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
             }
 
-            _commandHandlers[commandType] = handler;
             SafeInfo(CommandRegisteredMessage);
         }
 
@@ -101,13 +140,12 @@ namespace Change.Framework.Cqrs
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
             var queryKey = new QueryKey(queryType, resultType);
-            if (_queryHandlers.ContainsKey(queryKey))
+            if (!_queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler)))
             {
                 throw new DuplicateRegistrationException(
                     $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
             }
 
-            _queryHandlers[queryKey] = handler;
             SafeInfo(QueryRegisteredMessage);
         }
 
@@ -125,14 +163,14 @@ namespace Change.Framework.Cqrs
             }
 
             var eventType = typeof(TEvent);
-            if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
             {
-                boxedHandlers = new List<IEventHandler<TEvent>>();
-                _eventHandlers[eventType] = boxedHandlers;
+                handlerList = new EventHandlerList<TEvent>();
+                _eventHandlers.TryAdd(eventType, handlerList);
             }
 
-            var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
-            handlers.Add(handler);
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            typedList.Handlers.Add(handler);
             SafeInfo(EventSubscribedMessage);
         }
 
@@ -148,13 +186,13 @@ namespace Change.Framework.Cqrs
             ThrowIfNotFrozen();
 
             var commandType = typeof(TCommand);
-            if (!_commandHandlers.TryGetValue(commandType, out var boxedHandler))
+            if (!_commandHandlers.TryGetValue(commandType, out var registration))
             {
                 throw new HandlerNotRegisteredException($"Command handler not registered: {commandType.FullName}");
             }
 
-            var handler = (ICommandHandler<TCommand>)boxedHandler;
-            handler.Handle(in command);
+            var typedRegistration = (CommandHandlerRegistration<TCommand>)registration;
+            typedRegistration.Handler.Handle(in command);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -166,14 +204,14 @@ namespace Change.Framework.Cqrs
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
             var queryKey = new QueryKey(queryType, resultType);
-            if (!_queryHandlers.TryGetValue(queryKey, out var boxedHandler))
+            if (!_queryHandlers.TryGetValue(queryKey, out var registration))
             {
                 throw new HandlerNotRegisteredException(
                     $"Query handler not registered: {queryType.FullName} -> {resultType.FullName}");
             }
 
-            var handler = (IQueryHandler<TQuery, TResult>)boxedHandler;
-            return handler.Handle(in query);
+            var typedRegistration = (QueryHandlerRegistration<TQuery, TResult>)registration;
+            return typedRegistration.Handler.Handle(in query);
         }
 
         /// <summary>
@@ -188,16 +226,17 @@ namespace Change.Framework.Cqrs
             ThrowIfNotFrozen();
 
             var eventType = typeof(TEvent);
-            if (!_eventHandlers.TryGetValue(eventType, out var boxedHandlers))
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
             {
                 return;
             }
 
-            var handlers = (List<IEventHandler<TEvent>>)boxedHandlers;
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            var handlers = typedList.Handlers;
             var count = handlers.Count;
             if (count == 0) return;
 
-            List<Exception> exceptions = null;
+            FastList<Exception> exceptions = null;
             for (var i = 0; i < count; i++)
             {
                 try
@@ -206,14 +245,20 @@ namespace Change.Framework.Cqrs
                 }
                 catch (Exception ex)
                 {
-                    exceptions ??= new List<Exception>();
+                    exceptions ??= new FastList<Exception>();
                     exceptions.Add(ex);
                 }
             }
 
             if (exceptions != null)
             {
-                throw new AggregateException(exceptions);
+                var innerExceptions = new Exception[exceptions.Count];
+                for (var i = 0; i < exceptions.Count; i++)
+                {
+                    innerExceptions[i] = exceptions[i];
+                }
+
+                throw new AggregateException(innerExceptions);
             }
         }
 

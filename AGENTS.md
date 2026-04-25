@@ -203,6 +203,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - FairyGUI: Use FairyGUI editor for UI editing; publish to Unity project
 - Luban: Configuration generation (to be set up)
 - Unity Test Framework (`com.unity.test-framework@1.1.33`) CLI runs: avoid `-quit` with `-runTests`, or command-line test args may not execute; run without `-quit` to generate XML results.
+- Unit test results path rule: always write `-testResults` under `UnityProject/TestResults/` (for example `UnityProject/TestResults/editmode-results.xml`), not `/tmp` or other directories.
+- Unit test results naming rule: use `<suite>-<yyyyMMdd-HHmmss>.xml` (for example `UnityProject/TestResults/editmode-cqrs-20260425-233000.xml`, `UnityProject/TestResults/playmode-runtime-20260425-233500.xml`).
 
 ## Version Control
 
@@ -230,75 +232,75 @@ Rules:
 <claude-mem-context>
 # Memory Context
 
-# [fun] recent context, 2026-04-24 11:38pm GMT+8
+# [fun] recent context, 2026-04-25 11:40pm GMT+8
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (8,407t read) | 1,303,688t work | 99% savings
+Stats: 50 obs (10,901t read) | 921,574t work | 99% savings
 
-### Apr 24, 2026
-S488 Editor Code Needs Emerging for Fun Framework (Apr 24 at 6:13 PM)
-S489 Runtime Test Directory Structure Unification Decision (Apr 24 at 6:15 PM)
-S490 EditMode Test Assembly Naming Standardized (Apr 24 at 6:20 PM)
-S493 Change Directory Structure Implementation Plan Created (Apr 24 at 6:22 PM)
-S559 Namespace reorganization Fun.* → Change.* for Unity framework (Apr 24 at 6:27 PM)
-1361 6:42p 🔵 String Literals with "Fun.Timer" Remain in Timer.cs
-1362 6:43p 🔴 Timer.cs Namespace Not Replaced
-1377 9:32p ✅ Namespace Reorganization Fun.* → Change.* Completed
-S562 Fix Unity EditMode test assembly duplicate reference errors in Change.Runtime.EditModeTests.asmdef and Change.Framework.EditModeTests.asmdef (Apr 24 at 9:33 PM)
-1379 9:42p 🔴 Unity EditMode Test ASMDEF Duplicate References Fixed
-S565 PlayMode Test Assembly Platform Names Updated (Apr 24 at 9:42 PM)
-1381 9:43p ✅ PlayMode Test Assembly Platform Names Updated
-S566 PlayMode Test ASMDEF Duplicate Reference Removed (Apr 24 at 9:43 PM)
-1382 9:44p 🔴 PlayMode Test ASMDEF Duplicate Reference Removed
-S568 Fix Unity test assembly duplicate reference errors across all EditMode and PlayMode asmdef files (Apr 24 at 9:44 PM)
-S571 Namespace Reorganization Exposed Internal Access Issues (Apr 24 at 9:46 PM)
-1385 10:51p 🟣 代码审查启动：Change Framework Pooling 目录
-1386 10:52p 🟣 Unity Framework 代码审查任务启动 - Pooling 目录
-1388 10:53p ✅ Code Review Initiated for Unity FSM Framework
-1389 10:54p 🟣 代码审查启动 - Unity Fsm 状态机框架
-1390 " ✅ Unity Fsm Framework Code Review Initiated
-1391 10:59p ✅ Code Review Initiated for Unity Pooling Framework
-1392 11:00p 🔄 Pool.cs 代码简化：统一 ConditionalWeakTable 追踪机制
-1394 " 🟣 新增安全测试：Clear 操作和构造函数异常处理
-1395 " ✅ 清理无用代码：删除 ReferenceEqualityComparer
-1396 11:01p 🔵 Unity 安装路径发现：/Applications/Unity/Unity.app
-1397 " 🔵 Unity EditMode 测试执行失败：进程退出码 2，XML 结果文件未生成
-1398 11:02p 🔴 Pool 测试修复：异常类型断言修正
-1400 11:03p 🔴 Pool 测试修复：Assert.Throws 改为 Assert.Catch
-1401 11:04p 🔵 Unity FSM 框架代码简洁且设计良好
-1402 11:05p 🟣 FSM 框架代码审查已启动
-1403 11:09p 🟣 Code Review Initiated for Unity Fsm Framework
-1405 11:10p 🔴 FSM Callback Depth Tracking Prevents Premature Event Draining
-1406 11:11p ✅ Changes Committed to Repository
-1407 11:12p 🔵 FSM Framework Code Review Completed Successfully
-1409 " 🔴 FSM Transition Drain Guard Fixed
-1411 11:13p 🔴 Pooling Framework Lease Tracking Simplified and Hardened
-1412 11:17p 🔴 StateMachine Re-entry Protection and FSM Test Updates
-1414 " 🔴 Pool.cs Simplification Introduced Compiler Errors
-1415 11:18p 🔴 Pool.cs Naming Conflict Resolved - Tests Passing
-1416 " 🔄 Pool.cs Lease Tracking Simplified Using ConditionalWeakTable Marker Pattern
-1418 11:22p 🔴 StateMachine Re-entry Protection Committed to Repository
-1420 11:27p 🟣 Unity Timer 模块代码审查已启动
-1421 11:28p 🔵 Timer 模块实现完整的异步等待模式
-1422 " 🔵 TimerDriver 使用分层字典和待处理列表实现安全的迭代修改
-1423 " 🔵 Timer 模块支持缩放时间和非缩放时间两种模式
-1424 " 🔵 Timer 模块使用 RuntimeInitializeOnLoadMethod 确保场景切换时清理
-1425 " 🔵 Timer 模块通过 Callback 隔离确保日志系统异常不影响计时器
-1426 11:29p 🟣 Timer 模块新增行为约束测试用例
-1428 " 🔵 PlayMode 测试过滤器导致"无测试执行"
-1429 " 🔴 PlayMode asmdef 配置错误导致测试在 Editor 中不可执行
-1430 11:30p ✅ Unity Path Configured in AGENTS.md
-1431 11:31p ✅ Unity Executable Path Documented in AGENTS.md
-1432 " 🔵 Unity CLI Batchmode FSM EditMode Tests Pass
-1433 " 🟣 Timer PlayMode TDD Tests Expanded with Invalid Input and Error Isolation
-1437 11:32p 🔄 Timer 模块从单文件重构为多文件分离
-1438 " 🔴 Timer 模块新增参数校验和主线程保护
-1439 " 🔴 Timer 回调异常处理策略修正为停止触发
-1440 11:33p 🟣 Timer 模块代码审查与修复完成
-1446 11:34p 🟣 Timer 模块代码审查完成，仓库ahead of origin/main 3个提交
+### Apr 25, 2026
+1520 10:01p 🔵 Collections 模块五大核心数据结构分析
+1521 " 🔵 Collections 模块对象池设计模式分析
+1522 " 🔴 ArraySegmentList Clear 方法存在未实现代码块
+1526 10:02p 🔵 Collections 模块目录结构与文件组织分析
+1527 " 🔵 FastDictionary 自定义哈希表实现分析
+1528 " 🔵 FastList O(1) 移除与枚举器版本安全机制
+1529 " 🔵 FastPriorityQueue 二叉堆实现与自定义比较器支持
+1530 " 🔵 ObjectPool 泛型对象池与 IResettable 自动重置机制
+1531 " 🔵 RingBuffer 循环缓冲区的 FIFO 实现
+1532 " 🔵 Collections 模块核心工具层设计分析
+1533 " 🔵 Collections 模块完整测试覆盖分析
+1534 10:06p 🔵 Collections 模块五大核心数据结构代码审查完成
+S664 CQRS 目录代码审查启动 (Apr 25 at 10:06 PM)
+1535 10:07p ✅ CQRS 目录代码审查启动
+S665 Collections Module Code Review Completed (Apr 25 at 10:07 PM)
+1536 " ✅ Collections Module Code Review Completed
+S666 CQRS Framework Exception Handling Deep Dive - Reviewing CqrsBus error handling, QueryKey hash stability, and NullLogger availability (Apr 25 at 10:07 PM)
+S669 Continue Unity Framework code review - commit CQRS Bus optimizations (Apr 25 at 10:08 PM)
+1537 10:08p 🔴 CQRS _isFrozen Lacks Memory Barrier (P1 High)
+1538 " 🔵 CQRS Framework Code Review Complete - APPROVED with 3 Issues
+1541 10:11p 🔵 Collections Module Five Core Data Structures and Pooling Patterns Analyzed
+1542 " 🔴 Collections Module ArraySegmentList Clear Method Not Implemented
+1543 " 🔴 CQRS Bus Thread Safety Bug - Missing Volatile Modifier on _isFrozen
+1544 " 🔄 CQRS Publish Method Exception Handling Refactored to Aggregate Exception Pattern
+1545 " ✅ CQRS Namespace Migration from Fun to Change
+1546 " 🔵 Timer Module Five Core Design Patterns Analyzed
+1547 " ✅ Unity Framework Code Review Session Completed with Findings
+1548 " ⚖️ Test Directory Structure Standardization Required
+S678 Collections Module Enhancement Sprint Completed (Apr 25 at 10:15 PM)
+1549 10:28p 🔵 Fun Framework Collections Module Task Planning Session
+1550 10:29p ✅ ObjectPool.Return Method Now Returns bool
+1551 " ✅ FastPriorityQueue Growth Metrics Instrumentation Added
+1552 10:30p ✅ CollectionMetrics Extended and ClearMode Documented
+1553 " 🔴 FastList.RemoveAtSwapBack Self-Assignment Guard Added
+1554 10:31p 🔵 Unity FSM 框架代码审核启动
+1555 10:32p 🔵 Unity FSM 框架代码审核完成
+1556 " ✅ Collections Module Enhancement Sprint Completed
+S681 Collections Module Enhancement Sprint - All 8 Tasks Completed and Verified (Apr 25 at 10:32 PM)
+S683 FastDictionary and FastHashSet Zero-Allocation ForEach Iteration Added (Apr 25 at 10:33 PM)
+1557 11:14p 🟣 Collections Module Enhancement Sprint Complete - 8 Tasks Done
+1559 " 🔴 FSM Framework FsmResult.NextStateId Safety Fix
+1558 " ✅ Collections Module Enhancement Sprint Committed to Git
+1562 " 🟣 FastDictionary and FastHashSet Zero-Allocation ForEach Iteration Added
+1563 " 🔴 FastList.RemoveAtSwapBack Self-Assignment Guard Fixed
+1564 " 🟣 ObjectPool Now Implements IClearable and Returns Boolean from Return
+1565 " 🟣 FastPriorityQueue Growth Metrics Instrumentation Added
+1566 " ✅ ClearMode Documentation Enhanced with GC Behavior Notes
+S684 Commit Collections module enhancement sprint to git (Apr 25 at 11:14 PM)
+1560 11:15p 🔄 FSM Framework StateMachine Major Refactoring - All Code Review Issues Addressed
+1561 " 🔴 FSM Framework Compilation Error - Missing System using Directive
+S686 Evaluate if ObjectPool in Collections can be replaced by Pool in Pooling module to eliminate duplicate code (Apr 25 at 11:15 PM)
+1568 11:23p 🔵 ObjectPool vs Pool Consolidation Analysis Complete
+1569 " ⚖️ Unify Reset Interfaces Rather Than Replace Implementation
+1570 11:24p 🔵 ObjectPool vs Pool API Comparison
+1572 " 🔵 Pool Module Has Richer Safety Features Than ObjectPool
+1573 " 🔵 Dual-Track Pooling Design Was Intentional
+1574 11:25p ⚖️ ObjectPool Consolidation - Dual-Track Design is Intentional
+1576 11:32p ✅ Commit Requested for Unity Framework Session
+S694 Commit FSM module improvements: RingBuffer integration, self-transition support, and new tests (Apr 25 at 11:32 PM)
+1577 " 🔄 FSM Module Refactored with RingBuffer and Self-Transition Support
 
-Access 1304k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 922k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
