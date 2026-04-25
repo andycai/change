@@ -85,5 +85,17 @@ namespace Change.Framework.Tests
             Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery(new TestQueryHandler()));
             Assert.Throws<RegistryFrozenException>(() => bus.Subscribe(new TestEventHandler()));
         }
+
+        [Test]
+        public void IsFrozen_ReturnsFalseBeforeFreezeAndTrueAfter()
+        {
+            var bus = new CqrsBus();
+
+            Assert.IsFalse(bus.IsFrozen);
+
+            bus.Freeze();
+
+            Assert.IsTrue(bus.IsFrozen);
+        }
     }
 }

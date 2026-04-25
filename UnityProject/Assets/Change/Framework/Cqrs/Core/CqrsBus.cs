@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Change.Framework.Logging;
 
 namespace Change.Framework.Cqrs
@@ -46,6 +47,11 @@ namespace Change.Framework.Cqrs
         private readonly Dictionary<Type, object> _eventHandlers = new();
         private readonly ILogger _logger;
         private bool _isFrozen;
+
+        /// <summary>
+        /// Gets whether the registry is frozen and ready for dispatch.
+        /// </summary>
+        public bool IsFrozen => _isFrozen;
 
         public CqrsBus()
             : this(NullLogger.Instance)
@@ -136,6 +142,7 @@ namespace Change.Framework.Cqrs
             _isFrozen = true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
@@ -154,6 +161,7 @@ namespace Change.Framework.Cqrs
             handler.Handle(in command);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TResult Query<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
@@ -175,6 +183,15 @@ namespace Change.Framework.Cqrs
             return handler.Handle(in query);
         }
 
+        /// <summary>
+        /// Publishes an event to all subscribed handlers in registration order.
+        /// </summary>
+        /// <remarks>
+        /// Handler exceptions propagate to the caller. If a handler throws, subsequent handlers
+        /// will not be invoked. This follows the fail-fast principle and matches the design spec
+        /// §7: "Handler exceptions are not swallowed; they propagate to caller."
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Publish<TEvent>(in TEvent @event)
             where TEvent : struct, IEvent
         {
@@ -202,9 +219,17 @@ namespace Change.Framework.Cqrs
             {
                 _logger.Info(message);
             }
-            catch (Exception)
+#if DEBUG
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CqrsBus] Logger failed: {ex.Message}");
             }
+#else
+            catch
+            {
+                // Intentionally suppressed - registration logging is non-critical and must not break registration.
+            }
+#endif
         }
     }
 }

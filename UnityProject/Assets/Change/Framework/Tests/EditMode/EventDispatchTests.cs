@@ -83,5 +83,31 @@ namespace Change.Framework.Tests
 
             Assert.Throws<ArgumentNullException>(() => bus.Subscribe<ScoreChangedEvent>(null));
         }
+
+        [Test]
+        public void Publish_WhenHandlerThrows_StopsPropagationAndRethrows()
+        {
+            var order = new List<int>();
+            var bus = new CqrsBus();
+
+            bus.Subscribe(new OrderedEventHandler(order, 1));
+            bus.Subscribe(new ThrowingEventHandler());
+            bus.Subscribe(new OrderedEventHandler(order, 2));
+            bus.Freeze();
+
+            var exception = Assert.Throws<InvalidOperationException>(() => bus.Publish(new ScoreChangedEvent(10)));
+
+            Assert.AreEqual("Handler failed", exception.Message);
+            // Handler 1 executed before throw, handler 2 never executed
+            CollectionAssert.AreEqual(new[] { 1 }, order);
+        }
+
+        private sealed class ThrowingEventHandler : IEventHandler<ScoreChangedEvent>
+        {
+            public void Handle(in ScoreChangedEvent @event)
+            {
+                throw new InvalidOperationException("Handler failed");
+            }
+        }
     }
 }
