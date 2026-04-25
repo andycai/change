@@ -1,4 +1,5 @@
 using Change.Framework.Collections;
+using Change.Framework.Pooling;
 using NUnit.Framework;
 
 namespace Change.Framework.Tests.Collections.Allocation
@@ -70,16 +71,17 @@ namespace Change.Framework.Tests.Collections.Allocation
         }
 
         [Test]
-        public void ObjectPool_RentReturn_SteadyStateZeroAlloc()
+        public void Pool_GetRelease_SteadyStateZeroAlloc()
         {
-            var pool = new ObjectPool<PooledNode>(() => new PooledNode(), 256);
-            pool.Prewarm(256);
+            Pool<PooledNode>.SetMaxSize(256);
+            Pool<PooledNode>.Clear();
+            Pool<PooledNode>.Prewarm(256);
 
             var before = System.GC.GetAllocatedBytesForCurrentThread();
             for (var i = 0; i < 256; i++)
             {
-                var value = pool.Rent();
-                pool.Return(value);
+                var value = Pool<PooledNode>.Get();
+                Pool<PooledNode>.Release(value);
             }
 
             var after = System.GC.GetAllocatedBytesForCurrentThread();
@@ -87,11 +89,11 @@ namespace Change.Framework.Tests.Collections.Allocation
             Assert.AreEqual(0L, after - before);
         }
 
-        private sealed class PooledNode : IResettable
+        private sealed class PooledNode : IPoolable
         {
             public int Value;
 
-            public void ResetState()
+            public void Reset()
             {
                 Value = 0;
             }
