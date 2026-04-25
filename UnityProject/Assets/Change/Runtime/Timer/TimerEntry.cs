@@ -12,13 +12,22 @@ namespace Change.Runtime
 
     internal sealed class TimerEntry : IDisposable
     {
-        public float interval;
-        public float elapsed;
-        public Action callback;
-        public CancellationTokenSource cts;
-        public bool scaled;
-        public TimerKind kind;
-        public bool isDone;
+        internal float interval;
+        internal float elapsed;
+        internal Action callback;
+        internal CancellationTokenSource cts;
+        internal bool scaled;
+        internal readonly TimerKind kind;
+        internal bool isDone;
+
+        internal TimerEntry(float interval, Action callback, CancellationTokenSource cts, bool scaled, TimerKind kind)
+        {
+            this.interval = interval;
+            this.callback = callback;
+            this.cts = cts;
+            this.scaled = scaled;
+            this.kind = kind;
+        }
 
         public void Dispose()
         {

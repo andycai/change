@@ -42,6 +42,7 @@ namespace Change.Runtime
             }
 
             _continuation = continuation;
+            // CancellationToken.None: awaiter manages cancellation via Register callback, not through Timer's CTS path.
             _delayHandle = Timer.Delay(_seconds, Complete, CancellationToken.None, _scaled);
 
             if (_ct.CanBeCanceled)

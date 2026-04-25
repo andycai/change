@@ -15,18 +15,7 @@ namespace Change.Runtime
             ValidateDuration(seconds, nameof(seconds));
             TimerDriver.EnsureExists();
 
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var entry = new TimerEntry
-            {
-                interval = seconds,
-                elapsed = 0f,
-                callback = callback,
-                cts = cts,
-                scaled = scaled,
-                kind = TimerKind.Delay,
-                isDone = false
-            };
-
+            var entry = CreateEntry(seconds, callback, ct, scaled, TimerKind.Delay);
             TimerDriver.Add(entry, TimerKind.Delay);
             return entry;
         }
@@ -38,20 +27,16 @@ namespace Change.Runtime
             bool scaled = true)
         {
             ValidateDuration(interval, nameof(interval));
+
+            if (interval <= 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(interval), interval,
+                    "Repeat interval must be greater than zero. Use EveryFrame for per-frame callbacks.");
+            }
+
             TimerDriver.EnsureExists();
 
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var entry = new TimerEntry
-            {
-                interval = interval,
-                elapsed = 0f,
-                callback = callback,
-                cts = cts,
-                scaled = scaled,
-                kind = TimerKind.Repeat,
-                isDone = false
-            };
-
+            var entry = CreateEntry(interval, callback, ct, scaled, TimerKind.Repeat);
             TimerDriver.Add(entry, TimerKind.Repeat);
             return entry;
         }
@@ -64,16 +49,12 @@ namespace Change.Runtime
             TimerDriver.EnsureExists();
 
             var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var entry = new TimerEntry
-            {
-                interval = 0f,
-                elapsed = 0f,
-                callback = () => onFrame(scaled ? Time.deltaTime : Time.unscaledDeltaTime, cts.Token),
-                cts = cts,
-                scaled = scaled,
-                kind = TimerKind.Frame,
-                isDone = false
-            };
+            var entry = new TimerEntry(
+                0f,
+                () => onFrame(scaled ? Time.deltaTime : Time.unscaledDeltaTime, cts.Token),
+                cts,
+                scaled,
+                TimerKind.Frame);
 
             TimerDriver.Add(entry, TimerKind.Frame);
             return entry;
@@ -95,6 +76,17 @@ namespace Change.Runtime
                 throw new ArgumentOutOfRangeException(paramName, value,
                     "Timer duration must be finite and greater than or equal to zero.");
             }
+        }
+
+        private static TimerEntry CreateEntry(
+            float interval,
+            Action callback,
+            CancellationToken ct,
+            bool scaled,
+            TimerKind kind)
+        {
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            return new TimerEntry(interval, callback, cts, scaled, kind);
         }
     }
 }

@@ -69,6 +69,8 @@ namespace Change.Runtime.Tests.PlayMode
         public void Repeat_WhenIntervalInvalid_ThrowsArgumentOutOfRangeException()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
+                global::Change.Runtime.Timer.Repeat(0f, () => { }, CancellationToken.None, true));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
                 global::Change.Runtime.Timer.Repeat(float.NaN, () => { }, CancellationToken.None, true));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 global::Change.Runtime.Timer.Repeat(float.PositiveInfinity, () => { }, CancellationToken.None, true));
@@ -223,7 +225,7 @@ namespace Change.Runtime.Tests.PlayMode
         public IEnumerator Repeat_WhenDisposed_StopsFurtherCallbacks()
         {
             int invokeCount = 0;
-            var handle = global::Change.Runtime.Timer.Repeat(0f, () => invokeCount++, CancellationToken.None, true);
+            var handle = global::Change.Runtime.Timer.Repeat(0.001f, () => invokeCount++, CancellationToken.None, true);
 
             yield return WaitUntil(() => invokeCount > 0, 1f, "Repeat callback never invoked before dispose.");
 
@@ -238,7 +240,7 @@ namespace Change.Runtime.Tests.PlayMode
         public IEnumerator Repeat_WhenCallbackThrows_StopsFurtherCallbacks()
         {
             int invokeCount = 0;
-            var handle = global::Change.Runtime.Timer.Repeat(0f, () =>
+            var handle = global::Change.Runtime.Timer.Repeat(0.001f, () =>
             {
                 invokeCount++;
                 throw new InvalidOperationException("repeat boom");
@@ -286,6 +288,90 @@ namespace Change.Runtime.Tests.PlayMode
             {
                 handle.Dispose();
             }
+        }
+
+        [UnityTest]
+        public IEnumerator Delay_WhenDurationElapses_CallbackIsInvoked()
+        {
+            bool fired = false;
+            var handle = global::Change.Runtime.Timer.Delay(0.05f, () => fired = true, CancellationToken.None, true);
+            try
+            {
+                yield return new WaitForSecondsRealtime(0.1f);
+                Assert.IsTrue(fired, "Delay callback should have fired after duration elapsed.");
+            }
+            finally
+            {
+                handle.Dispose();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Delay_WhenCancelledBeforeFiring_CallbackIsNotInvoked()
+        {
+            bool fired = false;
+            var cts = new CancellationTokenSource();
+            var handle = global::Change.Runtime.Timer.Delay(5f, () => fired = true, cts.Token, true);
+            try
+            {
+                yield return null;
+                cts.Cancel();
+                yield return new WaitForSecondsRealtime(0.1f);
+                Assert.IsFalse(fired, "Delay callback should not fire after cancellation.");
+            }
+            finally
+            {
+                handle.Dispose();
+                cts.Dispose();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator EveryFrame_PassesCorrectDeltaTime()
+        {
+            float receivedDt = -1f;
+            var handle = global::Change.Runtime.Timer.EveryFrame((dt, _) => receivedDt = dt, CancellationToken.None, true);
+            try
+            {
+                yield return null;
+                Assert.Greater(receivedDt, 0f, "EveryFrame should pass positive deltaTime.");
+                Assert.Less(receivedDt, 1f, "deltaTime should be less than 1 second per frame.");
+            }
+            finally
+            {
+                handle.Dispose();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator EveryFrame_WhenCancelled_StopsFurtherCallbacks()
+        {
+            int invokeCount = 0;
+            var cts = new CancellationTokenSource();
+            var handle = global::Change.Runtime.Timer.EveryFrame((_, _) => invokeCount++, cts.Token, true);
+            try
+            {
+                yield return WaitUntil(() => invokeCount > 0, 1f, "EveryFrame callback never invoked before cancellation.");
+                int countAtCancel = invokeCount;
+                cts.Cancel();
+                yield return new WaitForSecondsRealtime(0.1f);
+                Assert.AreEqual(countAtCancel, invokeCount, "EveryFrame should stop after cancellation.");
+            }
+            finally
+            {
+                handle.Dispose();
+                cts.Dispose();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator DelayAsync_WhenDurationElapses_CompletesSuccessfully()
+        {
+            var awaiter = global::Change.Runtime.Timer.DelayAsync(0.05f, CancellationToken.None, true).GetAwaiter();
+            bool resumed = false;
+            awaiter.OnCompleted(() => resumed = true);
+            yield return WaitUntil(() => resumed, 1f, "DelayAsync did not complete in time.");
+            Assert.DoesNotThrow(() => awaiter.GetResult(), "DelayAsync should complete without exception.");
         }
 
         private static Exception CaptureGetResultException(TimerAwaiter awaiter)

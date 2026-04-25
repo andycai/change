@@ -9,6 +9,8 @@ namespace Change.Runtime
     {
         private static GameObject _gameObject;
         private static int _mainThreadId;
+        private static bool _initialized;
+        private static readonly List<CancellationToken> _removals = new();
 
         private static readonly Dictionary<CancellationToken, TimerEntry> _delays = new();
         private static readonly Dictionary<CancellationToken, TimerEntry> _repeats = new();
@@ -25,12 +27,15 @@ namespace Change.Runtime
         private static void CaptureMainThread()
         {
             _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+            _initialized = true;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Init()
         {
             _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+            _initialized = true;
+            _removals.Clear();
 
             ClearAndDispose(_delays);
             ClearAndDispose(_repeats);
@@ -88,9 +93,9 @@ namespace Change.Runtime
 
         private static void EnsureMainThread()
         {
-            if (_mainThreadId == 0)
+            if (!_initialized)
             {
-                throw new InvalidOperationException("[Change.Timer] Timer main thread has not been initialized yet.");
+                throw new InvalidOperationException("[Change.Timer] Timer has not been initialized yet.");
             }
 
             if (Thread.CurrentThread.ManagedThreadId != _mainThreadId)
@@ -222,7 +227,7 @@ namespace Change.Runtime
                 float dt,
                 float unscaledDt)
             {
-                List<CancellationToken> tokensToRemove = null;
+                _removals.Clear();
 
                 isProcessing = true;
                 try
@@ -232,8 +237,7 @@ namespace Change.Runtime
                         var entry = kvp.Value;
                         if (entry.isDone || entry.cts.IsCancellationRequested)
                         {
-                            tokensToRemove ??= new List<CancellationToken>();
-                            tokensToRemove.Add(kvp.Key);
+                            _removals.Add(kvp.Key);
                             continue;
                         }
 
@@ -241,8 +245,7 @@ namespace Change.Runtime
                         {
                             if (!InvokeCallback(entry) || entry.cts.IsCancellationRequested)
                             {
-                                tokensToRemove ??= new List<CancellationToken>();
-                                tokensToRemove.Add(kvp.Key);
+                                _removals.Add(kvp.Key);
                             }
 
                             continue;
@@ -261,8 +264,7 @@ namespace Change.Runtime
                         if (entry.kind == TimerKind.Delay || entry.isDone || entry.cts.IsCancellationRequested)
                         {
                             entry.isDone = true;
-                            tokensToRemove ??= new List<CancellationToken>();
-                            tokensToRemove.Add(kvp.Key);
+                            _removals.Add(kvp.Key);
                         }
                         else
                         {
@@ -275,12 +277,9 @@ namespace Change.Runtime
                     isProcessing = false;
                 }
 
-                if (tokensToRemove != null)
+                for (int i = 0; i < _removals.Count; i++)
                 {
-                    foreach (var token in tokensToRemove)
-                    {
-                        RemoveEntry(dict, token);
-                    }
+                    RemoveEntry(dict, _removals[i]);
                 }
 
                 FlushPending(dict, pending);
