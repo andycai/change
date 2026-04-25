@@ -45,5 +45,26 @@ namespace Change.Framework.Tests.Collections
             Assert.AreEqual(4, created);
             Assert.AreEqual(4, pool.InactiveCount);
         }
+
+        [Test]
+        public void Return_FalseWhenPoolFull()
+        {
+            var pool = new ObjectPool<Payload>(() => new Payload(), 1);
+            pool.Return(new Payload());
+
+            Assert.IsFalse(pool.Return(new Payload()));
+        }
+
+        [Test]
+        public void Clear_RemovesAllPooledInstances()
+        {
+            var pool = new ObjectPool<Payload>(() => new Payload(), 4);
+            pool.Return(new Payload());
+            pool.Return(new Payload());
+
+            pool.Clear();
+
+            Assert.AreEqual(0, pool.InactiveCount);
+        }
     }
 }

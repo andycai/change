@@ -228,5 +228,16 @@ namespace Change.Framework.Collections
             _entries = entries;
             CollectionMetrics.RecordFastDictionaryGrow();
         }
+
+        public void ForEach(Action<TKey, TValue> action)
+        {
+            for (var i = 0; i < _count; i++)
+            {
+                if (_entries[i].HashCode >= 0)
+                {
+                    action(_entries[i].Key, _entries[i].Value);
+                }
+            }
+        }
     }
 }

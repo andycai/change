@@ -32,10 +32,12 @@ namespace Change.Framework.Tests.Collections
         {
             CollectionMetrics.RecordFastListGrow();
             CollectionMetrics.RecordFastDictionaryGrow();
+            CollectionMetrics.RecordFastPriorityQueueGrow();
             CollectionMetrics.Reset();
 
             Assert.AreEqual(0, CollectionMetrics.FastListGrowCount);
             Assert.AreEqual(0, CollectionMetrics.FastDictionaryGrowCount);
+            Assert.AreEqual(0, CollectionMetrics.FastPriorityQueueGrowCount);
         }
     }
 }

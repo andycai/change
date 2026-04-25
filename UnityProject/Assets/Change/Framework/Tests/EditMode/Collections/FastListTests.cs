@@ -31,6 +31,19 @@ namespace Change.Framework.Tests.Collections
         }
 
         [Test]
+        public void RemoveAtSwapBack_LastElement_RemovesWithoutSwap()
+        {
+            var list = new FastList<int>(4);
+            list.Add(1);
+            list.Add(2);
+
+            list.RemoveAtSwapBack(1);
+
+            Assert.AreEqual(1, list.Count);
+            Assert.AreEqual(1, list[0]);
+        }
+
+        [Test]
         public void Enumerator_ThrowsWhenCollectionModified()
         {
             var list = new FastList<int>(4);

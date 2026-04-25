@@ -94,6 +94,7 @@ namespace Change.Framework.Collections
             }
 
             Array.Resize(ref _heap, GrowPolicy.Next(_heap.Length, minimum));
+            CollectionMetrics.RecordFastPriorityQueueGrow();
         }
 
         private void InsertAtTail(T value)

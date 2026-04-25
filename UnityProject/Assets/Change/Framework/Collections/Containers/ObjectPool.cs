@@ -2,7 +2,7 @@ using System;
 
 namespace Change.Framework.Collections
 {
-    public sealed class ObjectPool<T> where T : class
+    public sealed class ObjectPool<T> : IClearable where T : class
     {
         private readonly FastList<T> _stack;
         private readonly Func<T> _factory;
@@ -36,7 +36,7 @@ namespace Change.Framework.Collections
             return value;
         }
 
-        public void Return(T value)
+        public bool Return(T value)
         {
             CollectionGuards.ThrowIfNull(value, nameof(value));
 
@@ -48,7 +48,10 @@ namespace Change.Framework.Collections
             if (_stack.Count < _maxSize)
             {
                 _stack.AddNoResize(value);
+                return true;
             }
+
+            return false;
         }
 
         public void Prewarm(int count)
@@ -72,6 +75,11 @@ namespace Change.Framework.Collections
             {
                 _stack.RemoveAt(_stack.Count - 1);
             }
+        }
+
+        public void Clear(ClearMode mode = ClearMode.Logical)
+        {
+            _stack.Clear(mode);
         }
     }
 }

@@ -96,7 +96,10 @@ namespace Change.Framework.Collections
         {
             CollectionGuards.ThrowIfIndexOutOfRange(index, _count);
             var lastIndex = _count - 1;
-            _items[index] = _items[lastIndex];
+            if (index != lastIndex)
+            {
+                _items[index] = _items[lastIndex];
+            }
             _items[lastIndex] = default;
             _count--;
             _version++;

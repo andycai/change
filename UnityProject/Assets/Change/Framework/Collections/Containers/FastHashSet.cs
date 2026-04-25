@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Change.Framework.Collections
@@ -36,6 +37,11 @@ namespace Change.Framework.Collections
         public void Clear(ClearMode mode = ClearMode.Logical)
         {
             _map.Clear(mode);
+        }
+
+        public void ForEach(Action<T> action)
+        {
+            _map.ForEach((key, _) => action(key));
         }
     }
 }
