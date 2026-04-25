@@ -34,6 +34,13 @@ namespace Change.Framework.Tests
             }
         }
 
+        private readonly struct StructScoreChangedHandler : IEventHandler<ScoreChangedEvent>
+        {
+            public void Handle(in ScoreChangedEvent @event)
+            {
+            }
+        }
+
         [Test]
         public void Publish_InvokesSubscribersInRegistrationOrder()
         {
@@ -91,6 +98,14 @@ namespace Change.Framework.Tests
             var bus = new CqrsBus();
 
             Assert.Throws<ArgumentNullException>(() => bus.Subscribe<ScoreChangedEvent>(null));
+        }
+
+        [Test]
+        public void Subscribe_StructHandler_ThrowsInvalidOperationException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<InvalidOperationException>(() => bus.Subscribe(new StructScoreChangedHandler()));
         }
 
         [Test]

@@ -30,6 +30,14 @@ namespace Change.Framework.Tests
             }
         }
 
+        private readonly struct StructGetScoreQueryHandler : IQueryHandler<GetScoreQuery, int>
+        {
+            public int Handle(in GetScoreQuery query)
+            {
+                return 0;
+            }
+        }
+
         [Test]
         public void Query_ReturnsResultFromRegisteredHandler()
         {
@@ -99,6 +107,14 @@ namespace Change.Framework.Tests
             var bus = new CqrsBus();
 
             Assert.Throws<ArgumentNullException>(() => bus.RegisterQuery<GetScoreQuery, int>(null));
+        }
+
+        [Test]
+        public void RegisterQuery_StructHandler_ThrowsInvalidOperationException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new StructGetScoreQueryHandler()));
         }
     }
 }

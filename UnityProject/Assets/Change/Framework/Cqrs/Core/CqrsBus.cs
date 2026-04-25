@@ -114,6 +114,7 @@ namespace Change.Framework.Cqrs
             {
                 throw new ArgumentNullException(nameof(handler));
             }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
 
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
@@ -136,6 +137,7 @@ namespace Change.Framework.Cqrs
             {
                 throw new ArgumentNullException(nameof(handler));
             }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
 
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
@@ -161,6 +163,7 @@ namespace Change.Framework.Cqrs
             {
                 throw new ArgumentNullException(nameof(handler));
             }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
 
             var eventType = typeof(TEvent);
             if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
@@ -266,6 +269,15 @@ namespace Change.Framework.Cqrs
         private void ThrowIfNotFrozen()
         {
             if (!_isFrozen) throw new InvalidOperationException("Registry must be frozen before dispatch.");
+        }
+
+        private static void ThrowIfValueTypeHandler(object handler, string paramName)
+        {
+            if (handler.GetType().IsValueType)
+            {
+                throw new InvalidOperationException(
+                    $"Value-type handlers are not supported: {paramName} must be implemented by a class to avoid boxing.");
+            }
         }
 
         private void SafeInfo(string message)

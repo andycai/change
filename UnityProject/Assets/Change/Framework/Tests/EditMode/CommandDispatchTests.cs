@@ -36,6 +36,13 @@ namespace Change.Framework.Tests
             }
         }
 
+        private readonly struct StructIncrementCounterHandler : ICommandHandler<IncrementCounterCommand>
+        {
+            public void Handle(in IncrementCounterCommand command)
+            {
+            }
+        }
+
         [Test]
         public void Send_DispatchesRegisteredHandler()
         {
@@ -104,6 +111,14 @@ namespace Change.Framework.Tests
             var bus = new CqrsBus();
 
             Assert.Throws<ArgumentNullException>(() => bus.RegisterCommand<IncrementCounterCommand>(null));
+        }
+
+        [Test]
+        public void RegisterCommand_StructHandler_ThrowsInvalidOperationException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<InvalidOperationException>(() => bus.RegisterCommand(new StructIncrementCounterHandler()));
         }
     }
 }
