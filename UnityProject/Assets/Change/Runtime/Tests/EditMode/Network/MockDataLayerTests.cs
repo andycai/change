@@ -49,6 +49,39 @@ namespace Change.Runtime.Tests.Network
         }
 
         [Test]
+        public void Validator_DuplicateSupportedCmdIds_ThrowsMockDataInvalidException()
+        {
+            var registry = new MockRegistry();
+            registry.Register(new DummyHandler(1001));
+            var dataset = new TestDataset("dev-default", new[] { 1001, 1001 }, new Dictionary<int, byte[]>
+            {
+                { 1001, new byte[] { 1 } },
+            });
+
+            var exception = Assert.Throws<MockDataInvalidException>(() => MockDataValidator.Validate(registry, dataset));
+
+            Assert.That(exception.Message, Does.Contain("Duplicate cmdId"));
+        }
+
+        [Test]
+        public void Validator_RegisteredHandlerMissingFromSupportedCmdIds_ThrowsMockDataInvalidException()
+        {
+            var registry = new MockRegistry();
+            registry.Register(new DummyHandler(1001));
+            registry.Register(new DummyHandler(1002));
+            var dataset = new TestDataset("dev-default", new[] { 1001 }, new Dictionary<int, byte[]>
+            {
+                { 1001, new byte[] { 1 } },
+                { 1002, new byte[] { 2 } },
+            });
+
+            var exception = Assert.Throws<MockDataInvalidException>(() => MockDataValidator.Validate(registry, dataset));
+
+            Assert.That(exception.Message, Does.Contain("1002"));
+            Assert.That(exception.Message, Does.Contain("supported cmd ids"));
+        }
+
+        [Test]
         public void Validator_HandlerAndTemplateExist_DoesNotThrow()
         {
             var registry = new MockRegistry();

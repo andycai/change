@@ -76,6 +76,46 @@ namespace Change.Runtime.Tests.Network
             }
         }
 
+        private sealed class ThrowingCodec : IMessageCodec
+        {
+            private readonly Exception _encodeError;
+            private readonly Exception _decodeError;
+
+            public ThrowingCodec(Exception encodeError, Exception decodeError)
+            {
+                _encodeError = encodeError;
+                _decodeError = decodeError;
+            }
+
+            public byte[] Encode<TMessage>(TMessage message)
+            {
+                if (_encodeError != null)
+                {
+                    throw _encodeError;
+                }
+
+                return Encoding.UTF8.GetBytes(message?.ToString() ?? string.Empty);
+            }
+
+            public TMessage Decode<TMessage>(byte[] payload)
+            {
+                if (_decodeError != null)
+                {
+                    throw _decodeError;
+                }
+
+                return (TMessage)(object)Encoding.UTF8.GetString(payload);
+            }
+        }
+
+        private sealed class InvalidRoutePolicy : IRoutePolicy
+        {
+            public RouteTarget Resolve(int cmdId)
+            {
+                return (RouteTarget)255;
+            }
+        }
+
         [Test]
         public void Send_WithAllMockPolicy_UsesMockTransport()
         {
@@ -149,11 +189,11 @@ namespace Change.Runtime.Tests.Network
         }
 
         [Test]
-        public void Resolve_WithUnsupportedTarget_ThrowsMockDataInvalidException()
+        public void Resolve_WithUnsupportedTarget_ThrowsUnsupportedRouteException()
         {
             var router = new TransportRouter(new NamedEchoTransport("mock"), new NamedEchoTransport("ws"), new NamedEchoTransport("tcp"));
 
-            Assert.Throws<MockDataInvalidException>(() => router.Resolve((RouteTarget)255));
+            Assert.Throws<UnsupportedRouteException>(() => router.Resolve((RouteTarget)255));
         }
 
         [Test]
@@ -171,6 +211,43 @@ namespace Change.Runtime.Tests.Network
             Assert.AreEqual(2, capturingTransport.Requests[1].RequestId);
             Assert.AreEqual(1001, capturingTransport.Requests[0].CmdId);
             Assert.AreEqual(1002, capturingTransport.Requests[1].CmdId);
+        }
+
+        [Test]
+        public void Send_WithUnsupportedRouteTarget_ThrowsUnsupportedRouteException()
+        {
+            var router = new TransportRouter(new NamedEchoTransport("mock"), new NamedEchoTransport("ws"), new NamedEchoTransport("tcp"));
+            var client = new NetClient(new TestCodec(), new InvalidRoutePolicy(), router, "dev-default");
+
+            Assert.Throws<UnsupportedRouteException>(() => client.Send<string, string>(1001, "x"));
+        }
+
+        [Test]
+        public void Send_WhenEncodeFails_WrapsCodecOperationExceptionWithCmdAndRequestContext()
+        {
+            var router = new TransportRouter(new NamedEchoTransport("mock"), new NamedEchoTransport("ws"), new NamedEchoTransport("tcp"));
+            var inner = new InvalidOperationException("encode boom");
+            var client = new NetClient(new ThrowingCodec(inner, null), new AllMockRoutePolicy(), router, "dev-default");
+
+            var exception = Assert.Throws<CodecOperationException>(() => client.Send<string, string>(4123, "x"));
+
+            Assert.That(exception.Message, Does.Contain("cmdId 4123"));
+            Assert.That(exception.Message, Does.Contain("requestId 1"));
+            Assert.AreSame(inner, exception.InnerException);
+        }
+
+        [Test]
+        public void Send_WhenDecodeFails_WrapsCodecOperationExceptionWithCmdAndRequestContext()
+        {
+            var router = new TransportRouter(new NamedEchoTransport("mock"), new NamedEchoTransport("ws"), new NamedEchoTransport("tcp"));
+            var inner = new FormatException("decode boom");
+            var client = new NetClient(new ThrowingCodec(null, inner), new AllMockRoutePolicy(), router, "dev-default");
+
+            var exception = Assert.Throws<CodecOperationException>(() => client.Send<string, string>(5123, "x"));
+
+            Assert.That(exception.Message, Does.Contain("cmdId 5123"));
+            Assert.That(exception.Message, Does.Contain("requestId 1"));
+            Assert.AreSame(inner, exception.InnerException);
         }
     }
 }

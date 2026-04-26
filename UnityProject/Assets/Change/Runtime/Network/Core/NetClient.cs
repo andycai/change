@@ -35,12 +35,38 @@ namespace Change.Runtime.Network
             }
 
             var requestId = ++_nextRequestId;
-            var payload = _codec.Encode(request);
+            byte[] payload;
+            try
+            {
+                payload = _codec.Encode(request);
+            }
+            catch (Exception ex)
+            {
+                throw WrapCodecFailure("encode", cmdId, requestId, ex);
+            }
+
             var requestEnvelope = new ProtocolEnvelope(cmdId, requestId, payload);
             var target = _routePolicy.Resolve(cmdId);
             var transport = _router.Resolve(target);
             var responseEnvelope = transport.Send(in requestEnvelope);
-            return _codec.Decode<TResponse>(responseEnvelope.Payload);
+            try
+            {
+                return _codec.Decode<TResponse>(responseEnvelope.Payload);
+            }
+            catch (Exception ex)
+            {
+                throw WrapCodecFailure("decode", cmdId, requestId, ex);
+            }
+        }
+
+        private static CodecOperationException WrapCodecFailure(string operation, int cmdId, int requestId, Exception error)
+        {
+            if (error is CodecOperationException codecError && codecError.InnerException != null)
+            {
+                return new CodecOperationException(operation, cmdId, requestId, codecError.InnerException);
+            }
+
+            return new CodecOperationException(operation, cmdId, requestId, error);
         }
     }
 }

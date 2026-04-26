@@ -25,5 +25,15 @@ namespace Change.Runtime.Network
         {
             return _handlers.TryGetValue(cmdId, out handler);
         }
+
+        public void ForEachRegistered(Action<int, IMockHandler> visitor)
+        {
+            if (visitor == null)
+            {
+                throw new ArgumentNullException(nameof(visitor));
+            }
+
+            _handlers.ForEach(visitor);
+        }
     }
 }

@@ -48,6 +48,8 @@ namespace Change.Framework.Tests.Network
                 .IsAssignableFrom(typeof(MockDataInvalidException)));
             Assert.IsTrue(typeof(InvalidOperationException)
                 .IsAssignableFrom(typeof(CodecOperationException)));
+            Assert.IsTrue(typeof(InvalidOperationException)
+                .IsAssignableFrom(typeof(UnsupportedRouteException)));
         }
     }
 }

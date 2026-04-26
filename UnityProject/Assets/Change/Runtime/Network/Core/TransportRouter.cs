@@ -27,7 +27,7 @@ namespace Change.Runtime.Network
                 case RouteTarget.RealTcp:
                     return _tcpTransport;
                 default:
-                    throw new MockDataInvalidException(-1, $"Unsupported route target: {target}");
+                    throw new UnsupportedRouteException(target);
             }
         }
     }
