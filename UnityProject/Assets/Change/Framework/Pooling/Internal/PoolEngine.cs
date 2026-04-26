@@ -1,0 +1,156 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
+namespace Change.Framework.Pooling.Internal
+{
+    internal sealed class PoolEngine<T> where T : class, IPoolable
+    {
+        // Not thread-safe; pool operations are expected on a single thread.
+        private readonly Stack<T> _inactive;
+        private readonly Func<T> _factory;
+        private readonly object _rentedMarker = new object();
+        private ConditionalWeakTable<T, object> _rentedItems = new ConditionalWeakTable<T, object>();
+        private int _maxSize;
+
+        private long _created;
+        private long _rented;
+        private long _released;
+        private long _dropped;
+
+        public PoolEngine(Func<T> factory, int maxSize)
+        {
+            if (factory == null)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
+
+            if (maxSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxSize));
+            }
+
+            _factory = factory;
+            _maxSize = maxSize;
+            _inactive = new Stack<T>(maxSize);
+        }
+
+        public int InactiveCount => _inactive.Count;
+
+        public T Get()
+        {
+            T item;
+            if (_inactive.Count > 0)
+            {
+                item = _inactive.Pop();
+            }
+            else
+            {
+                item = _factory();
+                _created++;
+            }
+
+            MarkRented(item);
+            _rented++;
+            return item;
+        }
+
+        public void Release(T item)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+#else
+            if (item == null)
+            {
+                return;
+            }
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!TryMarkReleased(item))
+            {
+                throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not currently rented by this pool.");
+            }
+#else
+            if (!TryMarkReleased(item))
+            {
+                return;
+            }
+#endif
+
+            _released++;
+            item.Reset();
+
+            if (_inactive.Count >= _maxSize)
+            {
+                _dropped++;
+                return;
+            }
+
+            _inactive.Push(item);
+        }
+
+        public void Prewarm(int count)
+        {
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            var target = Math.Min(count, _maxSize);
+            while (_inactive.Count < target)
+            {
+                var created = _factory();
+                _inactive.Push(created);
+                _created++;
+            }
+        }
+
+        public void SetMaxSize(int maxSize)
+        {
+            if (maxSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxSize));
+            }
+
+            _maxSize = maxSize;
+            while (_inactive.Count > _maxSize)
+            {
+                _inactive.Pop();
+            }
+        }
+
+        public void Clear()
+        {
+            _inactive.Clear();
+            _rentedItems = new ConditionalWeakTable<T, object>();
+        }
+
+        public PoolStats GetStats()
+        {
+            return new PoolStats(_created, _rented, _released, _dropped, _maxSize, _inactive.Count);
+        }
+
+        private void MarkRented(T item)
+        {
+            if (_rentedItems.TryGetValue(item, out _))
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                throw new InvalidOperationException($"Cannot rent instance of {typeof(T).FullName} because it is already marked as rented.");
+#else
+                return;
+#endif
+            }
+
+            _rentedItems.Add(item, _rentedMarker);
+        }
+
+        private bool TryMarkReleased(T item)
+        {
+            return _rentedItems.Remove(item);
+        }
+    }
+}
