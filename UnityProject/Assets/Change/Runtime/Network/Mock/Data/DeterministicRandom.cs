@@ -18,6 +18,11 @@ namespace Change.Runtime.Network
 
         public float NextFloat(float minInclusive, float maxInclusive)
         {
+            if (maxInclusive < minInclusive)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxInclusive), "maxInclusive must be greater than or equal to minInclusive.");
+            }
+
             var unit = (float)_random.NextDouble();
             return minInclusive + ((maxInclusive - minInclusive) * unit);
         }

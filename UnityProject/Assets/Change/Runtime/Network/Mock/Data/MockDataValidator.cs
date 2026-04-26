@@ -25,6 +25,11 @@ namespace Change.Runtime.Network
             for (var i = 0; i < supportedCmdIds.Length; i++)
             {
                 var cmdId = supportedCmdIds[i];
+                if (!registry.TryGet(cmdId, out _))
+                {
+                    throw new MockDataInvalidException(cmdId, "Mock handler missing.");
+                }
+
                 if (!dataset.TryGetTemplate(cmdId, out var payload) || payload == null)
                 {
                     throw new MockDataInvalidException(cmdId, "Template payload missing.");
