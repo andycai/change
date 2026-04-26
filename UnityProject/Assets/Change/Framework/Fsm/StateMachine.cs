@@ -30,7 +30,7 @@ namespace Change.Framework.Fsm
         }
 
         private readonly IEqualityComparer<TStateId> _stateIdComparer;
-        private readonly Dictionary<TStateId, IFsmState<TStateId, TEvent>> _states;
+        private readonly FastDictionary<TStateId, IFsmState<TStateId, TEvent>> _states;
         private readonly RingBuffer<TEvent> _eventQueue;
         private readonly RingBuffer<TransitionRequest> _transitionQueue;
         private readonly bool _allowSelfTransition;
@@ -50,7 +50,7 @@ namespace Change.Framework.Fsm
         public StateMachine(IEqualityComparer<TStateId> comparer = null, int initialCapacity = 8, bool allowSelfTransition = false)
         {
             _stateIdComparer = comparer ?? EqualityComparer<TStateId>.Default;
-            _states = new Dictionary<TStateId, IFsmState<TStateId, TEvent>>(_stateIdComparer);
+            _states = new FastDictionary<TStateId, IFsmState<TStateId, TEvent>>(initialCapacity, _stateIdComparer);
             _eventQueue = new RingBuffer<TEvent>(initialCapacity);
             _transitionQueue = new RingBuffer<TransitionRequest>(initialCapacity);
             _allowSelfTransition = allowSelfTransition;
@@ -77,12 +77,10 @@ namespace Change.Framework.Fsm
                 throw new InvalidOperationException("Cannot register states after the state machine has started.");
             }
 
-            if (_states.ContainsKey(state.Id))
+            if (!_states.TryAdd(state.Id, state))
             {
                 throw new InvalidOperationException($"State '{state.Id}' is already registered.");
             }
-
-            _states.Add(state.Id, state);
         }
 
         /// <summary>
