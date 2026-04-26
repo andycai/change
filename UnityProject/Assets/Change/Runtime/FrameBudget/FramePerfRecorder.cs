@@ -5,6 +5,7 @@ namespace Change.Runtime
     public sealed class FramePerfRecorder
     {
         private readonly float[] _samples;
+        private readonly float[] _sortedScratch;
         private readonly bool[] _overBudgetMarks;
         private readonly int _thresholdPercent;
         private int _index;
@@ -23,12 +24,18 @@ namespace Change.Runtime
             }
 
             _samples = new float[windowSize];
+            _sortedScratch = new float[windowSize];
             _overBudgetMarks = new bool[windowSize];
             _thresholdPercent = overBudgetThresholdPercent;
         }
 
         public void RecordFrame(float totalMs, bool isOverBudget)
         {
+            if (float.IsNaN(totalMs) || float.IsInfinity(totalMs) || totalMs < 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(totalMs));
+            }
+
             _samples[_index] = totalMs;
             _overBudgetMarks[_index] = isOverBudget;
             _index = (_index + 1) % _samples.Length;
@@ -42,14 +49,13 @@ namespace Change.Runtime
                 return new FramePerfSnapshot(0f, 0f, 0, 0, false);
             }
 
-            var sorted = new float[_count];
             int overBudgetCount = 0;
             int oldestIndex = (_index - _count + _samples.Length) % _samples.Length;
 
             for (int i = 0; i < _count; i++)
             {
                 int index = (oldestIndex + i) % _samples.Length;
-                sorted[i] = _samples[index];
+                _sortedScratch[i] = _samples[index];
 
                 if (_overBudgetMarks[index])
                 {
@@ -57,10 +63,10 @@ namespace Change.Runtime
                 }
             }
 
-            Array.Sort(sorted);
+            Array.Sort(_sortedScratch, 0, _count);
 
-            float p50 = sorted[GetNearestRankIndex(_count, 0.50)];
-            float p95 = sorted[GetNearestRankIndex(_count, 0.95)];
+            float p50 = _sortedScratch[GetNearestRankIndex(_count, 0.50)];
+            float p95 = _sortedScratch[GetNearestRankIndex(_count, 0.95)];
             int overBudgetPercent = (int)Math.Round(overBudgetCount * 100.0 / _count, MidpointRounding.AwayFromZero);
 
             return new FramePerfSnapshot(
