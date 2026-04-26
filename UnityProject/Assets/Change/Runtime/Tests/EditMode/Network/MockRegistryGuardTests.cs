@@ -59,6 +59,49 @@ namespace Change.Runtime.Tests.Network
             }
         }
 
+        private sealed class RecordingHandler : IMockHandler
+        {
+            private readonly byte[] _responsePayload;
+
+            public RecordingHandler(int cmdId, byte[] responsePayload)
+            {
+                CmdId = cmdId;
+                _responsePayload = responsePayload;
+            }
+
+            public int CmdId { get; }
+
+            public int CallCount { get; private set; }
+
+            public byte[] LastPayload { get; private set; }
+
+            public MockRequestContext LastContext { get; private set; }
+
+            public IMockDataProvider LastDataProvider { get; private set; }
+
+            public IMockValueFactory LastValueFactory { get; private set; }
+
+            public byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
+            {
+                CallCount++;
+                LastPayload = requestPayload;
+                LastContext = context;
+                LastDataProvider = dataProvider;
+                LastValueFactory = valueFactory;
+                return _responsePayload;
+            }
+        }
+
+        [Test]
+        public void Register_NullHandler_ThrowsArgumentNullException()
+        {
+            var registry = new MockRegistry();
+
+            var exception = Assert.Throws<ArgumentNullException>(() => registry.Register(null));
+
+            Assert.AreEqual("handler", exception.ParamName);
+        }
+
         [Test]
         public void Register_DuplicateCmdId_ThrowsDuplicateMockRegistrationException()
         {
@@ -77,6 +120,65 @@ namespace Change.Runtime.Tests.Network
             var context = new MockRequestContext("dev-default", 9999, 1);
 
             Assert.Throws<MockHandlerNotFoundException>(() => dispatcher.Dispatch(in request, in context));
+        }
+
+        [Test]
+        public void Constructor_NullRegistry_ThrowsArgumentNullException()
+        {
+            var exception = Assert.Throws<ArgumentNullException>(() => new MockDispatcher(null, new DummyDataProvider(), new DummyValueFactory()));
+
+            Assert.AreEqual("registry", exception.ParamName);
+        }
+
+        [Test]
+        public void Constructor_NullDataProvider_ThrowsArgumentNullException()
+        {
+            var registry = new MockRegistry();
+
+            var exception = Assert.Throws<ArgumentNullException>(() => new MockDispatcher(registry, null, new DummyValueFactory()));
+
+            Assert.AreEqual("dataProvider", exception.ParamName);
+        }
+
+        [Test]
+        public void Constructor_NullValueFactory_ThrowsArgumentNullException()
+        {
+            var registry = new MockRegistry();
+
+            var exception = Assert.Throws<ArgumentNullException>(() => new MockDispatcher(registry, new DummyDataProvider(), null));
+
+            Assert.AreEqual("valueFactory", exception.ParamName);
+        }
+
+        [Test]
+        public void Dispatch_WithRegisteredHandler_UsesMatchingHandlerAndReturnsExpectedEnvelope()
+        {
+            var registry = new MockRegistry();
+            var dataProvider = new DummyDataProvider();
+            var valueFactory = new DummyValueFactory();
+            var targetResponsePayload = Encoding.UTF8.GetBytes("target-response");
+            var otherHandler = new RecordingHandler(1002, Encoding.UTF8.GetBytes("other-response"));
+            var targetHandler = new RecordingHandler(1001, targetResponsePayload);
+            registry.Register(otherHandler);
+            registry.Register(targetHandler);
+            var dispatcher = new MockDispatcher(registry, dataProvider, valueFactory);
+            var requestPayload = Encoding.UTF8.GetBytes("request");
+            var request = new ProtocolEnvelope(1001, 42, requestPayload);
+            var context = new MockRequestContext("dev-default", 1001, 42);
+
+            var response = dispatcher.Dispatch(in request, in context);
+
+            Assert.AreEqual(0, otherHandler.CallCount);
+            Assert.AreEqual(1, targetHandler.CallCount);
+            Assert.AreSame(requestPayload, targetHandler.LastPayload);
+            Assert.AreEqual("dev-default", targetHandler.LastContext.DatasetId);
+            Assert.AreEqual(1001, targetHandler.LastContext.CmdId);
+            Assert.AreEqual(42, targetHandler.LastContext.RequestId);
+            Assert.AreSame(dataProvider, targetHandler.LastDataProvider);
+            Assert.AreSame(valueFactory, targetHandler.LastValueFactory);
+            Assert.AreEqual(1001, response.CmdId);
+            Assert.AreEqual(42, response.RequestId);
+            Assert.AreSame(targetResponsePayload, response.Payload);
         }
     }
 }
