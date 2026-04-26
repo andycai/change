@@ -10,7 +10,9 @@ namespace Change.Runtime
             fixedUpdateBudgetMs: 0.5f,
             maxDeferredFrames: 3,
             overBudgetWindowFrames: 30,
-            overBudgetPercentThreshold: 20);
+            overBudgetPercentThreshold: 20,
+            importantMaxPerFrame: 16,
+            queueCapacityPerPhase: 256);
 
         public FrameBudgetPolicy(
             float updateBudgetMs,
@@ -18,7 +20,9 @@ namespace Change.Runtime
             float fixedUpdateBudgetMs,
             int maxDeferredFrames,
             int overBudgetWindowFrames,
-            int overBudgetPercentThreshold)
+            int overBudgetPercentThreshold,
+            int importantMaxPerFrame,
+            int queueCapacityPerPhase)
         {
             if (updateBudgetMs <= 0f)
             {
@@ -50,12 +54,24 @@ namespace Change.Runtime
                 throw new ArgumentOutOfRangeException(nameof(overBudgetPercentThreshold));
             }
 
+            if (importantMaxPerFrame < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(importantMaxPerFrame));
+            }
+
+            if (queueCapacityPerPhase < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(queueCapacityPerPhase));
+            }
+
             UpdateBudgetMs = updateBudgetMs;
             LateUpdateBudgetMs = lateUpdateBudgetMs;
             FixedUpdateBudgetMs = fixedUpdateBudgetMs;
             MaxDeferredFrames = maxDeferredFrames;
             OverBudgetWindowFrames = overBudgetWindowFrames;
             OverBudgetPercentThreshold = overBudgetPercentThreshold;
+            ImportantMaxPerFrame = importantMaxPerFrame;
+            QueueCapacityPerPhase = queueCapacityPerPhase;
         }
 
         public float UpdateBudgetMs { get; }
@@ -69,6 +85,10 @@ namespace Change.Runtime
         public int OverBudgetWindowFrames { get; }
 
         public int OverBudgetPercentThreshold { get; }
+
+        public int ImportantMaxPerFrame { get; }
+
+        public int QueueCapacityPerPhase { get; }
 
         public float GetPhaseBudgetMs(FramePhase phase)
         {
