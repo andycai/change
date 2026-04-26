@@ -2,7 +2,9 @@
     "name": "Change.Runtime",
     "rootNamespace": "Change.Runtime",
     "references": [
-        "Change.Framework"
+        "Change.Framework",
+        "UniTask",
+        "YooAsset"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
