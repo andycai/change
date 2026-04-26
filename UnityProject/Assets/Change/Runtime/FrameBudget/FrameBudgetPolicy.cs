@@ -24,17 +24,17 @@ namespace Change.Runtime
             int importantMaxPerFrame,
             int queueCapacityPerPhase)
         {
-            if (updateBudgetMs <= 0f)
+            if (updateBudgetMs <= 0f || float.IsNaN(updateBudgetMs) || float.IsInfinity(updateBudgetMs))
             {
                 throw new ArgumentOutOfRangeException(nameof(updateBudgetMs));
             }
 
-            if (lateUpdateBudgetMs <= 0f)
+            if (lateUpdateBudgetMs <= 0f || float.IsNaN(lateUpdateBudgetMs) || float.IsInfinity(lateUpdateBudgetMs))
             {
                 throw new ArgumentOutOfRangeException(nameof(lateUpdateBudgetMs));
             }
 
-            if (fixedUpdateBudgetMs <= 0f)
+            if (fixedUpdateBudgetMs <= 0f || float.IsNaN(fixedUpdateBudgetMs) || float.IsInfinity(fixedUpdateBudgetMs))
             {
                 throw new ArgumentOutOfRangeException(nameof(fixedUpdateBudgetMs));
             }

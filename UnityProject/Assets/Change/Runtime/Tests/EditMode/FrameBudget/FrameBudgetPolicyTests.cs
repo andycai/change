@@ -33,6 +33,33 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
                 _ = new FrameBudgetPolicy(1f, 1f, 0f, 3, 30, 20, 16, 256));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(float.NaN, 1f, 1f, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(1f, float.NaN, 1f, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(1f, 1f, float.NaN, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(float.PositiveInfinity, 1f, 1f, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(1f, float.PositiveInfinity, 1f, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(1f, 1f, float.PositiveInfinity, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(float.NegativeInfinity, 1f, 1f, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(1f, float.NegativeInfinity, 1f, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = new FrameBudgetPolicy(1f, 1f, float.NegativeInfinity, 3, 30, 20, 16, 256));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
                 _ = new FrameBudgetPolicy(1f, 1f, 1f, 0, 30, 20, 16, 256));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -59,6 +86,15 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             Assert.AreEqual(2f, policy.GetPhaseBudgetMs(FramePhase.Update));
             Assert.AreEqual(3f, policy.GetPhaseBudgetMs(FramePhase.LateUpdate));
             Assert.AreEqual(4f, policy.GetPhaseBudgetMs(FramePhase.FixedUpdate));
+        }
+
+        [Test]
+        public void GetPhaseBudgetMs_WhenPhaseIsUnknown_ThrowsArgumentOutOfRangeException()
+        {
+            var policy = FrameBudgetPolicy.Default;
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _ = policy.GetPhaseBudgetMs((FramePhase)255));
         }
     }
 }
