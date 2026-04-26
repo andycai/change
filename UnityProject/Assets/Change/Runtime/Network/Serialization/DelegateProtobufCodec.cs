@@ -21,8 +21,14 @@ namespace Change.Runtime.Network
                 throw new ArgumentNullException(nameof(decode));
             }
 
-            _encoders[typeof(T)] = encode;
-            _decoders[typeof(T)] = decode;
+            var messageType = typeof(T);
+            if (_encoders.ContainsKey(messageType) || _decoders.ContainsKey(messageType))
+            {
+                throw new InvalidOperationException($"Codec delegates already registered for message type '{messageType.FullName}'.");
+            }
+
+            _encoders[messageType] = encode;
+            _decoders[messageType] = decode;
         }
 
         public byte[] Encode<TMessage>(TMessage message)

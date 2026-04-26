@@ -28,7 +28,7 @@ namespace Change.Runtime.Network
 
         public string DatasetId { get; }
 
-        public int[] SupportedCmdIds => CmdIds;
+        public int[] SupportedCmdIds => (int[])CmdIds.Clone();
 
         public bool TryGetTemplate(int cmdId, out byte[] payload)
         {
