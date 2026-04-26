@@ -1,4 +1,5 @@
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -48,6 +49,36 @@ namespace Change.Runtime.Tests.PlayMode.FrameBudget
             }
 
             Assert.AreEqual(7, value);
+        }
+
+        [UnityTest]
+        public IEnumerator YieldIfBudgetExceeded_WhenExceeded_YieldsToNextFrame()
+        {
+            FrameBudget.Initialize(FrameBudgetPolicy.Default);
+
+            bool continued = false;
+            UniTask task = Run();
+
+            yield return null;
+            Assert.IsFalse(continued);
+
+            yield return task.ToCoroutine();
+            Assert.IsTrue(continued);
+
+            async UniTask Run()
+            {
+                FrameBudget.Schedule(FramePhase.Update, FrameTaskPriority.Critical, "heavy", () =>
+                {
+                    float end = Time.realtimeSinceStartup + 0.01f;
+                    while (Time.realtimeSinceStartup < end)
+                    {
+                    }
+                });
+
+                await UniTask.Yield(PlayerLoopTiming.Update);
+                await FrameBudgetUniTaskExtensions.YieldIfBudgetExceeded(FramePhase.Update);
+                continued = true;
+            }
         }
     }
 }

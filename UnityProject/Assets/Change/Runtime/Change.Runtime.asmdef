@@ -3,7 +3,7 @@
     "rootNamespace": "Change.Runtime",
     "references": [
         "Change.Framework",
-        "Cysharp.Threading.Tasks"
+        "UniTask"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
