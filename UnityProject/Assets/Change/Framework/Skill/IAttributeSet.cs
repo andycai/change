@@ -9,6 +9,7 @@ namespace Change.Framework.Skill
         IAttribute GetAttribute(string name);
         float GetCurrentValue(string name);
         void SetBaseValue(string name, float value);
+        void ModifyCurrent(string name, float delta);
         event AttributeChangedHandler OnAttributeChanged;
     }
 }

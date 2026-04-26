@@ -78,6 +78,8 @@ namespace GameScript.Skill.Core
             _tickTimer = 0f;
         }
 
+        internal ModifierStacking GetStackingConfig() => _config.Stacking;
+
         private void ExecuteEffects(ISkillEffect[] effects, IAbilitySystem target)
         {
             if (effects == null) return;

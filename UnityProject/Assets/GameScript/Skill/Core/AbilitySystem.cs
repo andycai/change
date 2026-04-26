@@ -33,6 +33,35 @@ namespace GameScript.Skill.Core
 
         public void AddModifier(IModifier modifier)
         {
+            // Check for existing modifier with same ID for stacking
+            for (int i = 0; i < _modifiers.Count; i++)
+            {
+                if (_modifiers[i].Id == modifier.Id)
+                {
+                    var existing = _modifiers[i] as Modifier;
+                    var newMod = modifier as Modifier;
+                    if (existing != null && newMod != null)
+                    {
+                        var config = existing.GetStackingConfig();
+                        switch (config)
+                        {
+                            case ModifierStacking.Refresh:
+                                existing.RefreshDuration();
+                                return;
+                            case ModifierStacking.AddStack:
+                                existing.AddStack();
+                                return;
+                            case ModifierStacking.Replace:
+                                existing.OnRemove(this);
+                                _modifiers.RemoveAt(i);
+                                break;
+                            case ModifierStacking.Ignore:
+                                return;
+                        }
+                    }
+                    break;
+                }
+            }
             _modifiers.Add(modifier);
             modifier.OnApply(this);
         }
@@ -73,6 +102,15 @@ namespace GameScript.Skill.Core
             foreach (var kvp in _skills)
             {
                 kvp.Value.TickCooldown(deltaTime);
+            }
+        }
+
+        public void TickTriggers(float deltaTime)
+        {
+            for (int i = 0; i < _triggers.Count; i++)
+            {
+                if (_triggers[i] is Trigger trigger)
+                    trigger.TickCooldown(deltaTime);
             }
         }
 

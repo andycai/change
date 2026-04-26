@@ -40,6 +40,17 @@ namespace GameScript.Skill.Core
             OnAttributeChanged?.Invoke(name, oldValue, attr.CurrentValue);
         }
 
+        public void ModifyCurrent(string name, float delta)
+        {
+            if (!_attributes.TryGetValue(name, out var attr))
+            {
+                attr = new Attribute(name, delta);
+                _attributes.TryAdd(name, attr);
+                return;
+            }
+            attr.BaseValue += delta;
+        }
+
         internal Attribute GetOrCreateAttribute(string name, float baseValue = 0f)
         {
             if (!_attributes.TryGetValue(name, out var attr))

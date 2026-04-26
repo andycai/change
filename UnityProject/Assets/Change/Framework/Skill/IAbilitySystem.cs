@@ -14,5 +14,6 @@ namespace Change.Framework.Skill
         void AddTrigger(ITrigger trigger);
         void TickModifiers(float deltaTime);
         void TickSkills(float deltaTime);
+        void TickTriggers(float deltaTime);
     }
 }

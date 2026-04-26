@@ -7,6 +7,7 @@ namespace GameScript.Skill.Core
     {
         private readonly ISkillEffect[] _effects;
         private readonly float _cooldown;
+        private readonly Func<IAbilitySystem, IAbilitySystem, bool> _condition;
         private float _cooldownTimer;
 
         public TriggerEventType EventType { get; }
@@ -21,12 +22,14 @@ namespace GameScript.Skill.Core
         {
             EventType = eventType;
             Scope = scope;
+            _condition = condition;
             _cooldown = cooldown;
             _effects = effects ?? Array.Empty<ISkillEffect>();
             _cooldownTimer = 0f;
         }
 
-        public bool EvaluateCondition(IAbilitySystem source, IAbilitySystem target) => true;
+        public bool EvaluateCondition(IAbilitySystem source, IAbilitySystem target) =>
+            _condition == null || _condition(source, target);
 
         public void ExecuteEffects(IAbilitySystem source, IAbilitySystem target, int cascadeDepth)
         {

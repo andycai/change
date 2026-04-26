@@ -40,6 +40,11 @@ namespace GameScript.Skill.Core
                     return false;
             }
 
+            // Check blocking tags
+            if (source.Tags.HasTag(new SkillTag("state.stunned")) ||
+                source.Tags.HasTag(new SkillTag("state.silenced")))
+                return false;
+
             return true;
         }
 
@@ -51,8 +56,7 @@ namespace GameScript.Skill.Core
             // Commit cost
             if (_config.CostAttribute != null)
             {
-                float current = source.Attributes.GetCurrentValue(_config.CostAttribute);
-                source.Attributes.SetBaseValue(_config.CostAttribute, current - _config.CostAmount);
+                source.Attributes.ModifyCurrent(_config.CostAttribute, -_config.CostAmount);
             }
 
             SetState(SkillState.Casting);
