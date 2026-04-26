@@ -56,7 +56,7 @@ namespace Change.Runtime
 
             if (remainingBudgetMs > 0f)
             {
-                ExecuteImportantQueue(phase, ref executedCount, ref deferredCount, ref importantExecuted);
+                ExecuteImportantQueue(phase, currentFrame, ref executedCount, ref deferredCount, ref importantExecuted);
                 ExecuteDeferredQueueWhenBudgetAvailable(phase, currentFrame, ref executedCount, ref deferredCount, ref overdueCount);
             }
             else
@@ -85,6 +85,7 @@ namespace Change.Runtime
 
         private void ExecuteImportantQueue(
             FramePhase phase,
+            int currentFrame,
             ref int executedCount,
             ref int deferredCount,
             ref int importantExecuted)
@@ -100,9 +101,13 @@ namespace Change.Runtime
 
                 if (importantExecuted >= _policy.ImportantMaxPerFrame)
                 {
-                    Requeue(item);
-                    deferredCount++;
-                    continue;
+                    int age = currentFrame - item.EnqueuedFrame;
+                    if (age <= 1)
+                    {
+                        Requeue(item);
+                        deferredCount++;
+                        continue;
+                    }
                 }
 
                 InvokeCallbackSafely(item, ref executedCount);
@@ -201,8 +206,10 @@ namespace Change.Runtime
             {
                 item.Callback();
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                Debug.LogError(
+                    $"Frame work item callback threw. Phase={item.Phase}, Priority={item.Priority}, Tag={item.Tag}, Exception={exception.GetType().Name}: {exception.Message}");
             }
             finally
             {
