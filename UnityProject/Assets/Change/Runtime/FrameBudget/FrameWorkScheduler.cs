@@ -51,12 +51,13 @@ namespace Change.Runtime
             int deferredCount = 0;
             int overdueCount = 0;
             int importantExecuted = 0;
+            bool agedImportantSpilloverUsed = false;
 
             ExecuteCriticalQueue(phase, ref executedCount);
 
             if (remainingBudgetMs > 0f)
             {
-                ExecuteImportantQueue(phase, currentFrame, ref executedCount, ref deferredCount, ref importantExecuted);
+                ExecuteImportantQueue(phase, currentFrame, ref executedCount, ref deferredCount, ref importantExecuted, ref agedImportantSpilloverUsed);
                 ExecuteDeferredQueueWhenBudgetAvailable(phase, currentFrame, ref executedCount, ref deferredCount, ref overdueCount);
             }
             else
@@ -88,7 +89,8 @@ namespace Change.Runtime
             int currentFrame,
             ref int executedCount,
             ref int deferredCount,
-            ref int importantExecuted)
+            ref int importantExecuted,
+            ref bool agedImportantSpilloverUsed)
         {
             RingBuffer<FrameWorkItem> queue = GetQueue(phase, FrameTaskPriority.Important);
             int count = queue.Count;
@@ -102,12 +104,14 @@ namespace Change.Runtime
                 if (importantExecuted >= _policy.ImportantMaxPerFrame)
                 {
                     int age = currentFrame - item.EnqueuedFrame;
-                    if (age <= 1)
+                    if (age < 1 || agedImportantSpilloverUsed)
                     {
                         Requeue(item);
                         deferredCount++;
                         continue;
                     }
+
+                    agedImportantSpilloverUsed = true;
                 }
 
                 InvokeCallbackSafely(item, ref executedCount);

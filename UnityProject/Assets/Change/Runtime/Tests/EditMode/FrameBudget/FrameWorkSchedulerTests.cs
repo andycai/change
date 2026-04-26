@@ -167,7 +167,7 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
         }
 
         [Test]
-        public void RunPhase_WhenImportantOlderThanOneFrame_ExecutesDespitePerFrameCap()
+        public void RunPhase_WhenImportantAgeIsOneFrame_ExecutesDespitePerFrameCap()
         {
             var policy = new FrameBudgetPolicy(
                 updateBudgetMs: 2.5f,
@@ -204,7 +204,7 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             _ = scheduler.RunPhase(FramePhase.Update, baseFrame, remainingBudgetMs: 1f);
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
-                baseFrame + 2,
+                baseFrame + 1,
                 remainingBudgetMs: 1f);
 
             Assert.AreEqual(1, important1Count);
@@ -212,6 +212,61 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             Assert.AreEqual(1, important3Count);
             Assert.AreEqual(2, result.ExecutedCount);
             Assert.AreEqual(0, result.DeferredCount);
+        }
+
+        [Test]
+        public void RunPhase_WhenAgedImportantExceedsCap_OnlyOneAgedItemIsForcedPerRun()
+        {
+            var policy = new FrameBudgetPolicy(
+                updateBudgetMs: 2.5f,
+                lateUpdateBudgetMs: 1f,
+                fixedUpdateBudgetMs: 0.5f,
+                maxDeferredFrames: 3,
+                overBudgetWindowFrames: 30,
+                overBudgetPercentThreshold: 20,
+                importantMaxPerFrame: 1,
+                queueCapacityPerPhase: 32);
+            var scheduler = new FrameWorkScheduler(policy);
+
+            int important1Count = 0;
+            int important2Count = 0;
+            int important3Count = 0;
+            int important4Count = 0;
+
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Important,
+                "important-1",
+                () => important1Count++));
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Important,
+                "important-2",
+                () => important2Count++));
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Important,
+                "important-3",
+                () => important3Count++));
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Important,
+                "important-4",
+                () => important4Count++));
+
+            int baseFrame = Time.frameCount;
+            _ = scheduler.RunPhase(FramePhase.Update, baseFrame, remainingBudgetMs: 1f);
+            FrameSchedulerRunResult result = scheduler.RunPhase(
+                FramePhase.Update,
+                baseFrame + 1,
+                remainingBudgetMs: 1f);
+
+            Assert.AreEqual(1, important1Count);
+            Assert.AreEqual(1, important2Count);
+            Assert.AreEqual(1, important3Count);
+            Assert.AreEqual(0, important4Count);
+            Assert.AreEqual(2, result.ExecutedCount);
+            Assert.AreEqual(1, result.DeferredCount);
         }
     }
 }
