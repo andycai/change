@@ -94,8 +94,9 @@ Persistent effect on an entity with stack management.
 
 Character stats container. Each attribute has:
 - **BaseValue** — base stat value
-- **ModifierAccum** — accumulated modifier adjustments
-- **CurrentValue** — computed as BaseValue + ModifierAccum
+- **AdditiveMods** — sum of flat modifier adjustments (e.g., ATK +30)
+- **MultiplicativeMods** — product of percentage modifier multipliers (e.g., ATK ×1.5)
+- **CurrentValue** — computed as (BaseValue + AdditiveMods) × MultiplicativeMods
 - **OnChange** — fires event when value changes (HP→0 triggers death)
 
 Standard attributes: HP, MaxHP, ATK, DEF, SPD, CritRate, CritDmg
@@ -135,8 +136,8 @@ Event-driven passive activation mechanism.
 Atomic outcome of skill execution or trigger activation.
 
 **Built-in effect types:**
-- **Damage** — flat / percentage / formula-based damage
-- **Heal** — flat / percentage / formula-based healing
+- **Damage** — flat / percentage / formula-based damage. Scaling formula uses attribute references (e.g., `ATK*1.5+100`) resolved at execution time via AttributeSet query.
+- **Heal** — flat / percentage / formula-based healing. Same formula resolution as Damage.
 - **ApplyModifier** — grant buff/debuff to target
 - **RemoveModifier** — dispel by tag/priority
 - **GrantTag / RemoveTag** — direct tag manipulation
@@ -173,7 +174,7 @@ Apply Request → Immunity Check → Stack Resolution → OnApply → Active(Tic
 
 1. **Apply Request** — A SkillEffect wants to add a modifier to a target.
 2. **Immunity Check** — Check if target has immunity tags (e.g., `immune.debuff`).
-3. **Stack Resolution** — Handle existing same-type modifier:
+3. **Stack Resolution** — Handle existing modifier with the same **modifier ID** on target:
    - **Refresh:** Reset duration timer.
    - **AddStack:** Increment stack count (up to maxStack). Execute per-stack effects.
    - **Replace:** Remove old modifier, apply new one.
