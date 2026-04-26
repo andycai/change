@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Change.Runtime.ContentStreaming
 {
@@ -10,7 +11,8 @@ namespace Change.Runtime.ContentStreaming
             long sizeBytes,
             int priority,
             long expireAtUtcTicks,
-            bool requiresWifi)
+            bool requiresWifi,
+            IReadOnlyList<string> dependencies = null)
         {
             if (string.IsNullOrWhiteSpace(packId))
             {
@@ -38,6 +40,7 @@ namespace Change.Runtime.ContentStreaming
             Priority = priority;
             ExpireAtUtcTicks = expireAtUtcTicks;
             RequiresWifi = requiresWifi;
+            Dependencies = dependencies ?? Array.Empty<string>();
         }
 
         public string PackId { get; }
@@ -51,5 +54,7 @@ namespace Change.Runtime.ContentStreaming
         public long ExpireAtUtcTicks { get; }
 
         public bool RequiresWifi { get; }
+
+        public IReadOnlyList<string> Dependencies { get; }
     }
 }

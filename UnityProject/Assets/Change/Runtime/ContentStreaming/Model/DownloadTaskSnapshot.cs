@@ -136,6 +136,21 @@ namespace Change.Runtime.ContentStreaming
             DownloadTaskState state,
             ContentStreamingErrorCode errorCode = ContentStreamingErrorCode.None)
         {
+            var isFailedState = state == DownloadTaskState.FailedTransient
+                || state == DownloadTaskState.FailedTerminal;
+
+            if (isFailedState && errorCode == ContentStreamingErrorCode.None)
+            {
+                throw new ArgumentException("Failed states require a non-none error code.", nameof(errorCode));
+            }
+
+            if (!isFailedState)
+            {
+                errorCode = ContentStreamingErrorCode.None;
+            }
+
+            var rateKbps = state == DownloadTaskState.Downloading ? RateKbps : 0;
+
             return new DownloadTaskSnapshot(
                 PackId,
                 state,
@@ -143,7 +158,7 @@ namespace Change.Runtime.ContentStreaming
                 TotalBytes,
                 Priority,
                 RetryCount,
-                RateKbps,
+                rateKbps,
                 errorCode,
                 Sequence + 1);
         }
