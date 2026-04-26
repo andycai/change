@@ -57,7 +57,7 @@ namespace Change.Runtime
             if (remainingBudgetMs > 0f)
             {
                 ExecuteImportantQueue(phase, ref executedCount, ref deferredCount, ref importantExecuted);
-                ExecuteDeferredQueueWhenBudgetAvailable(phase, currentFrame, ref executedCount, ref overdueCount);
+                ExecuteDeferredQueueWhenBudgetAvailable(phase, currentFrame, ref executedCount, ref deferredCount, ref overdueCount);
             }
             else
             {
@@ -79,8 +79,7 @@ namespace Change.Runtime
                     break;
                 }
 
-                item.Callback();
-                executedCount++;
+                InvokeCallbackSafely(item, ref executedCount);
             }
         }
 
@@ -106,9 +105,8 @@ namespace Change.Runtime
                     continue;
                 }
 
-                item.Callback();
+                InvokeCallbackSafely(item, ref executedCount);
                 importantExecuted++;
-                executedCount++;
             }
         }
 
@@ -116,6 +114,7 @@ namespace Change.Runtime
             FramePhase phase,
             int currentFrame,
             ref int executedCount,
+            ref int deferredCount,
             ref int overdueCount)
         {
             RingBuffer<FrameWorkItem> queue = GetQueue(phase, FrameTaskPriority.Deferred);
@@ -127,13 +126,17 @@ namespace Change.Runtime
                     break;
                 }
 
-                if (currentFrame - item.EnqueuedFrame > _policy.MaxDeferredFrames)
+                bool isOverdue = currentFrame - item.EnqueuedFrame > _policy.MaxDeferredFrames;
+                if (isOverdue)
                 {
+                    InvokeCallbackSafely(item, ref executedCount);
                     overdueCount++;
                 }
-
-                item.Callback();
-                executedCount++;
+                else
+                {
+                    Requeue(item);
+                    deferredCount++;
+                }
             }
         }
 
@@ -155,8 +158,7 @@ namespace Change.Runtime
 
                 if (currentFrame - item.EnqueuedFrame > _policy.MaxDeferredFrames)
                 {
-                    item.Callback();
-                    executedCount++;
+                    InvokeCallbackSafely(item, ref executedCount);
                     overdueCount++;
                 }
                 else
@@ -191,6 +193,21 @@ namespace Change.Runtime
                 (FramePhase.FixedUpdate, FrameTaskPriority.Deferred) => _fixedDeferred,
                 _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, $"Unknown queue mapping for {phase}/{priority}."),
             };
+        }
+
+        private static void InvokeCallbackSafely(in FrameWorkItem item, ref int executedCount)
+        {
+            try
+            {
+                item.Callback();
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+                executedCount++;
+            }
         }
     }
 }

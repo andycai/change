@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -103,6 +104,60 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             Assert.AreEqual(1, importantCount);
             Assert.AreEqual(1, result.DeferredCount);
             Assert.AreEqual(1, result.ExecutedCount);
+        }
+
+        [Test]
+        public void RunPhase_WhenDeferredNotOverdueAndBudgetAvailable_KeepsDeferred()
+        {
+            var scheduler = new FrameWorkScheduler(FrameBudgetPolicy.Default);
+            int deferredCount = 0;
+
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Deferred,
+                "deferred",
+                () => deferredCount++));
+
+            int currentFrame = Time.frameCount;
+            FrameSchedulerRunResult result = scheduler.RunPhase(
+                FramePhase.Update,
+                currentFrame,
+                remainingBudgetMs: 1f);
+
+            Assert.AreEqual(0, deferredCount);
+            Assert.AreEqual(1, result.DeferredCount);
+            Assert.AreEqual(0, result.OverdueCount);
+        }
+
+        [Test]
+        public void RunPhase_WhenCallbackThrows_ContinuesProcessingRemainingItems()
+        {
+            var scheduler = new FrameWorkScheduler(FrameBudgetPolicy.Default);
+            int firstCallCount = 0;
+            int secondCallCount = 0;
+
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Critical,
+                "critical-throws",
+                () =>
+                {
+                    firstCallCount++;
+                    throw new InvalidOperationException("test exception");
+                }));
+            scheduler.Enqueue(FrameWorkItem.Create(
+                FramePhase.Update,
+                FrameTaskPriority.Critical,
+                "critical-second",
+                () => secondCallCount++));
+
+            Assert.DoesNotThrow(() => _ = scheduler.RunPhase(
+                FramePhase.Update,
+                Time.frameCount,
+                remainingBudgetMs: 1f));
+
+            Assert.AreEqual(1, firstCallCount);
+            Assert.AreEqual(1, secondCallCount);
         }
     }
 }
