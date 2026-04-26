@@ -128,5 +128,43 @@ namespace Change.Framework.Fsm.Tests
             }));
             Assert.That(fsm.CurrentStateId, Is.EqualTo(TestStateId.B));
         }
+
+        [Test]
+        public void ChangeState_InsideOnEvent_IsDeferredUntilOnEventReturns()
+        {
+            var trace = new List<string>();
+            var fsm = new StateMachine<TestStateId, TestEvent>();
+
+            var stateA = new RecordingState(TestStateId.A)
+            {
+                OnEventHandler = _ =>
+                {
+                    trace.Add("OnEvent:Begin");
+                    fsm.ChangeState(TestStateId.B);
+                    trace.Add("OnEvent:End");
+                    return FsmResult<TestStateId>.Handled();
+                },
+                OnExitAction = _ => trace.Add("Exit:A")
+            };
+            var stateB = new RecordingState(TestStateId.B)
+            {
+                OnEnterAction = _ => trace.Add("Enter:B")
+            };
+
+            fsm.Register(stateA);
+            fsm.Register(stateB);
+            fsm.Start(TestStateId.A);
+
+            fsm.Fire(TestEvent.Named("Tick"));
+
+            Assert.That(trace, Is.EqualTo(new[]
+            {
+                "OnEvent:Begin",
+                "OnEvent:End",
+                "Exit:A",
+                "Enter:B"
+            }));
+            Assert.That(fsm.CurrentStateId, Is.EqualTo(TestStateId.B));
+        }
     }
 }

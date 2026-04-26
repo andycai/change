@@ -68,5 +68,35 @@ namespace Change.Framework.Fsm.Tests
             Assert.That(ex.InnerException, Is.Not.Null);
             Assert.That(ex.InnerException.Message, Is.EqualTo("enter crash"));
         }
+
+        [Test]
+        public void Start_WhenInitialOnEnterThrows_ResetsMachineToNotStartedState()
+        {
+            var enterAttempts = 0;
+            var stateA = new RecordingState(TestStateId.A)
+            {
+                OnEnterAction = _ =>
+                {
+                    enterAttempts++;
+                    if (enterAttempts == 1)
+                    {
+                        throw new Exception("initial enter crash");
+                    }
+                }
+            };
+
+            var fsm = new StateMachine<TestStateId, TestEvent>();
+            fsm.Register(stateA);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => fsm.Start(TestStateId.A));
+            Assert.That(ex.Message, Does.Contain("reset to not started"));
+            Assert.That(fsm.IsStarted, Is.False);
+            Assert.Throws<InvalidOperationException>(() => fsm.Fire(TestEvent.Named("Tick")));
+
+            Assert.DoesNotThrow(() => fsm.Start(TestStateId.A));
+            Assert.That(fsm.IsStarted, Is.True);
+            Assert.That(fsm.CurrentStateId, Is.EqualTo(TestStateId.A));
+            Assert.That(stateA.EnterCount, Is.EqualTo(2));
+        }
     }
 }

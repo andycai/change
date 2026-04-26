@@ -1,6 +1,7 @@
 namespace Change.Framework.Fsm
 {
     public interface IFsmState<TStateId, TEvent>
+        where TEvent : struct
     {
         TStateId Id { get; }
 

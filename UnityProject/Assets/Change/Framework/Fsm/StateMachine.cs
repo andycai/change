@@ -11,6 +11,7 @@ namespace Change.Framework.Fsm
     /// <typeparam name="TStateId">状态 ID 类型</typeparam>
     /// <typeparam name="TEvent">事件类型</typeparam>
     public sealed class StateMachine<TStateId, TEvent>
+        where TEvent : struct
     {
         private readonly struct TransitionRequest
         {
@@ -104,22 +105,29 @@ namespace Change.Framework.Fsm
             CurrentStateId = initial;
 
             var change = StateChange<TStateId, TEvent>.Initial(initial, NextSequence());
+            var enteredSuccessfully = false;
             
             _stateCallbackDepth++;
             try
             {
                 initialState.OnEnter(in change);
+                enteredSuccessfully = true;
             }
             catch (Exception ex)
             {
+                ResetToNotStarted();
                 throw new InvalidOperationException(
-                    $"Failed to enter initial state '{initial}'. State machine is now in an inconsistent state.", 
+                    $"Failed to enter initial state '{initial}'. State machine has been reset to not started.", 
                     ex);
             }
             finally
             {
                 _stateCallbackDepth--;
-                DrainEventsIfPossible();
+                if (enteredSuccessfully)
+                {
+                    DrainTransitionsIfPossible();
+                    DrainEventsIfPossible();
+                }
             }
         }
 
@@ -151,7 +159,12 @@ namespace Change.Framework.Fsm
             }
 
             _transitionQueue.Enqueue(new TransitionRequest(next, causeEvent, hasCauseEvent));
-            if (_isDrainingTransitions)
+            DrainTransitionsIfPossible();
+        }
+
+        private void DrainTransitionsIfPossible()
+        {
+            if (_isDrainingTransitions || _stateCallbackDepth > 0)
             {
                 return;
             }
@@ -240,7 +253,7 @@ namespace Change.Framework.Fsm
             }
             catch (Exception ex)
             {
-                // 事件通知异常不应破坏状态机核心逻辑，但需上报
+                // 观测者回调异常同样按 fail-fast 处理，避免静默吞错。
                 throw new InvalidOperationException("An error occurred in OnStateChanged event handler.", ex);
             }
         }
@@ -259,7 +272,21 @@ namespace Change.Framework.Fsm
                 {
                     if (_eventQueue.TryDequeue(out var currentEvent))
                     {
-                        var result = _currentState.OnEvent(in currentEvent);
+                        FsmResult<TStateId> result;
+                        _stateCallbackDepth++;
+                        try
+                        {
+                            result = _currentState.OnEvent(in currentEvent);
+                        }
+                        finally
+                        {
+                            _stateCallbackDepth--;
+                        }
+
+                        // Flush transitions requested directly inside OnEvent before
+                        // applying the returned transition result.
+                        DrainTransitionsIfPossible();
+
                         if (result.HasTransition)
                         {
                             EnqueueTransition(result.NextStateId, currentEvent, true);
@@ -284,6 +311,18 @@ namespace Change.Framework.Fsm
         {
             _sequence++;
             return _sequence;
+        }
+
+        private void ResetToNotStarted()
+        {
+            IsStarted = false;
+            _currentState = default;
+            CurrentStateId = default;
+            _eventQueue.Clear(ClearMode.ZeroMemory);
+            _transitionQueue.Clear(ClearMode.ZeroMemory);
+            _isDrainingEvents = false;
+            _isDrainingTransitions = false;
+            _sequence = 0;
         }
 
         private void EnsureStarted()

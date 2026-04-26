@@ -1,6 +1,7 @@
 namespace Change.Framework.Fsm
 {
     public readonly struct StateChange<TStateId, TEvent>
+        where TEvent : struct
     {
         private StateChange(
             bool hasFrom,
