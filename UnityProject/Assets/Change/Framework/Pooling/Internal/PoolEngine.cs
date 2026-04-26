@@ -46,7 +46,7 @@ namespace Change.Framework.Pooling.Internal
             }
             else
             {
-                item = _factory();
+                item = CreateValidatedInstance();
                 _created++;
             }
 
@@ -81,8 +81,8 @@ namespace Change.Framework.Pooling.Internal
             }
 #endif
 
-            _released++;
             item.Reset();
+            _released++;
 
             if (_inactive.Count >= _maxSize)
             {
@@ -103,7 +103,7 @@ namespace Change.Framework.Pooling.Internal
             var target = Math.Min(count, _maxSize);
             while (_inactive.Count < target)
             {
-                var created = _factory();
+                var created = CreateValidatedInstance();
                 _inactive.Push(created);
                 _created++;
             }
@@ -132,6 +132,17 @@ namespace Change.Framework.Pooling.Internal
         public PoolStats GetStats()
         {
             return new PoolStats(_created, _rented, _released, _dropped, _maxSize, _inactive.Count);
+        }
+
+        private T CreateValidatedInstance()
+        {
+            var item = _factory();
+            if (item == null)
+            {
+                throw new InvalidOperationException($"Pool factory returned null for {typeof(T).FullName}.");
+            }
+
+            return item;
         }
 
         private void MarkRented(T item)

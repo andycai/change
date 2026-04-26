@@ -17,6 +17,7 @@ namespace Change.Framework.Tests.Pooling
         private sealed class ThrowingPayload : IPoolable
         {
             public static bool ThrowOnCreate;
+            public static bool ThrowOnReset;
 
             public ThrowingPayload()
             {
@@ -28,6 +29,10 @@ namespace Change.Framework.Tests.Pooling
 
             public void Reset()
             {
+                if (ThrowOnReset)
+                {
+                    throw new InvalidOperationException("reset failure");
+                }
             }
         }
 
@@ -38,6 +43,7 @@ namespace Change.Framework.Tests.Pooling
             Pool<CapacityPayload>.Clear();
 
             ThrowingPayload.ThrowOnCreate = false;
+            ThrowingPayload.ThrowOnReset = false;
             Pool<ThrowingPayload>.SetMaxSize(PoolDefaults.DefaultMaxSize);
             Pool<ThrowingPayload>.Clear();
         }
@@ -125,6 +131,21 @@ namespace Change.Framework.Tests.Pooling
 
             var after = Pool<ThrowingPayload>.GetStats();
             Assert.AreEqual(before.Created, after.Created);
+        }
+
+        [Test]
+        public void Release_WhenResetThrows_DoesNotIncrementReleased()
+        {
+            var item = Pool<ThrowingPayload>.Get();
+            var before = Pool<ThrowingPayload>.GetStats();
+            ThrowingPayload.ThrowOnReset = true;
+
+            Assert.Throws<InvalidOperationException>(() => Pool<ThrowingPayload>.Release(item));
+
+            var after = Pool<ThrowingPayload>.GetStats();
+            Assert.AreEqual(before.Released, after.Released);
+            Assert.AreEqual(before.Dropped, after.Dropped);
+            Assert.AreEqual(0, Pool<ThrowingPayload>.InactiveCount);
         }
     }
 }
