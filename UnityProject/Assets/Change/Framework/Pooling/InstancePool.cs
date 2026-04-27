@@ -7,12 +7,19 @@ namespace Change.Framework.Pooling
     {
         private readonly PoolEngine<T> _engine;
 
-        public InstancePool(Func<T> factory, int maxSize = PoolDefaults.DefaultMaxSize)
+        public InstancePool(Func<T> factory)
+            : this(factory, PoolDefaults.DefaultMaxSize)
+        {
+        }
+
+        public InstancePool(Func<T> factory, int maxSize)
         {
             _engine = new PoolEngine<T>(factory, maxSize);
         }
 
         public int InactiveCount => _engine.InactiveCount;
+
+        public int MaxSize => _engine.MaxSize;
 
         public T Get()
         {

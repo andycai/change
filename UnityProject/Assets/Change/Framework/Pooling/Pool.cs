@@ -8,6 +8,8 @@ namespace Change.Framework.Pooling
 
         public static int InactiveCount => s_engine.InactiveCount;
 
+        public static int MaxSize => s_engine.MaxSize;
+
         public static T Get()
         {
             return s_engine.Get();

@@ -2,6 +2,6 @@ namespace Change.Framework.Pooling
 {
     public static class PoolDefaults
     {
-        public const int DefaultMaxSize = 128;
+        public static int DefaultMaxSize { get; set; } = 128;
     }
 }

@@ -4,6 +4,8 @@ namespace Change.Framework.Pooling
     {
         int InactiveCount { get; }
 
+        int MaxSize { get; }
+
         T Get();
 
         void Release(T item);

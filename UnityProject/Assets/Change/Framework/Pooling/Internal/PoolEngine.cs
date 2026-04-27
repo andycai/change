@@ -9,8 +9,10 @@ namespace Change.Framework.Pooling.Internal
         // Not thread-safe; pool operations are expected on a single thread.
         private readonly Stack<T> _inactive;
         private readonly Func<T> _factory;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private readonly object _rentedMarker = new object();
         private ConditionalWeakTable<T, object> _rentedItems = new ConditionalWeakTable<T, object>();
+#endif
         private int _maxSize;
 
         private long _created;
@@ -37,6 +39,8 @@ namespace Change.Framework.Pooling.Internal
 
         public int InactiveCount => _inactive.Count;
 
+        public int MaxSize => _maxSize;
+
         public T Get()
         {
             T item;
@@ -50,7 +54,9 @@ namespace Change.Framework.Pooling.Internal
                 _created++;
             }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             MarkRented(item);
+#endif
             _rented++;
             return item;
         }
@@ -62,20 +68,13 @@ namespace Change.Framework.Pooling.Internal
             {
                 throw new ArgumentNullException(nameof(item));
             }
-#else
-            if (item == null)
-            {
-                return;
-            }
-#endif
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!TryMarkReleased(item))
             {
                 throw new InvalidOperationException($"Cannot release instance of {typeof(T).FullName} that is not currently rented by this pool.");
             }
 #else
-            if (!TryMarkReleased(item))
+            if (item == null)
             {
                 return;
             }
@@ -126,7 +125,9 @@ namespace Change.Framework.Pooling.Internal
         public void Clear()
         {
             _inactive.Clear();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             _rentedItems = new ConditionalWeakTable<T, object>();
+#endif
         }
 
         public PoolStats GetStats()
@@ -145,15 +146,12 @@ namespace Change.Framework.Pooling.Internal
             return item;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void MarkRented(T item)
         {
             if (_rentedItems.TryGetValue(item, out _))
             {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 throw new InvalidOperationException($"Cannot rent instance of {typeof(T).FullName} because it is already marked as rented.");
-#else
-                return;
-#endif
             }
 
             _rentedItems.Add(item, _rentedMarker);
@@ -163,5 +161,6 @@ namespace Change.Framework.Pooling.Internal
         {
             return _rentedItems.Remove(item);
         }
+#endif
     }
 }
