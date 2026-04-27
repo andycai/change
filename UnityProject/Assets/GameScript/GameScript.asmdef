@@ -1,8 +1,0 @@
-{
-    "name": "GameScript",
-    "rootNamespace": "GameScript",
-    "references": ["Change.Framework", "Change.Runtime"],
-    "optionalUnityReferences": [],
-    "includePlatforms": [],
-    "excludePlatforms": []
-}
