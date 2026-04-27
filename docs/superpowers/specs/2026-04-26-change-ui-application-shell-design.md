@@ -189,3 +189,7 @@ MVP 交付物：
 3. 列表虚拟化增强组件。
 4. 调试面板与性能埋点可视化。
 
+## Implementation Status
+
+- MVP implementation tracked by `docs/superpowers/plans/2026-04-26-change-ui-application-shell-plan.md`.
+- Framework contracts, runtime shell core, and GameScript sample are validated by EditMode tests.
