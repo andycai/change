@@ -1,28 +1,26 @@
-using System;
 using Change.Framework.Gas;
 
 namespace Change.Runtime.Gas.Effects
 {
-    public sealed class ChanceEffect : ISkillEffect
+    public sealed class ChanceEffect : IGameplayEffect
     {
-        private readonly float _rate;
-        private readonly ISkillEffect[] _onSuccess;
-        private readonly ISkillEffect[] _onFailure;
-        private readonly Random _rng;
+        private readonly float _chance;
+        private readonly IGameplayEffect _effect;
+        private readonly System.Random _random;
 
-        public ChanceEffect(float rate, ISkillEffect[] onSuccess, ISkillEffect[] onFailure)
+        public ChanceEffect(float chance, IGameplayEffect effect)
         {
-            _rate = rate;
-            _onSuccess = onSuccess ?? Array.Empty<ISkillEffect>();
-            _onFailure = onFailure ?? Array.Empty<ISkillEffect>();
-            _rng = new Random();
+            _chance = chance;
+            _effect = effect;
+            _random = new System.Random();
         }
 
         public void Execute(IAbilitySystem source, IAbilitySystem target)
         {
-            var effects = _rng.NextDouble() < _rate ? _onSuccess : _onFailure;
-            for (int i = 0; i < effects.Length; i++)
-                effects[i].Execute(source, target);
+            if (_random.NextDouble() <= _chance)
+            {
+                _effect.Execute(source, target);
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Change.Runtime.Gas
 
         public string Id => _config.Id;
         public ModifierPolarity Polarity => _config.Polarity;
-        public SkillTag[] GrantedTags => _config.GrantedTags;
+        public GameplayTag[] GrantedTags => _config.GrantedTags;
         public int StackCount => _stackCount;
         public ModifierStacking StackingRule => _config.Stacking;
 
@@ -84,7 +84,7 @@ namespace Change.Runtime.Gas
             _tickTimer = 0f;
         }
 
-        private void ExecuteEffects(ISkillEffect[] effects, IAbilitySystem target)
+        private void ExecuteEffects(IGameplayEffect[] effects, IAbilitySystem target)
         {
             if (effects == null) return;
             for (int i = 0; i < effects.Length; i++)

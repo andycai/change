@@ -1,20 +1,28 @@
-using System.Collections.Generic;
 using Change.Framework.Gas;
 
 namespace Change.Runtime.Gas.Effects
 {
-    public sealed class RemoveModifierEffect : ISkillEffect
+    public sealed class RemoveModifierEffect : IGameplayEffect
     {
-        private readonly SkillTag _dispelTag;
+        private readonly string _modifierId;
+        private readonly GameplayTag? _tag;
 
-        public RemoveModifierEffect(SkillTag dispelTag)
+        public RemoveModifierEffect(string modifierId)
         {
-            _dispelTag = dispelTag;
+            _modifierId = modifierId;
+        }
+
+        public RemoveModifierEffect(GameplayTag tag)
+        {
+            _tag = tag;
         }
 
         public void Execute(IAbilitySystem source, IAbilitySystem target)
         {
-            target.RemoveModifierByTag(_dispelTag);
+            if (_tag.HasValue)
+                target.RemoveModifierByTag(_tag.Value);
+            else if (!string.IsNullOrEmpty(_modifierId))
+                target.RemoveModifier(_modifierId);
         }
     }
 }

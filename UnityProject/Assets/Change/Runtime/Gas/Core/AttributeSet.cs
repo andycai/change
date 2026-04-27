@@ -1,4 +1,3 @@
-using System;
 using Change.Framework.Collections;
 using Change.Framework.Gas;
 
@@ -37,7 +36,9 @@ namespace Change.Runtime.Gas
 
             float oldValue = attr.CurrentValue;
             attr.BaseValue = value;
-            OnAttributeChanged?.Invoke(name, oldValue, attr.CurrentValue);
+            float newValue = attr.CurrentValue;
+            if (System.Math.Abs(oldValue - newValue) > float.Epsilon)
+                OnAttributeChanged?.Invoke(name, oldValue, newValue);
         }
 
         public void ModifyCurrent(string name, float delta)
@@ -49,7 +50,9 @@ namespace Change.Runtime.Gas
             }
             float oldValue = attr.CurrentValue;
             attr.ModifyCurrentDelta(delta);
-            OnAttributeChanged?.Invoke(name, oldValue, attr.CurrentValue);
+            float newValue = attr.CurrentValue;
+            if (System.Math.Abs(oldValue - newValue) > float.Epsilon)
+                OnAttributeChanged?.Invoke(name, oldValue, newValue);
         }
 
         internal Attribute GetOrCreateAttribute(string name, float baseValue = 0f)

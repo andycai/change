@@ -6,31 +6,31 @@ namespace Change.Runtime.Gas
 {
     public sealed class AbilitySystem : IAbilitySystem
     {
-        private readonly Dictionary<string, ISkill> _skills = new Dictionary<string, ISkill>();
+        private readonly Dictionary<string, IGameplayAbility> _abilities = new Dictionary<string, IGameplayAbility>();
         private readonly List<IModifier> _modifiers = new List<IModifier>();
-        private readonly List<ITrigger> _triggers = new List<ITrigger>();
+        private readonly Dictionary<TriggerEventType, List<ITrigger>> _triggerGroups = new Dictionary<TriggerEventType, List<ITrigger>>();
 
         public string EntityId { get; }
         public int TeamId { get; }
         public IAttributeSet Attributes { get; }
-        public ISkillTagSet Tags { get; }
+        public IGameplayTagSet Tags { get; }
 
         public AbilitySystem(string entityId, int teamId = 0)
         {
             EntityId = entityId;
             TeamId = teamId;
             Attributes = new AttributeSet();
-            Tags = new SkillTagSet(16);
+            Tags = new GameplayTagSet(16);
         }
 
-        public void AddSkill(ISkill skill)
+        public void AddAbility(IGameplayAbility ability)
         {
-            _skills[skill.Id] = skill;
+            _abilities[ability.Id] = ability;
         }
 
-        public ISkill GetSkill(string skillId)
+        public IGameplayAbility GetAbility(string abilityId)
         {
-            return _skills.TryGetValue(skillId, out var skill) ? skill : null;
+            return _abilities.TryGetValue(abilityId, out var ability) ? ability : null;
         }
 
         public void AddModifier(IModifier modifier)
@@ -75,7 +75,7 @@ namespace Change.Runtime.Gas
             }
         }
 
-        public void RemoveModifierByTag(SkillTag tag)
+        public void RemoveModifierByTag(GameplayTag tag)
         {
             for (int i = _modifiers.Count - 1; i >= 0; i--)
             {
@@ -97,11 +97,17 @@ namespace Change.Runtime.Gas
 
         public void AddTrigger(ITrigger trigger)
         {
-            _triggers.Add(trigger);
+            if (!_triggerGroups.TryGetValue(trigger.EventType, out var list))
+            {
+                list = new List<ITrigger>();
+                _triggerGroups[trigger.EventType] = list;
+            }
+            list.Add(trigger);
         }
 
-        public void TickModifiers(float deltaTime)
+        public void Tick(float deltaTime)
         {
+            // Tick Modifiers
             for (int i = _modifiers.Count - 1; i >= 0; i--)
             {
                 _modifiers[i].OnTick(this, deltaTime);
@@ -111,24 +117,24 @@ namespace Change.Runtime.Gas
                     _modifiers.RemoveAt(i);
                 }
             }
-        }
 
-        public void TickSkills(float deltaTime)
-        {
-            foreach (var kvp in _skills)
+            // Tick Abilities
+            foreach (var kvp in _abilities)
             {
-                kvp.Value.TickCooldown(deltaTime);
+                kvp.Value.Tick(deltaTime);
+            }
+
+            // Tick Triggers
+            foreach (var group in _triggerGroups.Values)
+            {
+                for (int i = 0; i < group.Count; i++)
+                    group[i].TickCooldown(deltaTime);
             }
         }
 
-        public void TickTriggers(float deltaTime)
+        internal IReadOnlyList<ITrigger> GetTriggers(TriggerEventType eventType)
         {
-            for (int i = 0; i < _triggers.Count; i++)
-            {
-                _triggers[i].TickCooldown(deltaTime);
-            }
+            return _triggerGroups.TryGetValue(eventType, out var list) ? list : Array.Empty<ITrigger>();
         }
-
-        internal IReadOnlyList<ITrigger> GetTriggers() => _triggers;
     }
 }

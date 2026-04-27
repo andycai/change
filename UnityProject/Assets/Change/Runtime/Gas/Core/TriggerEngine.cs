@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Change.Framework.Gas;
 
 namespace Change.Runtime.Gas
@@ -27,15 +26,37 @@ namespace Change.Runtime.Gas
                 var entity = allEntities[i] as AbilitySystem;
                 if (entity == null) continue;
 
-                var triggers = entity.GetTriggers();
+                var triggers = entity.GetTriggers(eventType);
                 for (int t = 0; t < triggers.Count; t++)
                 {
                     var trigger = triggers[t];
-                    if (trigger.EventType != eventType)
+                    
+                    // P2-5: Implement TriggerScope filtering
+                    if (!IsScopeValid(trigger.Scope, entity, source, target))
                         continue;
 
                     trigger.TryFire(source, target, cascadeDepth);
                 }
+            }
+        }
+
+        private bool IsScopeValid(TriggerScope scope, IAbilitySystem owner, IAbilitySystem source, IAbilitySystem target)
+        {
+            switch (scope)
+            {
+                case TriggerScope.Self:
+                    return owner == source || owner == target;
+                case TriggerScope.Source:
+                    return owner == source;
+                case TriggerScope.Target:
+                    return owner == target;
+                case TriggerScope.AllEnemies:
+                    // Assuming source is the one causing the event
+                    return owner.TeamId != source.TeamId;
+                case TriggerScope.AllAllies:
+                    return owner.TeamId == source.TeamId;
+                default:
+                    return true;
             }
         }
     }

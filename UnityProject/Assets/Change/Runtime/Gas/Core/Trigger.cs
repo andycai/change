@@ -5,7 +5,7 @@ namespace Change.Runtime.Gas
 {
     public sealed class Trigger : ITrigger
     {
-        private readonly ISkillEffect[] _effects;
+        private readonly IGameplayEffect[] _effects;
         private readonly float _cooldown;
         private readonly Func<IAbilitySystem, IAbilitySystem, bool> _condition;
         private float _cooldownTimer;
@@ -18,13 +18,13 @@ namespace Change.Runtime.Gas
             TriggerScope scope,
             Func<IAbilitySystem, IAbilitySystem, bool> condition,
             float cooldown,
-            ISkillEffect[] effects)
+            IGameplayEffect[] effects)
         {
             EventType = eventType;
             Scope = scope;
             _condition = condition;
             _cooldown = cooldown;
-            _effects = effects ?? Array.Empty<ISkillEffect>();
+            _effects = effects ?? Array.Empty<IGameplayEffect>();
             _cooldownTimer = 0f;
         }
 

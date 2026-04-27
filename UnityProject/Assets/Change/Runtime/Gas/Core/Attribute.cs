@@ -9,6 +9,7 @@ namespace Change.Runtime.Gas
         private float _multiplicativeProduct = 1f;
         private float _currentDelta;
         private float _currentValue;
+        private bool _isDirty = true;
 
         public string Name { get; }
 
@@ -17,12 +18,20 @@ namespace Change.Runtime.Gas
             get => _baseValue;
             set
             {
+                if (System.Math.Abs(_baseValue - value) < float.Epsilon) return;
                 _baseValue = value;
-                Recalculate();
+                MarkDirty();
             }
         }
 
-        public float CurrentValue => _currentValue;
+        public float CurrentValue
+        {
+            get
+            {
+                if (_isDirty) Recalculate();
+                return _currentValue;
+            }
+        }
 
         public Attribute(string name, float baseValue = 0f)
         {
@@ -32,41 +41,45 @@ namespace Change.Runtime.Gas
             _multiplicativeProduct = 1f;
             _currentDelta = 0f;
             _currentValue = baseValue;
+            _isDirty = true;
         }
 
         public void AddAdditive(float value)
         {
             _additiveSum += value;
-            Recalculate();
+            MarkDirty();
         }
 
         public void RemoveAdditive(float value)
         {
             _additiveSum -= value;
-            Recalculate();
+            MarkDirty();
         }
 
         public void AddMultiplicative(float value)
         {
             _multiplicativeProduct *= value;
-            Recalculate();
+            MarkDirty();
         }
 
         public void RemoveMultiplicative(float value)
         {
             _multiplicativeProduct /= value;
-            Recalculate();
+            MarkDirty();
         }
 
         public void ModifyCurrentDelta(float delta)
         {
             _currentDelta += delta;
-            Recalculate();
+            MarkDirty();
         }
+
+        private void MarkDirty() => _isDirty = true;
 
         public void Recalculate()
         {
             _currentValue = (_baseValue + _additiveSum) * _multiplicativeProduct + _currentDelta;
+            _isDirty = false;
         }
     }
 }

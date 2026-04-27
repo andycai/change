@@ -232,75 +232,74 @@ Rules:
 <claude-mem-context>
 # Memory Context
 
-# [fun] recent context, 2026-04-26 12:00am GMT+8
+# [fun] recent context, 2026-04-27 12:19pm GMT+8
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (11,468t read) | 839,559t work | 99% savings
+Stats: 50 obs (21,917t read) | 0t work
 
-### Apr 25, 2026
-1526 10:02p 🔵 Collections 模块目录结构与文件组织分析
-1527 " 🔵 FastDictionary 自定义哈希表实现分析
-1528 " 🔵 FastList O(1) 移除与枚举器版本安全机制
-1529 " 🔵 FastPriorityQueue 二叉堆实现与自定义比较器支持
-1530 " 🔵 ObjectPool 泛型对象池与 IResettable 自动重置机制
-1534 10:06p 🔵 Collections 模块五大核心数据结构代码审查完成
-S664 CQRS 目录代码审查启动 (Apr 25 at 10:06 PM)
-1535 10:07p ✅ CQRS 目录代码审查启动
-S665 Collections Module Code Review Completed (Apr 25 at 10:07 PM)
-1536 " ✅ Collections Module Code Review Completed
-S666 CQRS Framework Exception Handling Deep Dive - Reviewing CqrsBus error handling, QueryKey hash stability, and NullLogger availability (Apr 25 at 10:07 PM)
-S669 Continue Unity Framework code review - commit CQRS Bus optimizations (Apr 25 at 10:08 PM)
-1537 10:08p 🔴 CQRS _isFrozen Lacks Memory Barrier (P1 High)
-1538 " 🔵 CQRS Framework Code Review Complete - APPROVED with 3 Issues
-1541 10:11p 🔵 Collections Module Five Core Data Structures and Pooling Patterns Analyzed
-1542 " 🔴 Collections Module ArraySegmentList Clear Method Not Implemented
-1543 " 🔴 CQRS Bus Thread Safety Bug - Missing Volatile Modifier on _isFrozen
-1544 " 🔄 CQRS Publish Method Exception Handling Refactored to Aggregate Exception Pattern
-1545 " ✅ CQRS Namespace Migration from Fun to Change
-1546 " 🔵 Timer Module Five Core Design Patterns Analyzed
-1547 " ✅ Unity Framework Code Review Session Completed with Findings
-1548 " ⚖️ Test Directory Structure Standardization Required
-S678 Collections Module Enhancement Sprint Completed (Apr 25 at 10:15 PM)
-1549 10:28p 🔵 Fun Framework Collections Module Task Planning Session
-1550 10:29p ✅ ObjectPool.Return Method Now Returns bool
-1551 " ✅ FastPriorityQueue Growth Metrics Instrumentation Added
-1552 10:30p ✅ CollectionMetrics Extended and ClearMode Documented
-1553 " 🔴 FastList.RemoveAtSwapBack Self-Assignment Guard Added
-1554 10:31p 🔵 Unity FSM 框架代码审核启动
-1555 10:32p 🔵 Unity FSM 框架代码审核完成
-1556 " ✅ Collections Module Enhancement Sprint Completed
-S681 Collections Module Enhancement Sprint - All 8 Tasks Completed and Verified (Apr 25 at 10:32 PM)
-S683 FastDictionary and FastHashSet Zero-Allocation ForEach Iteration Added (Apr 25 at 10:33 PM)
-1557 11:14p 🟣 Collections Module Enhancement Sprint Complete - 8 Tasks Done
-1559 " 🔴 FSM Framework FsmResult.NextStateId Safety Fix
-1558 " ✅ Collections Module Enhancement Sprint Committed to Git
-1562 " 🟣 FastDictionary and FastHashSet Zero-Allocation ForEach Iteration Added
-1563 " 🔴 FastList.RemoveAtSwapBack Self-Assignment Guard Fixed
-1564 " 🟣 ObjectPool Now Implements IClearable and Returns Boolean from Return
-1565 " 🟣 FastPriorityQueue Growth Metrics Instrumentation Added
-1566 " ✅ ClearMode Documentation Enhanced with GC Behavior Notes
-S684 Commit Collections module enhancement sprint to git (Apr 25 at 11:14 PM)
-1560 11:15p 🔄 FSM Framework StateMachine Major Refactoring - All Code Review Issues Addressed
-1561 " 🔴 FSM Framework Compilation Error - Missing System using Directive
-S686 Evaluate if ObjectPool in Collections can be replaced by Pool in Pooling module to eliminate duplicate code (Apr 25 at 11:15 PM)
-1568 11:23p 🔵 ObjectPool vs Pool Consolidation Analysis Complete
-1569 " ⚖️ Unify Reset Interfaces Rather Than Replace Implementation
-1570 11:24p 🔵 ObjectPool vs Pool API Comparison
-1572 " 🔵 Pool Module Has Richer Safety Features Than ObjectPool
-1573 " 🔵 Dual-Track Pooling Design Was Intentional
-1574 11:25p ⚖️ ObjectPool Consolidation - Dual-Track Design is Intentional
-1576 11:32p ✅ Commit Requested for Unity Framework Session
-S694 Commit FSM module improvements: RingBuffer integration, self-transition support, and new tests (Apr 25 at 11:32 PM)
-1577 " 🔄 FSM Module Refactored with RingBuffer and Self-Transition Support
-1578 11:53p 🔵 ObjectPool Consolidation Brainstorming Initiated
-1580 11:54p 🔵 Pool<T> Static Generic Object Pool Architecture Analyzed
-1581 " 🔵 Collections ObjectPool<T> Instance Pool Design Analyzed
-1582 " ⚖️ Dual-Track Pooling Architecture Decision
-1583 11:55p 🔵 ObjectPool vs Pool Usage Analysis
-1584 " 🔵 ObjectPool Consolidation Investigation Resumed
-
-Access 840k tokens of past work via get_observations([IDs]) or mem-search skill.
+### Apr 26, 2026
+S819 Unity skill system architecture consultation for 5V5 card battle game with semi-auto combat (Apr 26 at 10:30 PM)
+S815 Unity skill system architecture consultation for 5V5 card battle game with semi-auto combat (Apr 26 at 10:31 PM)
+S818 Unity skill system architecture consultation for 5V5 card battle game with semi-auto combat (Apr 26 at 10:31 PM)
+S820 Unity skill system architecture consultation for 5V5 card battle game with semi-auto combat (Apr 26 at 10:33 PM)
+S821 Skill system design spec review and refinement (Apr 26 at 10:35 PM)
+S822 Skill system design specification completed and committed (Apr 26 at 10:36 PM)
+S823 Skill system implementation plan created and committed. Task dependency graph established in worktree. Ready to begin implementation. (Apr 26 at 10:40 PM)
+S825 Unity C# compilation error: ITrigger interface missing TryFire method definition (Apr 26 at 10:41 PM)
+### Apr 27, 2026
+S824 Unity skill system compilation error fix and completion (Apr 27 at 7:17 AM)
+1930 7:54a 🔴 Task 3 release-path exception leak fixed with aggregate failure handling
+1927 " 🔵 Final spec compliance review initiated for Task 3 after error handling fix
+1932 7:59a 🔵 Task 3 spec compliance verified and approved after release-path fix
+1934 8:02a 🔵 Code quality review found High-severity asset leak risk in FairyGUI adapter
+1931 " 🔵 Final spec compliance review initiated for Task 3 after release-path fix
+1933 8:05a 🔵 Code quality review initiated for Task 3 after spec compliance approved
+1935 8:10a 🔵 AssemblyInfo.cs reveals InternalsVisibleTo attributes for test assemblies
+1936 " 🔵 Fix requested for Task 3 High and Low severity code quality issues
+1937 " 🔴 Task 3 High and Low severity quality issues fixed
+1938 8:13a 🔵 Agent pool capacity exhausted when attempting re-review after quality fix
+1939 " 🔵 Final quality check initiated for Task 3 after commit cc9cd4b
+1940 " 🔵 Task 3 quality gate passed after verification of High and Low severity fixes
+1941 8:16a 🔵 Task 4 implementation initiated for GameScript sample presenter/use-case flow and architecture guards
+1942 " 🟣 Task 4 GameScript sample presenter/use-case flow implemented with architecture guardrails
+1944 " 🔵 Task 4 spec compliance verified and approved for GameScript sample and guardrails
+1945 8:22a 🔵 Code quality review initiated for Task 4 GameScript sample and architecture guardrails
+1946 " 🔵 Task 4 code quality review identified multiple severity issues in architecture guardrails
+1943 " 🔵 Code review initiated for Task 4 GameScript sample and architecture guardrails
+1947 8:24a 🔵 Fix requested for Task 4 architecture guardrails and test robustness issues
+1948 " 🔴 Task 4 architecture guardrails strengthened with structural dependency checks and improved test robustness
+1949 8:27a 🔵 Final quality re-review initiated for Task 4 after architecture guardrail fixes
+1950 " 🔵 Task 4 quality gate passed after architecture guardrail fixes verified
+1951 8:32a 🔵 Task 5 final validation and documentation sync initiated
+1953 " 🟣 Task 5 final validation and documentation sync completed for UI shell MVP
+1955 " 🔵 Unity PlayMode tests require HybridCLR infrastructure
+1956 " 🔵 Task 5 compliance blocked by vacuous PlayMode test execution
+1957 " 🔵 Unity test filter syntax differs between EditMode and PlayMode platforms
+1958 " ⚖️ Task 5 compliance accepted with infrastructure limitation documented
+1954 8:36a 🔵 Git log reveals complete UI shell MVP implementation commit history across 14 commits
+1959 9:35a 🔴 Fixed WindowManager late caller cancellation bug in inflight entry reuse
+1960 9:42a 🔴 Added test coverage for WindowManager late caller cancellation bug fix
+1961 " 🔴 WindowManager late caller cancellation bug fix validated by tests
+1962 " 🔴 WindowManager bug fix validated across full Runtime UI test suite
+1963 9:43a 🔴 WindowManager late caller bug fix committed after test validation
+1965 " ✅ Created clean git worktree for UI shell MVP integration
+1966 10:31a ✅ Created clean worktree and enumerated UI shell MVP commits for integration
+1967 10:36a 🔵 Cherry-pick merge conflict encountered in Change.Runtime.asmdef during clean branch integration
+1968 " 🔵 Identified asmdef merge conflict: YooAsset reference missing in WindowManager branch
+1969 10:37a 🔴 Resolved asmdef merge conflict by preserving YooAsset reference from main branch
+1970 " 🔵 Cherry-pick continuation failed - no cherry-pick in progress after conflict resolution
+1971 " 🔵 Cherry-pick state validation revealed staged files without CHERRY_PICK_HEAD
+1972 " ✅ Cherry-pick integration succeeded: WindowManager commits consolidated into single feature commit
+1973 " 🔴 Resolved second asmdef merge conflict by adding FairyGUI reference from YooAsset/FairyGUI adapter commits
+1974 " 🟣 Cherry-pick integration succeeded: YooAsset and FairyGUI adapters consolidated into feature commit
+1975 " 🔵 Skill system framework exists uncommitted on main branch
+1976 10:49a 🟣 UI shell MVP implementation merged into main branch
+1977 " 🔵 Clean worktree removal blocked by untracked Skill system files
+1978 " ✅ UI shell MVP development worktrees and branches cleaned up after integration
+1980 10:51a 🔴 Removed type cast in TickTriggers after adding TickCooldown to ITrigger interface
+S826 Fix CS1061 compilation error: ITrigger interface missing TryFire method definition (Apr 27 at 10:51 AM)
+1981 10:52a 🔴 Fixed CS1061 compilation error by adding missing methods to ITrigger interface
 </claude-mem-context>

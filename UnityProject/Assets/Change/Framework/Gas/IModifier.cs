@@ -4,7 +4,7 @@ namespace Change.Framework.Gas
     {
         string Id { get; }
         ModifierPolarity Polarity { get; }
-        SkillTag[] GrantedTags { get; }
+        GameplayTag[] GrantedTags { get; }
         int StackCount { get; }
         bool IsExpired { get; }
         ModifierStacking StackingRule { get; }

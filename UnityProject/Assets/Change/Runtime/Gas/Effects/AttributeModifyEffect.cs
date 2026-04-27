@@ -2,7 +2,7 @@ using Change.Framework.Gas;
 
 namespace Change.Runtime.Gas.Effects
 {
-    public sealed class AttributeModifyEffect : ISkillEffect
+    public sealed class AttributeModifyEffect : IGameplayEffect
     {
         private readonly float _flatAmount;
         private readonly string _scalingAttribute;

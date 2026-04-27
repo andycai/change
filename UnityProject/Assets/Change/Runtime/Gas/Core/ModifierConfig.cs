@@ -1,3 +1,4 @@
+using System;
 using Change.Framework.Gas;
 
 namespace Change.Runtime.Gas
@@ -6,13 +7,14 @@ namespace Change.Runtime.Gas
     {
         public string Id;
         public ModifierPolarity Polarity;
-        public SkillTag[] GrantedTags;
+        public GameplayTag[] GrantedTags;
         public ModifierStacking Stacking;
         public int MaxStack = 1;
         public float Duration;
         public float TickInterval;
-        public ISkillEffect[] ApplyEffects;
-        public ISkillEffect[] TickEffects;
-        public ISkillEffect[] RemoveEffects;
+        
+        public IGameplayEffect[] ApplyEffects;
+        public IGameplayEffect[] TickEffects;
+        public IGameplayEffect[] RemoveEffects;
     }
 }

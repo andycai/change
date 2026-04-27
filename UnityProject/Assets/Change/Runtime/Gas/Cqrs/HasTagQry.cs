@@ -5,11 +5,11 @@ namespace Change.Runtime.Gas.Cqrs
 {
     public readonly struct HasTagQry : IQuery<bool>
     {
-        public HasTagQry(string targetId, SkillTag tag)
+        public HasTagQry(string targetId, GameplayTag tag)
         {
             TargetId = targetId; Tag = tag;
         }
         public string TargetId { get; }
-        public SkillTag Tag { get; }
+        public GameplayTag Tag { get; }
     }
 }

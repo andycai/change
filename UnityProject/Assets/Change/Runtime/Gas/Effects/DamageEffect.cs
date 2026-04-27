@@ -2,7 +2,7 @@ using Change.Framework.Gas;
 
 namespace Change.Runtime.Gas.Effects
 {
-    public sealed class DamageEffect : ISkillEffect
+    public sealed class DamageEffect : IGameplayEffect
     {
         private readonly AttributeModifyEffect _inner;
 
