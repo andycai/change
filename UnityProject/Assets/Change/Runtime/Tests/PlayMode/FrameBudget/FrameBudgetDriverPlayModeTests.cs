@@ -19,14 +19,14 @@ namespace Change.Runtime.Tests.PlayMode.FrameBudget
                 Object.Destroy(go);
             }
 
-            FrameBudget.ResetForTests();
+            global::Change.Runtime.FrameBudget.ResetForTests();
             yield return null;
         }
 
         [UnityTest]
         public IEnumerator Initialize_CreatesDontDestroyOnLoadDriver()
         {
-            FrameBudget.Initialize(FrameBudgetPolicy.Default);
+            global::Change.Runtime.FrameBudget.Initialize(FrameBudgetPolicy.Default);
             yield return null;
 
             var go = GameObject.Find(DriverName);
@@ -37,10 +37,10 @@ namespace Change.Runtime.Tests.PlayMode.FrameBudget
         [UnityTest]
         public IEnumerator ScheduleDeferred_WorkExecutesInLaterFrame()
         {
-            FrameBudget.Initialize(FrameBudgetPolicy.Default);
+            global::Change.Runtime.FrameBudget.Initialize(FrameBudgetPolicy.Default);
             int value = 0;
 
-            FrameBudget.Schedule(FramePhase.Update, FrameTaskPriority.Deferred, "test", () => value = 7);
+            global::Change.Runtime.FrameBudget.Schedule(FramePhase.Update, FrameTaskPriority.Deferred, "test", () => value = 7);
 
             int safetyFrames = 10;
             while (value != 7 && safetyFrames-- > 0)
@@ -54,30 +54,35 @@ namespace Change.Runtime.Tests.PlayMode.FrameBudget
         [UnityTest]
         public IEnumerator YieldIfBudgetExceeded_WhenExceeded_YieldsToNextFrame()
         {
-            FrameBudget.Initialize(FrameBudgetPolicy.Default);
+            global::Change.Runtime.FrameBudget.Initialize(FrameBudgetPolicy.Default);
 
-            bool continued = false;
+            bool yielded = false;
             UniTask task = Run();
 
-            yield return null;
-            Assert.IsFalse(continued);
-
             yield return task.ToCoroutine();
-            Assert.IsTrue(continued);
+            Assert.IsTrue(yielded);
 
             async UniTask Run()
             {
-                FrameBudget.Schedule(FramePhase.Update, FrameTaskPriority.Critical, "heavy", () =>
+                int safety = 5;
+                while (!global::Change.Runtime.FrameBudget.IsPhaseBudgetExceeded(FramePhase.Update) && safety-- > 0)
                 {
-                    float end = Time.realtimeSinceStartup + 0.01f;
-                    while (Time.realtimeSinceStartup < end)
+                    global::Change.Runtime.FrameBudget.Schedule(FramePhase.Update, FrameTaskPriority.Critical, "heavy", () =>
                     {
-                    }
-                });
+                        float end = Time.realtimeSinceStartup + 0.01f;
+                        while (Time.realtimeSinceStartup < end)
+                        {
+                        }
+                    });
 
-                await UniTask.Yield(PlayerLoopTiming.Update);
+                    await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+                }
+
+                Assert.IsTrue(global::Change.Runtime.FrameBudget.IsPhaseBudgetExceeded(FramePhase.Update));
+
+                int frameBefore = Time.frameCount;
                 await FrameBudgetUniTaskExtensions.YieldIfBudgetExceeded(FramePhase.Update);
-                continued = true;
+                yielded = Time.frameCount > frameBefore;
             }
         }
     }

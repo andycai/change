@@ -2,12 +2,14 @@
     "name": "Change.Runtime.PlayModeTests",
     "rootNamespace": "Change.Runtime",
     "references": [
-        "Change.Runtime"
+        "Change.Runtime",
+        "UniTask"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [
+        "Editor",
         "WindowsStandalone64",
         "macOSStandalone",
         "LinuxStandalone64"
