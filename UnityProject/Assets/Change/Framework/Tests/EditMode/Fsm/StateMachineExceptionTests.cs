@@ -70,7 +70,7 @@ namespace Change.Framework.Fsm.Tests
         }
 
         [Test]
-        public void Start_WhenInitialOnEnterThrows_ResetsMachineToNotStartedState()
+        public void Start_WhenInitialOnEnterThrows_ResetsMachineToNotStartedStateAndMarksAsFaulted()
         {
             var enterAttempts = 0;
             var stateA = new RecordingState(TestStateId.A)
@@ -89,14 +89,39 @@ namespace Change.Framework.Fsm.Tests
             fsm.Register(stateA);
 
             var ex = Assert.Throws<InvalidOperationException>(() => fsm.Start(TestStateId.A));
-            Assert.That(ex.Message, Does.Contain("reset to not started"));
+            Assert.That(ex.Message, Does.Contain("reset and marked as faulted"));
             Assert.That(fsm.IsStarted, Is.False);
+            Assert.That(fsm.IsFaulted, Is.True);
+            
+            // Should not be able to fire events while faulted
             Assert.Throws<InvalidOperationException>(() => fsm.Fire(TestEvent.Named("Tick")));
 
+            // Should be able to restart and reset faulted state
             Assert.DoesNotThrow(() => fsm.Start(TestStateId.A));
             Assert.That(fsm.IsStarted, Is.True);
+            Assert.That(fsm.IsFaulted, Is.False);
             Assert.That(fsm.CurrentStateId, Is.EqualTo(TestStateId.A));
             Assert.That(stateA.EnterCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Fire_WhenCallbackThrows_MarksAsFaultedAndBlocksFurtherOperations()
+        {
+            var stateA = new RecordingState(TestStateId.A)
+            {
+                OnEventHandler = _ => throw new Exception("callback crash")
+            };
+
+            var fsm = new StateMachine<TestStateId, TestEvent>();
+            fsm.Register(stateA);
+            fsm.Start(TestStateId.A);
+
+            Assert.Throws<InvalidOperationException>(() => fsm.Fire(TestEvent.Named("Tick")));
+            Assert.That(fsm.IsFaulted, Is.True);
+
+            // Subsequent operations should throw due to IsFaulted
+            var ex = Assert.Throws<InvalidOperationException>(() => fsm.Fire(TestEvent.Named("Tick2")));
+            Assert.That(ex.Message, Does.Contain("faulted state"));
         }
     }
 }

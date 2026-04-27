@@ -38,6 +38,7 @@ namespace Change.Framework.Fsm
         private IFsmState<TStateId, TEvent> _currentState;
         private bool _isDrainingEvents;
         private bool _isDrainingTransitions;
+        private bool _isFaulted;
         private int _stateCallbackDepth;
         private long _sequence;
 
@@ -45,7 +46,7 @@ namespace Change.Framework.Fsm
         /// 创建状态机实例。
         /// </summary>
         /// <param name="comparer">状态 ID 比较器</param>
-        /// <param name="initialCapacity">内部环形缓冲区初始容量。若超出此容量将抛出异常，需根据业务预估。</param>
+        /// <param name="initialCapacity">内部环形缓冲区初始容量。若超出此容量将抛出异常，需根据业务预估过程中的并发事件/切换数量。</param>
         /// <param name="allowSelfTransition">是否允许切换到当前相同状态（触发 OnExit -> OnEnter）</param>
         public StateMachine(IEqualityComparer<TStateId> comparer = null, int initialCapacity = 8, bool allowSelfTransition = false)
         {
@@ -59,6 +60,8 @@ namespace Change.Framework.Fsm
         public event Action<StateChange<TStateId, TEvent>> OnStateChanged;
 
         public bool IsStarted { get; private set; }
+
+        public bool IsFaulted => _isFaulted;
 
         public TStateId CurrentStateId { get; private set; }
 
@@ -98,6 +101,7 @@ namespace Change.Framework.Fsm
                 throw new InvalidOperationException($"Initial state '{initial}' is not registered.");
             }
 
+            _isFaulted = false;
             IsStarted = true;
             _currentState = initialState;
             CurrentStateId = initial;
@@ -113,9 +117,10 @@ namespace Change.Framework.Fsm
             }
             catch (Exception ex)
             {
+                _isFaulted = true;
                 ResetToNotStarted();
                 throw new InvalidOperationException(
-                    $"Failed to enter initial state '{initial}'. State machine has been reset to not started.", 
+                    $"Failed to enter initial state '{initial}'. State machine has been reset and marked as faulted.", 
                     ex);
             }
             finally
@@ -212,15 +217,14 @@ namespace Change.Framework.Fsm
             }
             catch (Exception ex)
             {
+                _isFaulted = true;
                 throw new InvalidOperationException(
-                    $"OnExit failed during {FormatTransitionContext(in change)}. The state machine remains in state '{fromId}'.",
+                    $"OnExit failed during {FormatTransitionContext(in change)}. The state machine is now marked as faulted. Current state: '{fromId}'.",
                     ex);
             }
             finally
             {
                 _stateCallbackDepth--;
-                // 即使 Exit 失败，我们也可能需要处理在此期间加入的事件，
-                // 但为了严谨，如果抛出异常，外层 Drain 会被中断。
             }
 
             // 2. 更新当前状态
@@ -235,8 +239,9 @@ namespace Change.Framework.Fsm
             }
             catch (Exception ex)
             {
+                _isFaulted = true;
                 throw new InvalidOperationException(
-                    $"OnEnter failed during {FormatTransitionContext(in change)}. The state machine is now in state '{request.NextStateId}' but failed to initialize.",
+                    $"OnEnter failed during {FormatTransitionContext(in change)}. The state machine is now marked as faulted. Current state: '{request.NextStateId}' (failed to initialize).",
                     ex);
             }
             finally
@@ -251,8 +256,9 @@ namespace Change.Framework.Fsm
             }
             catch (Exception ex)
             {
-                // 观测者回调异常同样按 fail-fast 处理，避免静默吞错。
-                throw new InvalidOperationException("An error occurred in OnStateChanged event handler.", ex);
+                _isFaulted = true;
+                // 观测者回调异常同样按 fail-fast 处理，并标记状态机故障。
+                throw new InvalidOperationException("An error occurred in OnStateChanged event handler. The state machine is now marked as faulted.", ex);
             }
         }
 
@@ -275,6 +281,13 @@ namespace Change.Framework.Fsm
                         try
                         {
                             result = _currentState.OnEvent(in currentEvent);
+                        }
+                        catch (Exception ex)
+                        {
+                            _isFaulted = true;
+                            throw new InvalidOperationException(
+                                $"OnEvent failed in state '{CurrentStateId}'. The state machine is now marked as faulted.",
+                                ex);
                         }
                         finally
                         {
@@ -321,6 +334,7 @@ namespace Change.Framework.Fsm
             _isDrainingEvents = false;
             _isDrainingTransitions = false;
             _sequence = 0;
+            // Note: _isFaulted is not reset here; a machine stays faulted until a new Start (if we allow it).
         }
 
         private void EnsureStarted()
@@ -328,6 +342,11 @@ namespace Change.Framework.Fsm
             if (!IsStarted)
             {
                 throw new InvalidOperationException("State machine is not started.");
+            }
+
+            if (_isFaulted)
+            {
+                throw new InvalidOperationException("State machine is in a faulted state due to a previous unhandled exception.");
             }
         }
     }
