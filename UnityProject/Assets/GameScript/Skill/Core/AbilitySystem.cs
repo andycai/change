@@ -109,8 +109,7 @@ namespace GameScript.Skill.Core
         {
             for (int i = 0; i < _triggers.Count; i++)
             {
-                if (_triggers[i] is Trigger trigger)
-                    trigger.TickCooldown(deltaTime);
+                _triggers[i].TickCooldown(deltaTime);
             }
         }
 
