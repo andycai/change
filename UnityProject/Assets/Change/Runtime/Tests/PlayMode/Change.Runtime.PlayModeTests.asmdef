@@ -9,6 +9,7 @@
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [
+        "Editor",
         "WindowsStandalone64",
         "macOSStandalone",
         "LinuxStandalone64"
