@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Change.Framework.UI;
 
 namespace Change.Runtime.UI
 {
@@ -115,6 +116,7 @@ namespace Change.Runtime.UI
                 _opened.Remove(request);
             }
 
+            window.SetState(WindowState.Closing);
             window.Dispose();
             return true;
         }

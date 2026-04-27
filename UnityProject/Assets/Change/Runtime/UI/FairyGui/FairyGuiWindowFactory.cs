@@ -32,12 +32,12 @@ namespace Change.Runtime.UI
             if (panel == null || panel.ui == null)
             {
                 DisposeLeaseNoThrow(lease);
-                throw new InvalidOperationException($"UIPanel/GComponent missing on window prefab: {location}");
+                throw new InvalidOperationException($"UIPanel or GComponent (panel.ui) missing on window prefab at: {location}. Ensure the prefab has a UIPanel component and it is correctly initialized.");
             }
 
             root = panel.ui;
 
-            return new FairyGuiWindowView(request.Id, root, lease);
+            return new FairyGuiWindowView(request.Id, request.Options.Layer, root, lease);
         }
 
         private static void DisposeLeaseNoThrow(UiAssetLease lease)

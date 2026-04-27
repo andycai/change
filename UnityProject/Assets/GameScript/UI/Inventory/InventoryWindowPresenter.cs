@@ -7,12 +7,19 @@ namespace GameScript.UI.Inventory
     {
         private readonly IInventoryWindowView _view;
         private readonly IOpenInventoryUseCase _useCase;
-        private readonly int _playerId;
+        private int _playerId;
 
-        public InventoryWindowPresenter(IInventoryWindowView view, IOpenInventoryUseCase useCase, int playerId)
+        public InventoryWindowPresenter(IInventoryWindowView view, IOpenInventoryUseCase useCase)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _useCase = useCase ?? throw new ArgumentNullException(nameof(useCase));
+        }
+
+        /// <summary>
+        /// P3 修复：将业务数据与构造函数分离，支持 Presenter 复用。
+        /// </summary>
+        public void Setup(int playerId)
+        {
             _playerId = playerId;
         }
 
@@ -25,8 +32,7 @@ namespace GameScript.UI.Inventory
 
         public void OnClose()
         {
-            // No presenter-level state to clean up in MVP. Reserved for future
-            // event unsubscribe, cached data clearing, or transition animations.
+            // 以后可以在这里进行取消订阅等清理工作
         }
     }
 }

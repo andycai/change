@@ -294,17 +294,24 @@ namespace Change.Runtime.UI.Tests
 
     internal sealed class FakeWindowView : IWindowView
     {
-        public FakeWindowView(WindowId id)
+        public FakeWindowView(WindowId id, WindowLayer layer = WindowLayer.Normal)
         {
             Id = id;
+            Layer = layer;
             State = WindowState.Closed;
         }
 
         public WindowId Id { get; }
+        public WindowLayer Layer { get; }
         public WindowState State { get; private set; }
         public int BringToFrontCount { get; private set; }
         public int SetVisibleCount { get; private set; }
         public int DisposeCount { get; private set; }
+
+        public void SetState(WindowState state)
+        {
+            State = state;
+        }
 
         public void BringToFront()
         {
