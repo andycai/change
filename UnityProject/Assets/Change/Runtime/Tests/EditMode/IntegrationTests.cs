@@ -1,3 +1,4 @@
+using System;
 using Change.Framework.Skill;
 using Change.Runtime.Skill;
 using Change.Runtime.Skill.Effects;
@@ -40,6 +41,7 @@ namespace Change.Runtime.Tests
             };
 
             // Create fireball skill
+            Func<string, IModifier> modifierFactory = id => id == "ignite" ? new Modifier(igniteConfig) : null;
             var fireball = new SkillInstance(new SkillConfig
             {
                 Id = "fireball",
@@ -55,7 +57,7 @@ namespace Change.Runtime.Tests
                     new DamageEffect(flatAmount: 100f, scalingFormula: null, scalingAttribute: "ATK", scalingMultiplier: 1.5f),
                     new ChanceEffect(rate: 1.0f, onSuccess: new ISkillEffect[]
                     {
-                        new ApplyModifierEffect("ignite")
+                        new ApplyModifierEffect("ignite", modifierFactory)
                     }, onFailure: null)
                 }
             });

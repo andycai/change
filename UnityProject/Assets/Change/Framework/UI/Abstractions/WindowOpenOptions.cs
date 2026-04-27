@@ -1,3 +1,5 @@
+using System;
+
 namespace Change.Framework.UI
 {
     public readonly struct WindowOpenOptions
@@ -11,6 +13,10 @@ namespace Change.Framework.UI
             Layer = layer;
             ReuseIfLoaded = reuseIfLoaded;
             AllowMultipleInstances = allowMultipleInstances;
+            if (instanceId < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(instanceId), "InstanceId must be non-negative.");
+            }
             InstanceId = instanceId;
         }
 

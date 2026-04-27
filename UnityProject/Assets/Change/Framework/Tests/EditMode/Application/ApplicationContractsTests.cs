@@ -52,14 +52,14 @@ namespace Change.Framework.Tests.Application
         }
 
         [Test]
-        public void WindowId_Default_ThrowsInvalidOperationException()
+        public void WindowId_Default_ReturnsNullValues()
         {
             var id = default(WindowId);
 
-            Assert.Throws<InvalidOperationException>(() => _ = id.Value);
-            Assert.Throws<InvalidOperationException>(() => _ = id.GetHashCode());
-            Assert.Throws<InvalidOperationException>(() => _ = id.ToString());
-            Assert.Throws<InvalidOperationException>(() => _ = id.Equals(new WindowId("Inventory")));
+            Assert.IsNull(id.Value);
+            Assert.AreEqual(0, id.GetHashCode());
+            Assert.IsNull(id.ToString());
+            Assert.IsFalse(id.Equals(new WindowId("Inventory")));
         }
 
         [Test]

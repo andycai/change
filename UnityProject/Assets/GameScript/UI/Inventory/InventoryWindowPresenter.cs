@@ -1,3 +1,4 @@
+using System;
 using Change.Framework.Application;
 
 namespace GameScript.UI.Inventory
@@ -10,8 +11,8 @@ namespace GameScript.UI.Inventory
 
         public InventoryWindowPresenter(IInventoryWindowView view, IOpenInventoryUseCase useCase, int playerId)
         {
-            _view = view;
-            _useCase = useCase;
+            _view = view ?? throw new ArgumentNullException(nameof(view));
+            _useCase = useCase ?? throw new ArgumentNullException(nameof(useCase));
             _playerId = playerId;
         }
 
@@ -24,6 +25,8 @@ namespace GameScript.UI.Inventory
 
         public void OnClose()
         {
+            // No presenter-level state to clean up in MVP. Reserved for future
+            // event unsubscribe, cached data clearing, or transition animations.
         }
     }
 }

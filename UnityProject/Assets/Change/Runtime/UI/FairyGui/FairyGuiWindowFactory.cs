@@ -1,16 +1,10 @@
 using System;
 using System.Threading;
-using Change.Framework.UI;
 using Cysharp.Threading.Tasks;
 using FairyGUI;
 
 namespace Change.Runtime.UI
 {
-    public interface IWindowLocationResolver
-    {
-        string ResolvePrefabLocation(WindowId id);
-    }
-
     public sealed class FairyGuiWindowFactory : IWindowFactory
     {
         private readonly IUiAssetLoader _loader;
@@ -24,8 +18,7 @@ namespace Change.Runtime.UI
 
         public UniTask<IWindowView> CreateAsync(in WindowRequest request, CancellationToken cancellationToken)
         {
-            var requestCopy = request;
-            return CreateAsyncInternal(requestCopy, cancellationToken);
+            return CreateAsyncInternal(request, cancellationToken);
         }
 
         private async UniTask<IWindowView> CreateAsyncInternal(WindowRequest request, CancellationToken cancellationToken)
@@ -33,38 +26,16 @@ namespace Change.Runtime.UI
             var location = _resolver.ResolvePrefabLocation(request.Id);
             var lease = await _loader.LoadPrefabAsync(request.Id, location, cancellationToken);
 
-            UIPanel panel;
-            try
-            {
-                panel = lease.Instance != null ? lease.Instance.GetComponent<UIPanel>() : null;
-            }
-            catch
-            {
-                DisposeLeaseNoThrow(lease);
-                throw;
-            }
+            UIPanel panel = lease.Instance?.GetComponent<UIPanel>();
 
             GComponent root;
-            try
-            {
-                root = panel != null ? panel.ui : null;
-            }
-            catch (OperationCanceledException)
-            {
-                DisposeLeaseNoThrow(lease);
-                throw;
-            }
-            catch (Exception exception)
-            {
-                DisposeLeaseNoThrow(lease);
-                throw new InvalidOperationException($"Failed to resolve FairyGUI root component. id={request.Id}, location={location}", exception);
-            }
-
-            if (root == null)
+            if (panel == null || panel.ui == null)
             {
                 DisposeLeaseNoThrow(lease);
                 throw new InvalidOperationException($"UIPanel/GComponent missing on window prefab: {location}");
             }
+
+            root = panel.ui;
 
             return new FairyGuiWindowView(request.Id, root, lease);
         }
