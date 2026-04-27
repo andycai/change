@@ -4,6 +4,8 @@ using Change.Runtime.Skill;
 using Change.Runtime.Skill.Effects;
 using NUnit.Framework;
 
+using SkillInstance = Change.Runtime.Skill.Skill;
+
 namespace Change.Runtime.Tests
 {
     public class SkillTests
@@ -27,7 +29,7 @@ namespace Change.Runtime.Tests
         [Test]
         public void Activate_ExecutesEffectsOnTargets()
         {
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "fireball",
                 Type = SkillType.Active,
@@ -52,7 +54,7 @@ namespace Change.Runtime.Tests
         public void Activate_InsufficientResource_ReturnsFalse()
         {
             _source.Attributes.SetBaseValue("Mana", 10f);
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "expensive",
                 Type = SkillType.Active,
@@ -71,7 +73,7 @@ namespace Change.Runtime.Tests
         [Test]
         public void Cooldown_PreventsReactivation()
         {
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "cooldown_skill",
                 Type = SkillType.Active,
@@ -94,7 +96,7 @@ namespace Change.Runtime.Tests
         [Test]
         public void Charges_AllowMultipleUsesBeforeCooldown()
         {
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "charge_skill",
                 Type = SkillType.Active,

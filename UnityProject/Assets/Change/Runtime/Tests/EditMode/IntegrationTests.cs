@@ -3,6 +3,8 @@ using Change.Runtime.Skill;
 using Change.Runtime.Skill.Effects;
 using NUnit.Framework;
 
+using SkillInstance = Change.Runtime.Skill.Skill;
+
 namespace Change.Runtime.Tests
 {
     public class IntegrationTests
@@ -38,7 +40,7 @@ namespace Change.Runtime.Tests
             };
 
             // Create fireball skill
-            var fireball = new Skill(new SkillConfig
+            var fireball = new SkillInstance(new SkillConfig
             {
                 Id = "fireball",
                 Type = SkillType.Active,
@@ -102,7 +104,7 @@ namespace Change.Runtime.Tests
             Assert.AreEqual(150f, hero.Attributes.GetCurrentValue("ATK"));
 
             // Attack with buffed ATK
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "slash",
                 Type = SkillType.Active,

@@ -3,6 +3,8 @@ using Change.Runtime.Skill;
 using Change.Runtime.Skill.Effects;
 using NUnit.Framework;
 
+using SkillInstance = Change.Runtime.Skill.Skill;
+
 namespace Change.Runtime.Tests
 {
     public class AbilitySystemTests
@@ -20,7 +22,7 @@ namespace Change.Runtime.Tests
         [Test]
         public void AddSkill_ThenGetSkill_ReturnsSkill()
         {
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "attack",
                 Type = SkillType.Active,
@@ -98,7 +100,7 @@ namespace Change.Runtime.Tests
         [Test]
         public void TickSkills_AdvancesCooldowns()
         {
-            var skill = new Skill(new SkillConfig
+            var skill = new SkillInstance(new SkillConfig
             {
                 Id = "test",
                 Type = SkillType.Active,
