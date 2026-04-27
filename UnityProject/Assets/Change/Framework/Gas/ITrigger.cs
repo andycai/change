@@ -1,0 +1,12 @@
+namespace Change.Framework.Gas
+{
+    public interface ITrigger
+    {
+        TriggerEventType EventType { get; }
+        TriggerScope Scope { get; }
+        bool EvaluateCondition(IAbilitySystem source, IAbilitySystem target);
+        void ExecuteEffects(IAbilitySystem source, IAbilitySystem target, int cascadeDepth);
+        bool TryFire(IAbilitySystem source, IAbilitySystem target, int cascadeDepth);
+        void TickCooldown(float deltaTime);
+    }
+}

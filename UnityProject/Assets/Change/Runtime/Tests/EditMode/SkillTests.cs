@@ -1,10 +1,10 @@
 using System;
-using Change.Framework.Skill;
-using Change.Runtime.Skill;
-using Change.Runtime.Skill.Effects;
+using Change.Framework.Gas;
+using Change.Runtime.Gas;
+using Change.Runtime.Gas.Effects;
 using NUnit.Framework;
 
-using SkillInstance = Change.Runtime.Skill.Skill;
+using SkillInstance = Change.Runtime.Gas.Skill;
 
 namespace Change.Runtime.Tests
 {
