@@ -12,3 +12,6 @@ UnityProject/TestResutls/
 .graphify_python
 graphify-out/
 **/graphify-out/
+
+# superpowers
+.superpowers/
