@@ -14,5 +14,6 @@ namespace Change.Runtime.Skill
         public float CooldownDuration;
         public int MaxCharges = 1;
         public ISkillEffect[] Effects;
+        public SkillTag[] BlockingTags;
     }
 }

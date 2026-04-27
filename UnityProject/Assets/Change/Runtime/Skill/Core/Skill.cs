@@ -40,10 +40,14 @@ namespace Change.Runtime.Skill
                     return false;
             }
 
-            // Check blocking tags
-            if (source.Tags.HasTag(new SkillTag("state.stunned")) ||
-                source.Tags.HasTag(new SkillTag("state.silenced")))
-                return false;
+            if (_config.BlockingTags != null)
+            {
+                for (int i = 0; i < _config.BlockingTags.Length; i++)
+                {
+                    if (source.Tags.HasTag(_config.BlockingTags[i]))
+                        return false;
+                }
+            }
 
             return true;
         }

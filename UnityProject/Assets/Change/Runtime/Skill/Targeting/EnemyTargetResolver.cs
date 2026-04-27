@@ -17,7 +17,7 @@ namespace Change.Runtime.Skill.Targeting
             var enemies = new System.Collections.Generic.List<IAbilitySystem>();
             for (int i = 0; i < allEntities.Length; i++)
             {
-                if (allEntities[i].EntityId != source.EntityId)
+                if (allEntities[i].TeamId != source.TeamId)
                     enemies.Add(allEntities[i]);
             }
             int resultCount = Math.Min(_count, enemies.Count);

@@ -4,28 +4,14 @@ namespace Change.Runtime.Skill.Effects
 {
     public sealed class HealEffect : ISkillEffect
     {
-        private readonly float _flatAmount;
-        private readonly string _scalingAttribute;
-        private readonly float _scalingMultiplier;
-        private readonly string _targetAttribute;
+        private readonly AttributeModifyEffect _inner;
 
-        public HealEffect(float flatAmount, string scalingFormula, string scalingAttribute, float scalingMultiplier = 1f, string targetAttribute = "HP")
+        public HealEffect(float flatAmount, string scalingFormula = null,
+            string scalingAttribute = null, float scalingMultiplier = 1f, string targetAttribute = "HP")
         {
-            _flatAmount = flatAmount;
-            _scalingAttribute = scalingAttribute;
-            _scalingMultiplier = scalingMultiplier;
-            _targetAttribute = targetAttribute;
+            _inner = new AttributeModifyEffect(flatAmount, scalingAttribute, scalingMultiplier, targetAttribute, isDamage: false);
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target)
-        {
-            float amount = _flatAmount;
-            if (_scalingAttribute != null)
-            {
-                float scalingValue = source.Attributes.GetCurrentValue(_scalingAttribute);
-                amount += scalingValue * _scalingMultiplier;
-            }
-            target.Attributes.ModifyCurrent(_targetAttribute, amount);
-        }
+        public void Execute(IAbilitySystem source, IAbilitySystem target) => _inner.Execute(source, target);
     }
 }

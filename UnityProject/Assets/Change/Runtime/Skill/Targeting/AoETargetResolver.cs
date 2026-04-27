@@ -13,11 +13,15 @@ namespace Change.Runtime.Skill.Targeting
         {
             var result = new List<IAbilitySystem>();
             bool targetEnemies = _targetType == TargetType.AllEnemies;
+            bool targetAllies = _targetType == TargetType.AllAllies;
+
             for (int i = 0; i < allEntities.Length; i++)
             {
-                bool isEnemy = allEntities[i].EntityId != source.EntityId;
-                if (targetEnemies && isEnemy) result.Add(allEntities[i]);
-                else if (!targetEnemies && !isEnemy) result.Add(allEntities[i]);
+                var entity = allEntities[i];
+                if (targetEnemies && entity.TeamId != source.TeamId)
+                    result.Add(entity);
+                else if (targetAllies && entity.TeamId == source.TeamId && entity.EntityId != source.EntityId)
+                    result.Add(entity);
             }
             return result.ToArray();
         }

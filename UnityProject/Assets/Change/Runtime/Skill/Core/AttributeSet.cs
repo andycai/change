@@ -44,11 +44,12 @@ namespace Change.Runtime.Skill
         {
             if (!_attributes.TryGetValue(name, out var attr))
             {
-                attr = new Attribute(name, delta);
+                attr = new Attribute(name, 0f);
                 _attributes.TryAdd(name, attr);
-                return;
             }
-            attr.BaseValue += delta;
+            float oldValue = attr.CurrentValue;
+            attr.ModifyCurrentDelta(delta);
+            OnAttributeChanged?.Invoke(name, oldValue, attr.CurrentValue);
         }
 
         internal Attribute GetOrCreateAttribute(string name, float baseValue = 0f)

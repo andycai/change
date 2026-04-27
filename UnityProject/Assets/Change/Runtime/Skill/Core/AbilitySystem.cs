@@ -11,12 +11,14 @@ namespace Change.Runtime.Skill
         private readonly List<ITrigger> _triggers = new List<ITrigger>();
 
         public string EntityId { get; }
+        public int TeamId { get; }
         public IAttributeSet Attributes { get; }
         public ISkillTagSet Tags { get; }
 
-        public AbilitySystem(string entityId)
+        public AbilitySystem(string entityId, int teamId = 0)
         {
             EntityId = entityId;
+            TeamId = teamId;
             Attributes = new AttributeSet();
             Tags = new SkillTagSet(16);
         }
@@ -33,31 +35,25 @@ namespace Change.Runtime.Skill
 
         public void AddModifier(IModifier modifier)
         {
-            // Check for existing modifier with same ID for stacking
             for (int i = 0; i < _modifiers.Count; i++)
             {
                 if (_modifiers[i].Id == modifier.Id)
                 {
-                    var existing = _modifiers[i] as Modifier;
-                    var newMod = modifier as Modifier;
-                    if (existing != null && newMod != null)
+                    var existing = _modifiers[i];
+                    switch (existing.StackingRule)
                     {
-                        var config = existing.GetStackingConfig();
-                        switch (config)
-                        {
-                            case ModifierStacking.Refresh:
-                                existing.RefreshDuration();
-                                return;
-                            case ModifierStacking.AddStack:
-                                existing.AddStack();
-                                return;
-                            case ModifierStacking.Replace:
-                                existing.OnRemove(this);
-                                _modifiers.RemoveAt(i);
-                                break;
-                            case ModifierStacking.Ignore:
-                                return;
-                        }
+                        case ModifierStacking.Refresh:
+                            existing.RefreshDuration();
+                            return;
+                        case ModifierStacking.AddStack:
+                            existing.AddStack();
+                            return;
+                        case ModifierStacking.Replace:
+                            existing.OnRemove(this);
+                            _modifiers.RemoveAt(i);
+                            break;
+                        case ModifierStacking.Ignore:
+                            return;
                     }
                     break;
                 }
@@ -75,6 +71,26 @@ namespace Change.Runtime.Skill
                     _modifiers[i].OnRemove(this);
                     _modifiers.RemoveAt(i);
                     return;
+                }
+            }
+        }
+
+        public void RemoveModifierByTag(SkillTag tag)
+        {
+            for (int i = _modifiers.Count - 1; i >= 0; i--)
+            {
+                var granted = _modifiers[i].GrantedTags;
+                if (granted != null)
+                {
+                    for (int t = 0; t < granted.Length; t++)
+                    {
+                        if (granted[t] == tag)
+                        {
+                            _modifiers[i].OnRemove(this);
+                            _modifiers.RemoveAt(i);
+                            break;
+                        }
+                    }
                 }
             }
         }

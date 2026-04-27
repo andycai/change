@@ -14,6 +14,7 @@ namespace Change.Runtime.Skill
         public ModifierPolarity Polarity => _config.Polarity;
         public SkillTag[] GrantedTags => _config.GrantedTags;
         public int StackCount => _stackCount;
+        public ModifierStacking StackingRule => _config.Stacking;
 
         public bool IsExpired
         {
@@ -48,11 +49,16 @@ namespace Change.Runtime.Skill
             if (_config.TickInterval > 0f)
             {
                 _tickTimer += deltaTime;
-                while (_tickTimer >= _config.TickInterval)
+                int maxTicksPerFrame = 10;
+                int ticksThisFrame = 0;
+                while (_tickTimer >= _config.TickInterval && ticksThisFrame < maxTicksPerFrame)
                 {
                     _tickTimer -= _config.TickInterval;
                     ExecuteEffects(_config.TickEffects, target);
+                    ticksThisFrame++;
                 }
+                if (ticksThisFrame >= maxTicksPerFrame)
+                    _tickTimer = 0f;
             }
         }
 
@@ -77,8 +83,6 @@ namespace Change.Runtime.Skill
             _elapsedTime = 0f;
             _tickTimer = 0f;
         }
-
-        internal ModifierStacking GetStackingConfig() => _config.Stacking;
 
         private void ExecuteEffects(ISkillEffect[] effects, IAbilitySystem target)
         {

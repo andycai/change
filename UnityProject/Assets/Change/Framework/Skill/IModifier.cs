@@ -7,8 +7,11 @@ namespace Change.Framework.Skill
         SkillTag[] GrantedTags { get; }
         int StackCount { get; }
         bool IsExpired { get; }
+        ModifierStacking StackingRule { get; }
         void OnApply(IAbilitySystem target);
         void OnTick(IAbilitySystem target, float deltaTime);
         void OnRemove(IAbilitySystem target);
+        void AddStack();
+        void RefreshDuration();
     }
 }

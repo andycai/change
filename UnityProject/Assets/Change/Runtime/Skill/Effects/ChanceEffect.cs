@@ -8,13 +8,14 @@ namespace Change.Runtime.Skill.Effects
         private readonly float _rate;
         private readonly ISkillEffect[] _onSuccess;
         private readonly ISkillEffect[] _onFailure;
-        private static readonly Random _rng = new Random();
+        private readonly Random _rng;
 
         public ChanceEffect(float rate, ISkillEffect[] onSuccess, ISkillEffect[] onFailure)
         {
             _rate = rate;
             _onSuccess = onSuccess ?? Array.Empty<ISkillEffect>();
             _onFailure = onFailure ?? Array.Empty<ISkillEffect>();
+            _rng = new Random();
         }
 
         public void Execute(IAbilitySystem source, IAbilitySystem target)

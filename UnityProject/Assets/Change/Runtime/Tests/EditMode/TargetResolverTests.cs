@@ -13,11 +13,12 @@ namespace Change.Runtime.Tests
         [SetUp]
         public void SetUp()
         {
-            _source = new AbilitySystem("hero1");
-            var enemy1 = new AbilitySystem("enemy1");
-            var enemy2 = new AbilitySystem("enemy2");
-            var ally1 = new AbilitySystem("hero2");
-            _allEntities = new IAbilitySystem[] { _source, enemy1, enemy2, ally1 };
+            // Team 0 = heroes, Team 1 = enemies
+            _source = new AbilitySystem("hero1", teamId: 0);
+            var ally1 = new AbilitySystem("hero2", teamId: 0);
+            var enemy1 = new AbilitySystem("enemy1", teamId: 1);
+            var enemy2 = new AbilitySystem("enemy2", teamId: 1);
+            _allEntities = new IAbilitySystem[] { _source, ally1, enemy1, enemy2 };
         }
 
         [Test]
@@ -38,12 +39,11 @@ namespace Change.Runtime.Tests
         }
 
         [Test]
-        public void AoETarget_AllEnemies_ReturnsAllNonSelfEntities()
+        public void AoETarget_AllEnemies_ReturnsAllEnemyEntities()
         {
             var resolver = new AoETargetResolver(TargetType.AllEnemies);
             var targets = resolver.Resolve(_source, _allEntities);
-            // AllEnemies = all entities except source (faction system not yet implemented)
-            Assert.AreEqual(3, targets.Length);
+            Assert.AreEqual(2, targets.Length);
         }
     }
 }

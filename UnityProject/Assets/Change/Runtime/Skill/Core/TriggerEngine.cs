@@ -34,10 +34,7 @@ namespace Change.Runtime.Skill
                     if (trigger.EventType != eventType)
                         continue;
 
-                    if (trigger.TryFire(source, target, cascadeDepth))
-                    {
-                        DispatchEvent(eventType, source, target, allEntities, cascadeDepth + 1);
-                    }
+                    trigger.TryFire(source, target, cascadeDepth);
                 }
             }
         }
