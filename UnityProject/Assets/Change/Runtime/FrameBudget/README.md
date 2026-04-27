@@ -16,6 +16,25 @@ FrameBudget.Initialize(FrameBudgetPolicy.Default);
 FrameBudget.Schedule(FramePhase.Update, FrameTaskPriority.Deferred, "refresh-mini-map", RefreshMiniMap);
 ```
 
+## Default policy (`FrameBudgetPolicy.Default`)
+
+- `UpdateBudgetMs`: `2.5`
+- `LateUpdateBudgetMs`: `1.0`
+- `FixedUpdateBudgetMs`: `0.5`
+- `MaxDeferredFrames`: `3`
+- `OverBudgetWindowFrames`: `30`
+- `OverBudgetPercentThreshold`: `20`
+- `ImportantMaxPerFrame`: `16`
+- `QueueCapacityPerPhase`: `256`
+
+## Priority execution semantics
+
+- `Critical`: always executes in the current phase, even when budget is exhausted.
+- `Important`: executes only when `remainingBudgetMs > 0`, capped by `ImportantMaxPerFrame`.
+- Aged `Important` items can spill over by at most one extra execution per run when age is at least one frame.
+- `Deferred`: while budget remains, non-overdue items are re-queued; overdue items (`age > MaxDeferredFrames`) are forced.
+- When no budget remains, `Important` items are deferred and only overdue `Deferred` items are forced.
+
 ## Long-loop migration pattern
 
 ```csharp
