@@ -56,13 +56,20 @@ namespace Change.Runtime
 
         private void RunPhase(FramePhase phase, FramePerfRecorder recorder, ref bool exceededFlag)
         {
-            float start = Time.realtimeSinceStartup;
+            float startTimeMs = Time.realtimeSinceStartup * 1000f;
             float budgetMs = _policy.GetPhaseBudgetMs(phase);
+            
+            // Reset flag for current phase run
+            exceededFlag = false;
+            
+            // Capture the flag reference for the callback
+            // In C#, we can't pass ref to a lambda easily, so we use a local variable and update the ref at the end
+            bool internalExceeded = false;
 
-            _scheduler.RunPhase(phase, Time.frameCount, budgetMs);
+            _scheduler.RunPhase(phase, Time.frameCount, budgetMs, startTimeMs, (val) => internalExceeded = val);
 
-            float costMs = (Time.realtimeSinceStartup - start) * 1000f;
-            exceededFlag = costMs > budgetMs;
+            float costMs = (Time.realtimeSinceStartup * 1000f) - startTimeMs;
+            exceededFlag = internalExceeded || (costMs > budgetMs);
 
             recorder.RecordFrame(costMs, exceededFlag);
             FramePerfSnapshot snapshot = recorder.CreateSnapshot();

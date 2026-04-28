@@ -17,6 +17,11 @@ namespace Change.Runtime
             _driver = FrameBudgetBootstrap.EnsureDriver(policy);
         }
 
+        internal static void SetDriver(FrameBudgetDriver driver)
+        {
+            _driver = driver;
+        }
+
         public static void Schedule(FramePhase phase, FrameTaskPriority priority, string tag, Action callback)
         {
             if (_driver == null)

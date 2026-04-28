@@ -10,6 +10,9 @@ namespace Change.Runtime
         private readonly int _thresholdPercent;
         private int _index;
         private int _count;
+        private FramePerfSnapshot _cachedSnapshot;
+        private int _framesSinceLastSnapshot;
+        private const int SnapshotInterval = 15;
 
         public FramePerfRecorder(int windowSize, int overBudgetThresholdPercent)
         {
@@ -27,6 +30,7 @@ namespace Change.Runtime
             _sortedScratch = new float[windowSize];
             _overBudgetMarks = new bool[windowSize];
             _thresholdPercent = overBudgetThresholdPercent;
+            _framesSinceLastSnapshot = SnapshotInterval; // Force first compute
         }
 
         public void RecordFrame(float totalMs, bool isOverBudget)
@@ -40,6 +44,7 @@ namespace Change.Runtime
             _overBudgetMarks[_index] = isOverBudget;
             _index = (_index + 1) % _samples.Length;
             _count = Math.Min(_count + 1, _samples.Length);
+            _framesSinceLastSnapshot++;
         }
 
         public FramePerfSnapshot CreateSnapshot()
@@ -47,6 +52,11 @@ namespace Change.Runtime
             if (_count == 0)
             {
                 return new FramePerfSnapshot(0f, 0f, 0, 0, false);
+            }
+
+            if (_framesSinceLastSnapshot < SnapshotInterval && _cachedSnapshot.SampleCount > 0)
+            {
+                return _cachedSnapshot;
             }
 
             int overBudgetCount = 0;
@@ -69,12 +79,15 @@ namespace Change.Runtime
             float p95 = _sortedScratch[GetNearestRankIndex(_count, 0.95)];
             int overBudgetPercent = (int)Math.Round(overBudgetCount * 100.0 / _count, MidpointRounding.AwayFromZero);
 
-            return new FramePerfSnapshot(
+            _cachedSnapshot = new FramePerfSnapshot(
                 p50Ms: p50,
                 p95Ms: p95,
                 sampleCount: _count,
                 overBudgetPercent: overBudgetPercent,
                 shouldThrottle: overBudgetPercent >= _thresholdPercent);
+
+            _framesSinceLastSnapshot = 0;
+            return _cachedSnapshot;
         }
 
         private static int GetNearestRankIndex(int sampleCount, double percentile)

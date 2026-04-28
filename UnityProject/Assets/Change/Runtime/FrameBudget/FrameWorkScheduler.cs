@@ -41,11 +41,19 @@ namespace Change.Runtime
             RingBuffer<FrameWorkItem> queue = GetQueue(item.Phase, item.Priority);
             if (!queue.EnqueueNoResize(queued))
             {
-                throw new InvalidOperationException($"Frame queue is full for {item.Phase}/{item.Priority}.");
+                if (item.Priority == FrameTaskPriority.Critical)
+                {
+                    Debug.LogError($"Frame Critical queue is full for {item.Phase}. Executing immediately to avoid logic break.");
+                    item.Callback();
+                }
+                else
+                {
+                    Debug.LogError($"Frame queue is full for {item.Phase}/{item.Priority}. Task '{item.Tag}' dropped.");
+                }
             }
         }
 
-        public FrameSchedulerRunResult RunPhase(FramePhase phase, int currentFrame, float remainingBudgetMs)
+        public FrameSchedulerRunResult RunPhase(FramePhase phase, int currentFrame, float budgetMs, float startTimeMs, Action<bool> onExceededChanged)
         {
             int executedCount = 0;
             int deferredCount = 0;
@@ -55,10 +63,20 @@ namespace Change.Runtime
 
             ExecuteCriticalQueue(phase, ref executedCount);
 
-            if (remainingBudgetMs > 0f)
+            bool IsExceeded() => (Time.realtimeSinceStartup * 1000f - startTimeMs) > budgetMs;
+
+            if (!IsExceeded())
             {
-                ExecuteImportantQueue(phase, currentFrame, ref executedCount, ref deferredCount, ref importantExecuted, ref agedImportantSpilloverUsed);
-                ExecuteDeferredQueueWhenBudgetAvailable(phase, currentFrame, ref executedCount, ref deferredCount, ref overdueCount);
+                ExecuteImportantQueue(phase, currentFrame, ref executedCount, ref deferredCount, ref importantExecuted, ref agedImportantSpilloverUsed, budgetMs, startTimeMs, onExceededChanged);
+                
+                if (!IsExceeded())
+                {
+                    ExecuteDeferredQueueWhenBudgetAvailable(phase, currentFrame, ref executedCount, ref deferredCount, ref overdueCount, budgetMs, startTimeMs, onExceededChanged);
+                }
+                else
+                {
+                    deferredCount += GetQueue(phase, FrameTaskPriority.Deferred).Count;
+                }
             }
             else
             {
@@ -90,12 +108,33 @@ namespace Change.Runtime
             ref int executedCount,
             ref int deferredCount,
             ref int importantExecuted,
-            ref bool agedImportantSpilloverUsed)
+            ref bool agedImportantSpilloverUsed,
+            float budgetMs,
+            float startTimeMs,
+            Action<bool> onExceededChanged)
         {
             RingBuffer<FrameWorkItem> queue = GetQueue(phase, FrameTaskPriority.Important);
             int count = queue.Count;
             for (int i = 0; i < count; i++)
             {
+                if (importantExecuted >= _policy.ImportantMaxPerFrame)
+                {
+                    // Check age for spillover before stopping
+                    if (!queue.TryPeek(out FrameWorkItem nextItem)) break;
+                    int age = currentFrame - nextItem.EnqueuedFrame;
+                    if (age < 1 || agedImportantSpilloverUsed)
+                    {
+                        break;
+                    }
+                    // Continue to spillover check below
+                }
+
+                if ((Time.realtimeSinceStartup * 1000f - startTimeMs) > budgetMs)
+                {
+                    onExceededChanged?.Invoke(true);
+                    break;
+                }
+
                 if (!queue.TryDequeue(out FrameWorkItem item))
                 {
                     break;
@@ -103,20 +142,15 @@ namespace Change.Runtime
 
                 if (importantExecuted >= _policy.ImportantMaxPerFrame)
                 {
-                    int age = currentFrame - item.EnqueuedFrame;
-                    if (age < 1 || agedImportantSpilloverUsed)
-                    {
-                        Requeue(item);
-                        deferredCount++;
-                        continue;
-                    }
-
+                    // This must be a spillover item (age >= 1 and spillover not used)
                     agedImportantSpilloverUsed = true;
                 }
 
                 InvokeCallbackSafely(item, ref executedCount);
                 importantExecuted++;
             }
+
+            deferredCount += queue.Count;
         }
 
         private void ExecuteDeferredQueueWhenBudgetAvailable(
@@ -124,7 +158,10 @@ namespace Change.Runtime
             int currentFrame,
             ref int executedCount,
             ref int deferredCount,
-            ref int overdueCount)
+            ref int overdueCount,
+            float budgetMs,
+            float startTimeMs,
+            Action<bool> onExceededChanged)
         {
             RingBuffer<FrameWorkItem> queue = GetQueue(phase, FrameTaskPriority.Deferred);
             int count = queue.Count;
@@ -144,9 +181,9 @@ namespace Change.Runtime
                 else
                 {
                     Requeue(item);
-                    deferredCount++;
                 }
             }
+            deferredCount += queue.Count;
         }
 
         private void ForceOverdueDeferred(
@@ -183,25 +220,41 @@ namespace Change.Runtime
             RingBuffer<FrameWorkItem> queue = GetQueue(item.Phase, item.Priority);
             if (!queue.EnqueueNoResize(item))
             {
-                throw new InvalidOperationException($"Frame queue is full for {item.Phase}/{item.Priority}.");
+                Debug.LogError($"Frame queue overflow during requeue for {item.Phase}/{item.Priority}. Task '{item.Tag}' dropped.");
             }
         }
 
         private RingBuffer<FrameWorkItem> GetQueue(FramePhase phase, FrameTaskPriority priority)
         {
-            return (phase, priority) switch
+            switch (phase)
             {
-                (FramePhase.Update, FrameTaskPriority.Critical) => _updateCritical,
-                (FramePhase.Update, FrameTaskPriority.Important) => _updateImportant,
-                (FramePhase.Update, FrameTaskPriority.Deferred) => _updateDeferred,
-                (FramePhase.LateUpdate, FrameTaskPriority.Critical) => _lateCritical,
-                (FramePhase.LateUpdate, FrameTaskPriority.Important) => _lateImportant,
-                (FramePhase.LateUpdate, FrameTaskPriority.Deferred) => _lateDeferred,
-                (FramePhase.FixedUpdate, FrameTaskPriority.Critical) => _fixedCritical,
-                (FramePhase.FixedUpdate, FrameTaskPriority.Important) => _fixedImportant,
-                (FramePhase.FixedUpdate, FrameTaskPriority.Deferred) => _fixedDeferred,
-                _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, $"Unknown queue mapping for {phase}/{priority}."),
-            };
+                case FramePhase.Update:
+                    switch (priority)
+                    {
+                        case FrameTaskPriority.Critical: return _updateCritical;
+                        case FrameTaskPriority.Important: return _updateImportant;
+                        case FrameTaskPriority.Deferred: return _updateDeferred;
+                    }
+                    break;
+                case FramePhase.LateUpdate:
+                    switch (priority)
+                    {
+                        case FrameTaskPriority.Critical: return _lateCritical;
+                        case FrameTaskPriority.Important: return _lateImportant;
+                        case FrameTaskPriority.Deferred: return _lateDeferred;
+                    }
+                    break;
+                case FramePhase.FixedUpdate:
+                    switch (priority)
+                    {
+                        case FrameTaskPriority.Critical: return _fixedCritical;
+                        case FrameTaskPriority.Important: return _fixedImportant;
+                        case FrameTaskPriority.Deferred: return _fixedDeferred;
+                    }
+                    break;
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(phase), phase, $"Unknown queue mapping for {phase}/{priority}.");
         }
 
         private static void InvokeCallbackSafely(in FrameWorkItem item, ref int executedCount)
