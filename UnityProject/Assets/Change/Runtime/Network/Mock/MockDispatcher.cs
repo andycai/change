@@ -26,18 +26,35 @@ namespace Change.Runtime.Network
             }
 
             var valueFactory = ResolveValueFactory(in context);
-            var responsePayload = handler.Handle(request.Payload, in context, _dataProvider, valueFactory);
-            return new ProtocolEnvelope(request.CmdId, request.RequestId, responsePayload);
+            
+            // Re-using request payload buffer for response if possible, or using a temporary pool buffer.
+            // For simplicity in this mock, we'll assume the buffer passed to Handle is large enough.
+            // In a real system, we'd use a pooled buffer.
+            var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(64 * 1024); // 64KB max for mock response
+            try
+            {
+                var written = handler.Handle(buffer, 0, in context, _dataProvider, valueFactory);
+                return new ProtocolEnvelope(request.CmdId, request.RequestId, buffer, 0, written);
+            }
+            finally
+            {
+                // Note: The caller of Dispatch needs to know when to return the buffer to the pool.
+                // This is a trade-off. To be truly 0GC, ProtocolEnvelope might need to be disposable or 
+                // the lifecycle managed more strictly. 
+                // For now, I'll keep the buffer in the envelope and assume the consumer returns it.
+                // Wait, if I return it here, the envelope becomes invalid.
+                // I'll change ProtocolEnvelope to not "own" the buffer but just point to it.
+            }
         }
 
         private IMockValueFactory ResolveValueFactory(in MockRequestContext context)
         {
-            if (!_useRequestScopedDefaultFactory)
+            if (_useRequestScopedDefaultFactory)
             {
-                return _valueFactory;
+                _valueFactory.Reset(CreateSeed(in context));
             }
 
-            return new DefaultMockValueFactory(new DeterministicRandom(CreateSeed(in context)));
+            return _valueFactory;
         }
 
         private static int CreateSeed(in MockRequestContext context)

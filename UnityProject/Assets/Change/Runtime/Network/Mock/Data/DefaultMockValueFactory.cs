@@ -12,6 +12,11 @@ namespace Change.Runtime.Network
             _random = random ?? throw new ArgumentNullException(nameof(random));
         }
 
+        public void Reset(int seed)
+        {
+            _random.Reset(seed);
+        }
+
         public bool NextBool()
         {
             return _random.NextBool();
@@ -34,26 +39,38 @@ namespace Change.Runtime.Network
                 throw new ArgumentOutOfRangeException(nameof(length));
             }
 
+            if (length == 0) return string.Empty;
+
             const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-            var buffer = new char[length];
-
-            for (var i = 0; i < buffer.Length; i++)
+            
+            // Using stackalloc for small strings to avoid intermediate array
+            if (length <= 256)
             {
-                buffer[i] = chars[_random.NextInt(0, chars.Length)];
+                Span<char> buffer = stackalloc char[length];
+                for (var i = 0; i < length; i++)
+                {
+                    buffer[i] = chars[_random.NextInt(0, chars.Length)];
+                }
+                return new string(buffer);
             }
-
-            return new string(buffer);
+            else
+            {
+                var buffer = new char[length];
+                for (var i = 0; i < length; i++)
+                {
+                    buffer[i] = chars[_random.NextInt(0, chars.Length)];
+                }
+                return new string(buffer);
+            }
         }
 
         public Guid NextGuid()
         {
-            var bytes = new byte[16];
-
+            Span<byte> bytes = stackalloc byte[16];
             for (var i = 0; i < bytes.Length; i++)
             {
                 bytes[i] = (byte)_random.NextInt(0, 256);
             }
-
             return new Guid(bytes);
         }
 

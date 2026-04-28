@@ -4,6 +4,6 @@ namespace Change.Framework.Network
     {
         int CmdId { get; }
 
-        byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory);
+        int Handle(byte[] buffer, int offset, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory);
     }
 }

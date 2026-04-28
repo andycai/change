@@ -18,6 +18,8 @@ namespace Change.Runtime.Tests.Network
 
         private sealed class DummyValueFactory : IMockValueFactory
         {
+            public void Reset(int seed) {}
+
             public bool NextBool()
             {
                 return true;
@@ -53,9 +55,13 @@ namespace Change.Runtime.Tests.Network
         {
             public int CmdId => 1001;
 
-            public byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
+            public int Handle(byte[] buffer, int offset, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
             {
-                return requestPayload;
+                // In a real echo we'd need the request payload. 
+                // IMockHandler.Handle doesn't pass requestPayload anymore for 0GC reasons (usually it's already in a buffer).
+                // For this dummy test, just write something.
+                buffer[offset] = 42;
+                return 1;
             }
         }
 
@@ -73,22 +79,20 @@ namespace Change.Runtime.Tests.Network
 
             public int CallCount { get; private set; }
 
-            public byte[] LastPayload { get; private set; }
-
             public MockRequestContext LastContext { get; private set; }
 
             public IMockDataProvider LastDataProvider { get; private set; }
 
             public IMockValueFactory LastValueFactory { get; private set; }
 
-            public byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
+            public int Handle(byte[] buffer, int offset, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
             {
                 CallCount++;
-                LastPayload = requestPayload;
                 LastContext = context;
                 LastDataProvider = dataProvider;
                 LastValueFactory = valueFactory;
-                return _responsePayload;
+                Array.Copy(_responsePayload, 0, buffer, offset, _responsePayload.Length);
+                return _responsePayload.Length;
             }
         }
 
@@ -116,7 +120,8 @@ namespace Change.Runtime.Tests.Network
         {
             var registry = new MockRegistry();
             var dispatcher = new MockDispatcher(registry, new DummyDataProvider(), new DummyValueFactory());
-            var request = new ProtocolEnvelope(9999, 1, Encoding.UTF8.GetBytes("x"));
+            var payload = Encoding.UTF8.GetBytes("x");
+            var request = new ProtocolEnvelope(9999, 1, payload, 0, payload.Length);
             var context = new MockRequestContext("dev-default", 9999, 1);
 
             Assert.Throws<MockHandlerNotFoundException>(() => dispatcher.Dispatch(in request, in context));
@@ -163,14 +168,13 @@ namespace Change.Runtime.Tests.Network
             registry.Register(targetHandler);
             var dispatcher = new MockDispatcher(registry, dataProvider, valueFactory);
             var requestPayload = Encoding.UTF8.GetBytes("request");
-            var request = new ProtocolEnvelope(1001, 42, requestPayload);
+            var request = new ProtocolEnvelope(1001, 42, requestPayload, 0, requestPayload.Length);
             var context = new MockRequestContext("dev-default", 1001, 42);
 
             var response = dispatcher.Dispatch(in request, in context);
 
             Assert.AreEqual(0, otherHandler.CallCount);
             Assert.AreEqual(1, targetHandler.CallCount);
-            Assert.AreSame(requestPayload, targetHandler.LastPayload);
             Assert.AreEqual("dev-default", targetHandler.LastContext.DatasetId);
             Assert.AreEqual(1001, targetHandler.LastContext.CmdId);
             Assert.AreEqual(42, targetHandler.LastContext.RequestId);
@@ -178,7 +182,13 @@ namespace Change.Runtime.Tests.Network
             Assert.AreSame(valueFactory, targetHandler.LastValueFactory);
             Assert.AreEqual(1001, response.CmdId);
             Assert.AreEqual(42, response.RequestId);
-            Assert.AreSame(targetResponsePayload, response.Payload);
+            
+            byte[] actualResponse = new byte[response.Length];
+            Array.Copy(response.Payload, response.Offset, actualResponse, 0, response.Length);
+            CollectionAssert.AreEqual(targetResponsePayload, actualResponse);
+            
+            // Clean up
+            System.Buffers.ArrayPool<byte>.Shared.Return(response.Payload);
         }
     }
 }

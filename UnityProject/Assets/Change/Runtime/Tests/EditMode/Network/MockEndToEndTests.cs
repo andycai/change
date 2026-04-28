@@ -1,4 +1,5 @@
 using System.Text;
+using Change.Framework.Network;
 using Change.Runtime.Network;
 using NUnit.Framework;
 
@@ -16,7 +17,9 @@ namespace Change.Runtime.Tests.Network
             registry.Register(new InventoryMockHandler());
 
             var codec = new DelegateProtobufCodec();
-            codec.Register<string>(s => Encoding.UTF8.GetBytes(s), b => Encoding.UTF8.GetString(b));
+            codec.Register<string>(
+                (s, b, o) => Encoding.UTF8.GetBytes(s, 0, s.Length, b, o),
+                (b, o, l) => Encoding.UTF8.GetString(b, o, l));
 
             var valueFactory = new DefaultMockValueFactory(new DeterministicRandom(123));
             var dispatcher = new MockDispatcher(registry, dataset, valueFactory);

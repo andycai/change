@@ -24,7 +24,9 @@ var mockTransport = new LocalMockTransport(dispatcher, "dev-default");
 var router = new TransportRouter(mockTransport, mockTransport, mockTransport);
 
 var codec = new DelegateProtobufCodec();
-codec.Register<string>(s => Encoding.UTF8.GetBytes(s), b => Encoding.UTF8.GetString(b));
+codec.Register<string>(
+    (s, b, o) => Encoding.UTF8.GetBytes(s, 0, s.Length, b, o),
+    (b, o, l) => Encoding.UTF8.GetString(b, o, l));
 
 INetClient netClient = new NetClient(codec, new AllMockRoutePolicy(), router, "dev-default");
 ```

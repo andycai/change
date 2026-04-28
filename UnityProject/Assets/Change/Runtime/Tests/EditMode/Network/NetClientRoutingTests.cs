@@ -11,14 +11,15 @@ namespace Change.Runtime.Tests.Network
     {
         private sealed class TestCodec : IMessageCodec
         {
-            public byte[] Encode<TMessage>(TMessage message)
+            public int Encode<TMessage>(TMessage message, byte[] buffer, int offset, int cmdId)
             {
-                return Encoding.UTF8.GetBytes(message?.ToString() ?? string.Empty);
+                var s = message?.ToString() ?? string.Empty;
+                return Encoding.UTF8.GetBytes(s, 0, s.Length, buffer, offset);
             }
 
-            public TMessage Decode<TMessage>(byte[] payload)
+            public TMessage Decode<TMessage>(byte[] buffer, int offset, int length, int cmdId)
             {
-                return (TMessage)(object)Encoding.UTF8.GetString(payload);
+                return (TMessage)(object)Encoding.UTF8.GetString(buffer, offset, length);
             }
         }
 
@@ -36,9 +37,11 @@ namespace Change.Runtime.Tests.Network
             public ProtocolEnvelope Send(in ProtocolEnvelope request)
             {
                 CallCount++;
-                var input = Encoding.UTF8.GetString(request.Payload);
-                var output = Encoding.UTF8.GetBytes($"{_name}:{input}");
-                return new ProtocolEnvelope(request.CmdId, request.RequestId, output);
+                var input = Encoding.UTF8.GetString(request.Payload, request.Offset, request.Length);
+                var responseStr = $"{_name}:{input}";
+                var output = System.Buffers.ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetByteCount(responseStr));
+                var length = Encoding.UTF8.GetBytes(responseStr, 0, responseStr.Length, output, 0);
+                return new ProtocolEnvelope(request.CmdId, request.RequestId, output, 0, length);
             }
         }
 
@@ -50,8 +53,15 @@ namespace Change.Runtime.Tests.Network
 
             public ProtocolEnvelope Send(in ProtocolEnvelope request)
             {
-                _requests.Add(request);
-                return new ProtocolEnvelope(request.CmdId, request.RequestId, request.Payload);
+                // Note: ProtocolEnvelope in real use should have its buffer returned to pool.
+                // In tests we clone the payload to keep it for assertion if needed.
+                var capturedPayload = new byte[request.Length];
+                Array.Copy(request.Payload, request.Offset, capturedPayload, 0, request.Length);
+                _requests.Add(new ProtocolEnvelope(request.CmdId, request.RequestId, capturedPayload, 0, request.Length));
+                
+                var responsePayload = System.Buffers.ArrayPool<byte>.Shared.Rent(request.Length);
+                Array.Copy(request.Payload, request.Offset, responsePayload, 0, request.Length);
+                return new ProtocolEnvelope(request.CmdId, request.RequestId, responsePayload, 0, request.Length);
             }
         }
 
@@ -87,24 +97,25 @@ namespace Change.Runtime.Tests.Network
                 _decodeError = decodeError;
             }
 
-            public byte[] Encode<TMessage>(TMessage message)
+            public int Encode<TMessage>(TMessage message, byte[] buffer, int offset, int cmdId)
             {
                 if (_encodeError != null)
                 {
                     throw _encodeError;
                 }
 
-                return Encoding.UTF8.GetBytes(message?.ToString() ?? string.Empty);
+                var s = message?.ToString() ?? string.Empty;
+                return Encoding.UTF8.GetBytes(s, 0, s.Length, buffer, offset);
             }
 
-            public TMessage Decode<TMessage>(byte[] payload)
+            public TMessage Decode<TMessage>(byte[] buffer, int offset, int length, int cmdId)
             {
                 if (_decodeError != null)
                 {
                     throw _decodeError;
                 }
 
-                return (TMessage)(object)Encoding.UTF8.GetString(payload);
+                return (TMessage)(object)Encoding.UTF8.GetString(buffer, offset, length);
             }
         }
 
@@ -145,11 +156,13 @@ namespace Change.Runtime.Tests.Network
         [Test]
         public void LocalMockTransport_Send_InvokesDispatcherOnce_WithExpectedContext_AndPropagatesEnvelope()
         {
-            var responsePayload = Encoding.UTF8.GetBytes("mock-response");
-            var responseEnvelope = new ProtocolEnvelope(2001, 88, responsePayload);
+            var responsePayload = System.Buffers.ArrayPool<byte>.Shared.Rent(13);
+            Encoding.UTF8.GetBytes("mock-response", 0, 13, responsePayload, 0);
+            var responseEnvelope = new ProtocolEnvelope(2001, 88, responsePayload, 0, 13);
             var dispatcher = new CapturingDispatcher(responseEnvelope);
             var transport = new LocalMockTransport(dispatcher, "dev-default");
-            var requestEnvelope = new ProtocolEnvelope(1001, 42, Encoding.UTF8.GetBytes("request"));
+            var requestPayload = Encoding.UTF8.GetBytes("request");
+            var requestEnvelope = new ProtocolEnvelope(1001, 42, requestPayload, 0, requestPayload.Length);
 
             var actualResponse = transport.Send(in requestEnvelope);
 
@@ -160,6 +173,9 @@ namespace Change.Runtime.Tests.Network
             Assert.AreEqual(responseEnvelope.CmdId, actualResponse.CmdId);
             Assert.AreEqual(responseEnvelope.RequestId, actualResponse.RequestId);
             Assert.AreSame(responseEnvelope.Payload, actualResponse.Payload);
+            
+            // Cleanup
+            System.Buffers.ArrayPool<byte>.Shared.Return(responsePayload);
         }
 
         [Test]

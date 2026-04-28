@@ -1,12 +1,12 @@
 using System;
-using System.Collections.Generic;
+using Change.Framework.Collections;
 using Change.Framework.Network;
 
 namespace Change.Runtime.Network
 {
     public sealed class MockDatasetRegistry
     {
-        private readonly Dictionary<string, IMockDataset> _datasets = new Dictionary<string, IMockDataset>(StringComparer.Ordinal);
+        private readonly FastDictionary<string, IMockDataset> _datasets = new FastDictionary<string, IMockDataset>(4, StringComparer.Ordinal);
 
         public void Register(IMockDataset dataset)
         {

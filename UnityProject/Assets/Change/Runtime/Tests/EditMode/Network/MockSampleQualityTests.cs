@@ -12,10 +12,14 @@ namespace Change.Runtime.Tests.Network
         public void Register_WithDuplicateType_ThrowsInvalidOperationException()
         {
             var codec = new DelegateProtobufCodec();
-            codec.Register<string>(s => Encoding.UTF8.GetBytes(s), b => Encoding.UTF8.GetString(b));
+            codec.Register<string>(
+                (s, b, o) => Encoding.UTF8.GetBytes(s, 0, s.Length, b, o),
+                (b, o, l) => Encoding.UTF8.GetString(b, o, l));
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                codec.Register<string>(s => Encoding.UTF8.GetBytes(s), b => Encoding.UTF8.GetString(b)));
+                codec.Register<string>(
+                    (s, b, o) => Encoding.UTF8.GetBytes(s, 0, s.Length, b, o),
+                    (b, o, l) => Encoding.UTF8.GetString(b, o, l)));
 
             Assert.That(exception.Message, Does.Contain(typeof(string).FullName));
         }
@@ -45,8 +49,10 @@ namespace Change.Runtime.Tests.Network
             var dispatcherA = new MockDispatcher(registryA, dataset, new DefaultMockValueFactory(new DeterministicRandom(123)));
             var dispatcherB = new MockDispatcher(registryB, dataset, new DefaultMockValueFactory(new DeterministicRandom(999)));
 
-            var loginRequest = new ProtocolEnvelope(1001, 41, Encoding.UTF8.GetBytes("req-login"));
-            var profileRequest = new ProtocolEnvelope(1002, 42, Encoding.UTF8.GetBytes("req-profile"));
+            var loginPayload = Encoding.UTF8.GetBytes("req-login");
+            var profilePayload = Encoding.UTF8.GetBytes("req-profile");
+            var loginRequest = new ProtocolEnvelope(1001, 41, loginPayload, 0, loginPayload.Length);
+            var profileRequest = new ProtocolEnvelope(1002, 42, profilePayload, 0, profilePayload.Length);
             var loginContext = new MockRequestContext("dev-default", 1001, 41);
             var profileContext = new MockRequestContext("dev-default", 1002, 42);
 
@@ -56,8 +62,15 @@ namespace Change.Runtime.Tests.Network
             var profileFromBA = dispatcherB.Dispatch(in profileRequest, in profileContext);
             var loginFromBA = dispatcherB.Dispatch(in loginRequest, in loginContext);
 
-            Assert.AreEqual(Encoding.UTF8.GetString(loginFromAB.Payload), Encoding.UTF8.GetString(loginFromBA.Payload));
-            Assert.AreEqual(Encoding.UTF8.GetString(profileFromAB.Payload), Encoding.UTF8.GetString(profileFromBA.Payload));
+            Assert.AreEqual(Encoding.UTF8.GetString(loginFromAB.Payload, loginFromAB.Offset, loginFromAB.Length), 
+                Encoding.UTF8.GetString(loginFromBA.Payload, loginFromBA.Offset, loginFromBA.Length));
+            Assert.AreEqual(Encoding.UTF8.GetString(profileFromAB.Payload, profileFromAB.Offset, profileFromAB.Length), 
+                Encoding.UTF8.GetString(profileFromBA.Payload, profileFromBA.Offset, profileFromBA.Length));
+                
+            System.Buffers.ArrayPool<byte>.Shared.Return(loginFromAB.Payload);
+            System.Buffers.ArrayPool<byte>.Shared.Return(profileFromAB.Payload);
+            System.Buffers.ArrayPool<byte>.Shared.Return(loginFromBA.Payload);
+            System.Buffers.ArrayPool<byte>.Shared.Return(profileFromBA.Payload);
         }
 
         private static MockRegistry CreateSampleRegistry()

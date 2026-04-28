@@ -10,14 +10,14 @@ namespace Change.Framework.Tests.Network
         public void ProtocolEnvelope_RejectsNegativeCmdId()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                _ = new ProtocolEnvelope(-1, 1, Array.Empty<byte>()));
+                _ = new ProtocolEnvelope(-1, 1, Array.Empty<byte>(), 0, 0));
         }
 
         [Test]
         public void ProtocolEnvelope_RejectsNullPayload()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                _ = new ProtocolEnvelope(1001, 1, null));
+                _ = new ProtocolEnvelope(1001, 1, null, 0, 0));
         }
 
         [Test]

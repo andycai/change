@@ -111,9 +111,9 @@ namespace Change.Runtime.Tests.Network
 
             public int CmdId { get; }
 
-            public byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
+            public int Handle(byte[] buffer, int offset, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
             {
-                return Array.Empty<byte>();
+                return 0;
             }
         }
 

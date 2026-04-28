@@ -1,9 +1,11 @@
+using System;
+
 namespace Change.Framework.Network
 {
     public interface IMessageCodec
     {
-        byte[] Encode<TMessage>(TMessage message);
+        int Encode<TMessage>(TMessage message, byte[] buffer, int offset, int cmdId);
 
-        TMessage Decode<TMessage>(byte[] payload);
+        TMessage Decode<TMessage>(byte[] buffer, int offset, int length, int cmdId);
     }
 }

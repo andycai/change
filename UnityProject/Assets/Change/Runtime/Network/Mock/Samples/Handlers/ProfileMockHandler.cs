@@ -7,11 +7,12 @@ namespace Change.Runtime.Network
     {
         public int CmdId => 1002;
 
-        public byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
+        public int Handle(byte[] buffer, int offset, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
         {
             var template = Encoding.UTF8.GetString(dataProvider.GetTemplate(CmdId));
             var level = valueFactory.NextInt(1, 61);
-            return Encoding.UTF8.GetBytes($"profile:{template}:lvl-{level}");
+            var response = $"profile:{template}:lvl-{level}";
+            return Encoding.UTF8.GetBytes(response, 0, response.Length, buffer, offset);
         }
     }
 }

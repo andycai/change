@@ -4,6 +4,8 @@ namespace Change.Framework.Network
 {
     public interface IMockValueFactory
     {
+        void Reset(int seed);
+
         bool NextBool();
 
         int NextInt(int minInclusive, int maxExclusive);

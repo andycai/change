@@ -7,11 +7,12 @@ namespace Change.Runtime.Network
     {
         public int CmdId => 1003;
 
-        public byte[] Handle(byte[] requestPayload, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
+        public int Handle(byte[] buffer, int offset, in MockRequestContext context, IMockDataProvider dataProvider, IMockValueFactory valueFactory)
         {
             var template = Encoding.UTF8.GetString(dataProvider.GetTemplate(CmdId));
             var count = valueFactory.NextInt(1, 11);
-            return Encoding.UTF8.GetBytes($"inventory:{template}:items-{count}");
+            var response = $"inventory:{template}:items-{count}";
+            return Encoding.UTF8.GetBytes(response, 0, response.Length, buffer, offset);
         }
     }
 }
