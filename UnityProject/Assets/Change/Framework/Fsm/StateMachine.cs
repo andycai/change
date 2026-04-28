@@ -107,30 +107,19 @@ namespace Change.Framework.Fsm
             CurrentStateId = initial;
 
             var change = StateChange<TStateId, TEvent>.Initial(initial, NextSequence());
-            var enteredSuccessfully = false;
-            
-            _stateCallbackDepth++;
+
             try
             {
-                initialState.OnEnter(in change);
-                enteredSuccessfully = true;
+                InvokeCallback(() => initialState.OnEnter(in change),
+                    $"Failed to enter initial state '{initial}'. State machine has been reset and marked as faulted.");
+
+                DrainTransitionsIfPossible();
+                DrainEventsIfPossible();
             }
-            catch (Exception ex)
+            catch
             {
-                _isFaulted = true;
                 ResetToNotStarted();
-                throw new InvalidOperationException(
-                    $"Failed to enter initial state '{initial}'. State machine has been reset and marked as faulted.", 
-                    ex);
-            }
-            finally
-            {
-                _stateCallbackDepth--;
-                if (enteredSuccessfully)
-                {
-                    DrainTransitionsIfPossible();
-                    DrainEventsIfPossible();
-                }
+                throw;
             }
         }
 
@@ -175,12 +164,9 @@ namespace Change.Framework.Fsm
             _isDrainingTransitions = true;
             try
             {
-                while (_transitionQueue.Count > 0)
+                while (_transitionQueue.Count > 0 && _transitionQueue.TryDequeue(out var request))
                 {
-                    if (_transitionQueue.TryDequeue(out var request))
-                    {
-                        ExecuteTransition(request);
-                    }
+                    ExecuteTransition(request);
                 }
             }
             finally
@@ -210,55 +196,55 @@ namespace Change.Framework.Fsm
                 : StateChange<TStateId, TEvent>.CreateWithoutEvent(fromId, request.NextStateId, NextSequence());
 
             // 1. 执行 Exit 回调
-            try
-            {
-                _stateCallbackDepth++;
-                fromState.OnExit(in change);
-            }
-            catch (Exception ex)
-            {
-                _isFaulted = true;
-                throw new InvalidOperationException(
-                    $"OnExit failed during {FormatTransitionContext(in change)}. The state machine is now marked as faulted. Current state: '{fromId}'.",
-                    ex);
-            }
-            finally
-            {
-                _stateCallbackDepth--;
-            }
+            InvokeCallback(() => fromState.OnExit(in change),
+                $"OnExit failed during {FormatTransitionContext(in change)}. The state machine is now marked as faulted. Current state: '{fromId}'.");
 
             // 2. 更新当前状态
             _currentState = nextState;
             CurrentStateId = request.NextStateId;
 
             // 3. 执行 Enter 回调
+            InvokeCallback(() => nextState.OnEnter(in change),
+                $"OnEnter failed during {FormatTransitionContext(in change)}. The state machine is now marked as faulted. Current state: '{request.NextStateId}' (failed to initialize).");
+
+            // 4. 触发通知
+            InvokeCallback(() => OnStateChanged?.Invoke(change),
+                "An error occurred in OnStateChanged event handler. The state machine is now marked as faulted.");
+        }
+
+        private void InvokeCallback(Action action, string errorMessage)
+        {
+            _stateCallbackDepth++;
             try
             {
-                _stateCallbackDepth++;
-                nextState.OnEnter(in change);
+                action();
             }
             catch (Exception ex)
             {
                 _isFaulted = true;
-                throw new InvalidOperationException(
-                    $"OnEnter failed during {FormatTransitionContext(in change)}. The state machine is now marked as faulted. Current state: '{request.NextStateId}' (failed to initialize).",
-                    ex);
+                throw new InvalidOperationException(errorMessage, ex);
             }
             finally
             {
                 _stateCallbackDepth--;
             }
+        }
 
-            // 4. 触发通知
+        private T InvokeCallback<T>(Func<T> func, string errorMessage)
+        {
+            _stateCallbackDepth++;
             try
             {
-                OnStateChanged?.Invoke(change);
+                return func();
             }
             catch (Exception ex)
             {
                 _isFaulted = true;
-                // 观测者回调异常同样按 fail-fast 处理，并标记状态机故障。
-                throw new InvalidOperationException("An error occurred in OnStateChanged event handler. The state machine is now marked as faulted.", ex);
+                throw new InvalidOperationException(errorMessage, ex);
+            }
+            finally
+            {
+                _stateCallbackDepth--;
             }
         }
 
@@ -272,36 +258,18 @@ namespace Change.Framework.Fsm
             _isDrainingEvents = true;
             try
             {
-                while (_eventQueue.Count > 0)
+                while (_eventQueue.Count > 0 && _eventQueue.TryDequeue(out var currentEvent))
                 {
-                    if (_eventQueue.TryDequeue(out var currentEvent))
+                    var result = InvokeCallback(() => _currentState.OnEvent(in currentEvent),
+                        $"OnEvent failed in state '{CurrentStateId}'. The state machine is now marked as faulted.");
+
+                    // Flush transitions requested directly inside OnEvent before
+                    // applying the returned transition result.
+                    DrainTransitionsIfPossible();
+
+                    if (result.HasTransition)
                     {
-                        FsmResult<TStateId> result;
-                        _stateCallbackDepth++;
-                        try
-                        {
-                            result = _currentState.OnEvent(in currentEvent);
-                        }
-                        catch (Exception ex)
-                        {
-                            _isFaulted = true;
-                            throw new InvalidOperationException(
-                                $"OnEvent failed in state '{CurrentStateId}'. The state machine is now marked as faulted.",
-                                ex);
-                        }
-                        finally
-                        {
-                            _stateCallbackDepth--;
-                        }
-
-                        // Flush transitions requested directly inside OnEvent before
-                        // applying the returned transition result.
-                        DrainTransitionsIfPossible();
-
-                        if (result.HasTransition)
-                        {
-                            EnqueueTransition(result.NextStateId, currentEvent, true);
-                        }
+                        EnqueueTransition(result.NextStateId, currentEvent, true);
                     }
                 }
             }
@@ -313,9 +281,8 @@ namespace Change.Framework.Fsm
 
         private static string FormatTransitionContext(in StateChange<TStateId, TEvent> change)
         {
-            return change.HasCauseEvent
-                ? $"transition '{change.From}' -> '{change.To}' (sequence={change.Sequence}, cause='{change.CauseEvent}')"
-                : $"transition '{change.From}' -> '{change.To}' (sequence={change.Sequence}, cause=<none>)";
+            var cause = change.HasCauseEvent ? $"'{change.CauseEvent}'" : "<none>";
+            return $"transition '{change.From}' -> '{change.To}' (sequence={change.Sequence}, cause={cause})";
         }
 
         private long NextSequence()

@@ -26,19 +26,10 @@ namespace Change.Framework.Fsm
             }
         }
 
-        public static FsmResult<TStateId> Handled()
-        {
-            return new FsmResult<TStateId>(false, default(TStateId));
-        }
+        public static FsmResult<TStateId> Handled() => new FsmResult<TStateId>(false, default);
 
-        public static FsmResult<TStateId> Ignored()
-        {
-            return new FsmResult<TStateId>(false, default(TStateId));
-        }
+        public static FsmResult<TStateId> Ignored() => Handled();
 
-        public static FsmResult<TStateId> TransitionTo(TStateId next)
-        {
-            return new FsmResult<TStateId>(true, next);
-        }
+        public static FsmResult<TStateId> TransitionTo(TStateId next) => new FsmResult<TStateId>(true, next);
     }
 }

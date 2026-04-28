@@ -31,19 +31,13 @@ namespace Change.Framework.Fsm
 
         public long Sequence { get; }
 
-        public static StateChange<TStateId, TEvent> Initial(TStateId to, long sequence)
-        {
-            return new StateChange<TStateId, TEvent>(false, default(TStateId), to, false, default(TEvent), sequence);
-        }
+        public static StateChange<TStateId, TEvent> Initial(TStateId to, long sequence) =>
+            new StateChange<TStateId, TEvent>(false, default, to, false, default, sequence);
 
-        public static StateChange<TStateId, TEvent> Create(TStateId from, TStateId to, TEvent causeEvent, long sequence)
-        {
-            return new StateChange<TStateId, TEvent>(true, from, to, true, causeEvent, sequence);
-        }
+        public static StateChange<TStateId, TEvent> Create(TStateId from, TStateId to, TEvent causeEvent, long sequence) =>
+            new StateChange<TStateId, TEvent>(true, from, to, true, causeEvent, sequence);
 
-        public static StateChange<TStateId, TEvent> CreateWithoutEvent(TStateId from, TStateId to, long sequence)
-        {
-            return new StateChange<TStateId, TEvent>(true, from, to, false, default(TEvent), sequence);
-        }
+        public static StateChange<TStateId, TEvent> CreateWithoutEvent(TStateId from, TStateId to, long sequence) =>
+            new StateChange<TStateId, TEvent>(true, from, to, false, default, sequence);
     }
 }
