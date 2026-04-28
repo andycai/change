@@ -18,6 +18,8 @@ namespace Change.Runtime.ContentStreaming
         private readonly IDataBudgetProvider _budget;
         private readonly List<DownloadTaskSnapshot> _readyBuffer = new();
         private readonly List<DownloadTaskSnapshot> _snapshotBuffer = new();
+        private readonly HashSet<string> _activePacks = new();
+        private CancellationTokenSource _pauseCts = new();
 
         public ContentDownloadOrchestrator(
             CatalogSyncService catalogSync,
@@ -83,6 +85,10 @@ namespace Change.Runtime.ContentStreaming
         public void PauseAll(ContentStreamingPauseReason reason)
         {
             _scheduler.SetPaused(true);
+            _pauseCts.Cancel();
+            _pauseCts.Dispose();
+            _pauseCts = new CancellationTokenSource();
+
             var pausedPolicy = _policyEngine.Evaluate(
                 _network.Current,
                 isHighPressure: true,
@@ -102,6 +108,7 @@ namespace Change.Runtime.ContentStreaming
         public bool RemovePack(string packId, bool removeCache)
         {
             _ = removeCache;
+            _activePacks.Remove(packId);
             var removed = _scheduler.Remove(packId);
             _stateStore.Remove(packId);
             if (removed)
@@ -142,30 +149,92 @@ namespace Change.Runtime.ContentStreaming
                 return;
             }
 
-            _scheduler.DequeueReadyTasks(policy.MaxConcurrentDownloads, _readyBuffer);
+            var limit = policy.MaxConcurrentDownloads - _activePacks.Count;
+            if (limit <= 0)
+            {
+                return;
+            }
+
+            _scheduler.DequeueReadyTasks(limit, _readyBuffer);
             for (var i = 0; i < _readyBuffer.Count; i++)
             {
                 var queued = _readyBuffer[i];
+                if (_activePacks.Contains(queued.PackId))
+                {
+                    continue;
+                }
+
+                _activePacks.Add(queued.PackId);
+                _scheduler.MarkDownloading(queued.PackId);
+
                 var downloading = _eventHub.NextState(queued.WithState(DownloadTaskState.Downloading));
                 _stateStore.Upsert(downloading);
                 TaskStateChanged?.Invoke(downloading);
-                TaskProgressChanged?.Invoke(downloading);
 
-                var definition = FindDefinition(downloading.PackId);
-                var error = await _downloadAdapter.DownloadAsync(definition, policy.CellularRateLimitKbps, cancellationToken);
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _pauseCts.Token);
+                ExecuteDownloadAsync(downloading, policy, cts).Forget();
+            }
+        }
+
+        private async UniTaskVoid ExecuteDownloadAsync(
+            DownloadTaskSnapshot snapshot,
+            DownloadPolicySnapshot policy,
+            CancellationTokenSource cts)
+        {
+            try
+            {
+                var definition = FindDefinition(snapshot.PackId);
+                var error = await _downloadAdapter.DownloadAsync(
+                    definition,
+                    policy.CellularRateLimitKbps,
+                    downloadedBytes =>
+                    {
+                        if (_stateStore.TryGet(snapshot.PackId, out var current) &&
+                            _eventHub.TryPublishProgress(current.WithProgress(downloadedBytes, 0), out var progress))
+                        {
+                            _stateStore.Upsert(progress);
+                            TaskProgressChanged?.Invoke(progress);
+                        }
+                    },
+                    cts.Token);
+
                 var finalState = error == ContentStreamingErrorCode.None
                     ? DownloadTaskState.Completed
-                    : DownloadTaskState.FailedTransient;
+                    : (IsTransientError(error) ? DownloadTaskState.FailedTransient : DownloadTaskState.FailedTerminal);
 
-                var finalSnapshot = _eventHub.NextState(downloading.WithState(finalState, error));
-                _stateStore.Upsert(finalSnapshot);
-                TaskStateChanged?.Invoke(finalSnapshot);
-
-                if (finalState == DownloadTaskState.Completed)
+                if (finalState == DownloadTaskState.FailedTransient)
                 {
-                    _budget.Consume(definition.SizeBytes);
+                    _scheduler.MarkTransientFailure(snapshot.PackId);
+                }
+
+                if (_stateStore.TryGet(snapshot.PackId, out var latest))
+                {
+                    var finalSnapshot = _eventHub.NextState(latest.WithState(finalState, error));
+                    _stateStore.Upsert(finalSnapshot);
+                    TaskStateChanged?.Invoke(finalSnapshot);
+
+                    if (finalState == DownloadTaskState.Completed)
+                    {
+                        _budget.Consume(definition.SizeBytes);
+                    }
                 }
             }
+            finally
+            {
+                _activePacks.Remove(snapshot.PackId);
+                cts.Dispose();
+            }
+        }
+
+        private static bool IsTransientError(ContentStreamingErrorCode error)
+        {
+            return error switch
+            {
+                ContentStreamingErrorCode.NetworkTimeout => true,
+                ContentStreamingErrorCode.NetworkUnavailable => true,
+                ContentStreamingErrorCode.ServerTemporary => true,
+                _ => false
+            };
         }
 
         private ContentPackDefinition FindDefinition(string packId)

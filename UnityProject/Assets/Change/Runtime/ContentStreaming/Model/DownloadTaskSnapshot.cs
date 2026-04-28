@@ -129,7 +129,7 @@ namespace Change.Runtime.ContentStreaming
                 RetryCount,
                 rateKbps,
                 ContentStreamingErrorCode.None,
-                Sequence + 1);
+                Sequence);
         }
 
         public DownloadTaskSnapshot WithState(
@@ -160,7 +160,7 @@ namespace Change.Runtime.ContentStreaming
                 RetryCount,
                 rateKbps,
                 errorCode,
-                Sequence + 1);
+                Sequence);
         }
     }
 }

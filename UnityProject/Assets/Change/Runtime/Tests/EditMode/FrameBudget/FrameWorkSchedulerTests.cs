@@ -30,7 +30,9 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
                 currentFrame,
-                remainingBudgetMs: 0f);
+                budgetMs: 0f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null);
 
             Assert.AreEqual(1, criticalCount);
             Assert.AreEqual(0, deferredCount);
@@ -61,11 +63,13 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
 
             int enqueuedFrame = Time.frameCount;
 
-            _ = scheduler.RunPhase(FramePhase.Update, enqueuedFrame + 1, remainingBudgetMs: 0f);
+            _ = scheduler.RunPhase(FramePhase.Update, enqueuedFrame + 1, budgetMs: 0f, startTimeMs: Time.realtimeSinceStartup * 1000f, onExceededChanged: null);
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
                 enqueuedFrame + 2,
-                remainingBudgetMs: 0f);
+                budgetMs: 0f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null);
 
             Assert.AreEqual(1, deferredCount);
             Assert.AreEqual(1, result.OverdueCount);
@@ -101,7 +105,9 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
                 currentFrame,
-                remainingBudgetMs: 1f);
+                budgetMs: 1f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null);
 
             Assert.AreEqual(1, importantCount);
             Assert.AreEqual(1, result.DeferredCount);
@@ -124,7 +130,9 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
                 currentFrame,
-                remainingBudgetMs: 1f);
+                budgetMs: 1f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null);
 
             Assert.AreEqual(0, deferredCount);
             Assert.AreEqual(1, result.DeferredCount);
@@ -160,7 +168,9 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
             Assert.DoesNotThrow(() => _ = scheduler.RunPhase(
                 FramePhase.Update,
                 Time.frameCount,
-                remainingBudgetMs: 1f));
+                budgetMs: 1f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null));
 
             Assert.AreEqual(1, firstCallCount);
             Assert.AreEqual(1, secondCallCount);
@@ -201,11 +211,13 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
                 () => important3Count++));
 
             int baseFrame = Time.frameCount;
-            _ = scheduler.RunPhase(FramePhase.Update, baseFrame, remainingBudgetMs: 1f);
+            _ = scheduler.RunPhase(FramePhase.Update, baseFrame, budgetMs: 1f, startTimeMs: Time.realtimeSinceStartup * 1000f, onExceededChanged: null);
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
                 baseFrame + 1,
-                remainingBudgetMs: 1f);
+                budgetMs: 1f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null);
 
             Assert.AreEqual(1, important1Count);
             Assert.AreEqual(1, important2Count);
@@ -255,11 +267,13 @@ namespace Change.Runtime.Tests.EditMode.FrameBudget
                 () => important4Count++));
 
             int baseFrame = Time.frameCount;
-            _ = scheduler.RunPhase(FramePhase.Update, baseFrame, remainingBudgetMs: 1f);
+            _ = scheduler.RunPhase(FramePhase.Update, baseFrame, budgetMs: 1f, startTimeMs: Time.realtimeSinceStartup * 1000f, onExceededChanged: null);
             FrameSchedulerRunResult result = scheduler.RunPhase(
                 FramePhase.Update,
                 baseFrame + 1,
-                remainingBudgetMs: 1f);
+                budgetMs: 1f,
+                startTimeMs: Time.realtimeSinceStartup * 1000f,
+                onExceededChanged: null);
 
             Assert.AreEqual(1, important1Count);
             Assert.AreEqual(1, important2Count);

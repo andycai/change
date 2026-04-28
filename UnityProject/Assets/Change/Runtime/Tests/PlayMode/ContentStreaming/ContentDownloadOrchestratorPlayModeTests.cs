@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
@@ -37,7 +38,7 @@ namespace Change.Runtime.ContentStreaming.Tests
 
         private sealed class SuccessAdapter : IAssetDownloadAdapter
         {
-            public UniTask<ContentStreamingErrorCode> DownloadAsync(ContentPackDefinition definition, int rateLimitKbps, CancellationToken cancellationToken)
+            public UniTask<ContentStreamingErrorCode> DownloadAsync(ContentPackDefinition definition, int rateLimitKbps, Action<long> onProgress, CancellationToken cancellationToken)
             {
                 return UniTask.FromResult(ContentStreamingErrorCode.None);
             }

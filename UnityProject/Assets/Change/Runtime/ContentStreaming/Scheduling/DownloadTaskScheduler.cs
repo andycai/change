@@ -12,6 +12,14 @@ namespace Change.Runtime.ContentStreaming
             _tasks[task.PackId] = task.WithState(DownloadTaskState.Queued);
         }
 
+        public void MarkDownloading(string packId)
+        {
+            if (_tasks.TryGetValue(packId, out var task))
+            {
+                _tasks[packId] = task.WithState(DownloadTaskState.Downloading);
+            }
+        }
+
         public bool Remove(string packId)
         {
             return _tasks.Remove(packId);
@@ -67,7 +75,7 @@ namespace Change.Runtime.ContentStreaming
                 task.RetryCount + 1,
                 rateKbps: 0,
                 ContentStreamingErrorCode.None,
-                task.Sequence + 1);
+                task.Sequence);
 
             _tasks[packId] = retryTask;
         }

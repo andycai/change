@@ -1,15 +1,17 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace Change.Runtime.ContentStreaming.Tests
 {
     public sealed class ContentDownloadOrchestratorTests
     {
-        [Test]
-        public void SyncAndEnqueue_WhenPolicyAllows_StartsDownload()
+        [UnityTest]
+        public IEnumerator SyncAndEnqueue_WhenPolicyAllows_StartsDownload() => UniTask.ToCoroutine(async () =>
         {
             var fixture = OrchestratorFixture.Create();
             var addedEvents = 0;
@@ -18,30 +20,41 @@ namespace Change.Runtime.ContentStreaming.Tests
             fixture.Orchestrator.TaskAdded += _ => addedEvents++;
             fixture.Orchestrator.TaskStateChanged += _ => stateEvents++;
 
-            fixture.Orchestrator.SyncCatalogAsync(CancellationToken.None).GetAwaiter().GetResult();
+            await fixture.Orchestrator.SyncCatalogAsync(CancellationToken.None);
             Assert.IsTrue(fixture.Orchestrator.EnqueuePack("voice_pack"));
 
-            fixture.Orchestrator.TickAsync(CancellationToken.None).GetAwaiter().GetResult();
+            await fixture.Orchestrator.TickAsync(CancellationToken.None);
 
-            Assert.IsTrue(fixture.Orchestrator.TryGetPackState("voice_pack", out var snapshot));
-            Assert.AreEqual(DownloadTaskState.Completed, snapshot.State);
+            // Poll for completion since TickAsync now starts a background task
+            var timeout = 2000;
+            while (timeout > 0)
+            {
+                fixture.Orchestrator.TryGetPackState("voice_pack", out var snapshot);
+                if (snapshot.State == DownloadTaskState.Completed) break;
+                await UniTask.Delay(50);
+                timeout -= 50;
+            }
+
+            Assert.IsTrue(fixture.Orchestrator.TryGetPackState("voice_pack", out var finalSnapshot));
+            Assert.AreEqual(DownloadTaskState.Completed, finalSnapshot.State);
             Assert.AreEqual(1, addedEvents);
             Assert.GreaterOrEqual(stateEvents, 2);
-        }
+        });
 
-        [Test]
-        public void TickAsync_WhenHighPressure_DoesNotDequeue()
+        [UnityTest]
+        public IEnumerator TickAsync_WhenHighPressure_DoesNotDequeue() => UniTask.ToCoroutine(async () =>
         {
             var fixture = OrchestratorFixture.Create(isHighPressure: true);
 
-            fixture.Orchestrator.SyncCatalogAsync(CancellationToken.None).GetAwaiter().GetResult();
+            await fixture.Orchestrator.SyncCatalogAsync(CancellationToken.None);
             Assert.IsTrue(fixture.Orchestrator.EnqueuePack("voice_pack"));
 
-            fixture.Orchestrator.TickAsync(CancellationToken.None).GetAwaiter().GetResult();
+            await fixture.Orchestrator.TickAsync(CancellationToken.None);
+            await UniTask.Delay(100); // Wait a bit to ensure nothing started
 
             Assert.IsTrue(fixture.Orchestrator.TryGetPackState("voice_pack", out var snapshot));
             Assert.AreEqual(DownloadTaskState.Queued, snapshot.State);
-        }
+        });
 
         private sealed class OrchestratorFixture
         {
@@ -91,7 +104,7 @@ namespace Change.Runtime.ContentStreaming.Tests
 
         private sealed class FakeAdapter : IAssetDownloadAdapter
         {
-            public UniTask<ContentStreamingErrorCode> DownloadAsync(ContentPackDefinition definition, int rateLimitKbps, CancellationToken cancellationToken)
+            public UniTask<ContentStreamingErrorCode> DownloadAsync(ContentPackDefinition definition, int rateLimitKbps, Action<long> onProgress, CancellationToken cancellationToken)
             {
                 return UniTask.FromResult(ContentStreamingErrorCode.None);
             }
