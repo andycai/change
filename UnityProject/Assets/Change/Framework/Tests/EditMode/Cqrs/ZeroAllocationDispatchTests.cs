@@ -82,14 +82,14 @@ namespace Change.Framework.Tests
         public void Send_HotPath_AllocatesZeroBytesAfterWarmup()
         {
             var state = new TickState();
-            var bus = new CqrsBus();
-            bus.RegisterCommand(new TickCommandHandler(state));
-            bus.Freeze();
+            var bootstrap = new CqrsBootstrap();
+            bootstrap.RegisterCommand(new TickCommandHandler(state));
+            ICqrsRuntime runtime = bootstrap.Build();
 
             var command = new TickCommand(1);
             for (var i = 0; i < WarmupIterations; i++)
             {
-                bus.Send(in command);
+                runtime.Send(in command);
             }
 
             ForceFullGc();
@@ -97,7 +97,7 @@ namespace Change.Framework.Tests
             var before = GC.GetAllocatedBytesForCurrentThread();
             for (var i = 0; i < MeasuredIterations; i++)
             {
-                bus.Send(in command);
+                runtime.Send(in command);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 
@@ -109,14 +109,14 @@ namespace Change.Framework.Tests
         public void Query_HotPath_AllocatesZeroBytesAfterWarmup()
         {
             var state = new TickState { Value = 7 };
-            var bus = new CqrsBus();
-            bus.RegisterQuery(new TickQueryHandler(state));
-            bus.Freeze();
+            var bootstrap = new CqrsBootstrap();
+            bootstrap.RegisterQuery(new TickQueryHandler(state));
+            ICqrsRuntime runtime = bootstrap.Build();
 
             var query = new GetTickQuery();
             for (var i = 0; i < WarmupIterations; i++)
             {
-                bus.Query<GetTickQuery, int>(in query);
+                runtime.Ask<GetTickQuery, int>(in query);
             }
 
             ForceFullGc();
@@ -125,7 +125,7 @@ namespace Change.Framework.Tests
             var sum = 0;
             for (var i = 0; i < MeasuredIterations; i++)
             {
-                sum += bus.Query<GetTickQuery, int>(in query);
+                sum += runtime.Ask<GetTickQuery, int>(in query);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 
@@ -137,14 +137,14 @@ namespace Change.Framework.Tests
         public void Publish_HotPath_AllocatesZeroBytesAfterWarmup()
         {
             var handler = new TickEventHandler();
-            var bus = new CqrsBus();
-            bus.Subscribe(handler);
-            bus.Freeze();
+            var bootstrap = new CqrsBootstrap();
+            bootstrap.Subscribe(handler);
+            ICqrsRuntime runtime = bootstrap.Build();
 
             var @event = new TickEvent(1);
             for (var i = 0; i < WarmupIterations; i++)
             {
-                bus.Publish(in @event);
+                runtime.Publish(in @event);
             }
 
             ForceFullGc();
@@ -152,7 +152,7 @@ namespace Change.Framework.Tests
             var before = GC.GetAllocatedBytesForCurrentThread();
             for (var i = 0; i < MeasuredIterations; i++)
             {
-                bus.Publish(in @event);
+                runtime.Publish(in @event);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 
