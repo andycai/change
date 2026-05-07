@@ -20,7 +20,7 @@ namespace Change.Framework.Cqrs
             _bus.Send(in command);
         }
 
-        public TResult Query<TQuery, TResult>(in TQuery query)
+        public TResult Ask<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
             return _bus.Query<TQuery, TResult>(in query);

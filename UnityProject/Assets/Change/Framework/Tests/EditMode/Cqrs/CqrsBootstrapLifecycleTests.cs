@@ -93,7 +93,7 @@ namespace Change.Framework.Tests
             bootstrap.Subscribe(new TestEventHandler(counter));
 
             var runtime = bootstrap.Build();
-            var result = runtime.Query<TestQuery, int>(new TestQuery());
+            var result = runtime.Ask<TestQuery, int>(new TestQuery());
             runtime.Publish(new TestEvent());
 
             Assert.AreEqual(42, result);
@@ -112,10 +112,13 @@ namespace Change.Framework.Tests
         }
 
         [Test]
-        public void Runtime_AccessedBeforeBuild_ThrowsInvalidOperationException()
+        public void Bootstrap_DoesNotExposePublicRuntimeProperty()
         {
-            var bootstrap = new CqrsBootstrap();
-            Assert.Throws<InvalidOperationException>(() => _ = bootstrap.Runtime);
+            var runtimeProperty = typeof(CqrsBootstrap).GetProperty(
+                "Runtime",
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            Assert.IsNull(runtimeProperty);
         }
 
         [Test]

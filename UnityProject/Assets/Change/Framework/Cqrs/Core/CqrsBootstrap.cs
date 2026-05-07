@@ -5,7 +5,7 @@ namespace Change.Framework.Cqrs
     /// <summary>
     /// Default CQRS bootstrap that owns registration and creates a single runtime instance.
     /// </summary>
-    public sealed class CqrsBootstrap : ICqrsBootstrap, ICqrsRuntimeProvider
+    public sealed class CqrsBootstrap : ICqrsBootstrap
     {
         private readonly CqrsBus _bus;
         private ICqrsRuntime _runtime;
@@ -19,8 +19,6 @@ namespace Change.Framework.Cqrs
         {
             _bus = bus ?? throw new ArgumentNullException(nameof(bus));
         }
-
-        public ICqrsRuntime Runtime => _runtime ?? throw new InvalidOperationException("Build must be called before runtime access.");
 
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
             where TCommand : struct, ICommand
