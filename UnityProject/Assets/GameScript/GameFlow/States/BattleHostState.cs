@@ -1,6 +1,7 @@
 using Change.Framework.Fsm;
 using GameScript.GameFlow.BattleFlow;
 using GameScript.GameFlow.Orchestration;
+using System;
 
 namespace GameScript.GameFlow.States
 {
@@ -10,7 +11,7 @@ namespace GameScript.GameFlow.States
 
         public BattleHostState(GameFlowContext context)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public GameFlowStateId Id => GameFlowStateId.Battle;
@@ -27,6 +28,7 @@ namespace GameScript.GameFlow.States
         public void OnExit(in StateChange<GameFlowStateId, GameFlowEvent> change)
         {
             _context.IsBattleActive = false;
+            _context.BattleMachine = null;
         }
 
         public FsmResult<GameFlowStateId> OnEvent(in GameFlowEvent evt)

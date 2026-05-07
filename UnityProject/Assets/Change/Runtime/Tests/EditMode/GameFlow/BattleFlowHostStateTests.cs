@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using NUnit.Framework;
 
 namespace Change.Runtime.Tests.EditMode.GameFlow
@@ -56,10 +57,21 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             FireEvent(machine!, "MatchRequested");
             FireEvent(machine!, "MatchFound");
             Assert.That((bool)contextType.GetProperty("IsBattleActive")!.GetValue(context!)!, Is.True);
+            Assert.That(contextType.GetProperty("BattleMachine")!.GetValue(context!), Is.Not.Null);
 
             FireEvent(machine!, "BattleFinished");
             AssertState(machine!, "Result");
             Assert.That((bool)contextType.GetProperty("IsBattleActive")!.GetValue(context!)!, Is.False);
+            Assert.That(contextType.GetProperty("BattleMachine")!.GetValue(context!), Is.Null);
+        }
+
+        [Test]
+        public void BattleHostState_Ctor_Throws_ArgumentNullException_When_Context_Is_Null()
+        {
+            var stateType = ResolveType("GameScript.GameFlow.States.BattleHostState");
+            var ex = Assert.Throws<TargetInvocationException>(() => Activator.CreateInstance(stateType, new object[] { null! }));
+            Assert.That(ex!.InnerException, Is.TypeOf<ArgumentNullException>());
+            Assert.That(((ArgumentNullException)ex.InnerException!).ParamName, Is.EqualTo("context"));
         }
 
         private static void StartAt(object machine, string initialState)

@@ -1,6 +1,7 @@
 using Change.Framework.Fsm;
 using GameScript.GameFlow.Orchestration;
 using GameScript.GameFlow.States;
+using System;
 
 namespace GameScript.GameFlow
 {
@@ -8,6 +9,11 @@ namespace GameScript.GameFlow
     {
         public static StateMachine<GameFlowStateId, GameFlowEvent> Create(GameFlowContext context)
         {
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+
             var machine = new StateMachine<GameFlowStateId, GameFlowEvent>();
 
             machine.Register(new BootState());

@@ -78,6 +78,18 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             AssertState(machine, "Lobby");
         }
 
+        [Test]
+        public void Create_Throws_ArgumentNullException_When_Context_Is_Null()
+        {
+            var factoryType = ResolveType("GameScript.GameFlow.MainGameFlowMachineFactory");
+            var createMethod = factoryType.GetMethod("Create");
+            Assert.That(createMethod, Is.Not.Null, "MainGameFlowMachineFactory.Create() must exist.");
+
+            var ex = Assert.Throws<TargetInvocationException>(() => createMethod!.Invoke(null, new object[] { null! }));
+            Assert.That(ex!.InnerException, Is.TypeOf<ArgumentNullException>());
+            Assert.That(((ArgumentNullException)ex.InnerException!).ParamName, Is.EqualTo("context"));
+        }
+
         private static object CreateMainMachine()
         {
             var factoryType = ResolveType("GameScript.GameFlow.MainGameFlowMachineFactory");
