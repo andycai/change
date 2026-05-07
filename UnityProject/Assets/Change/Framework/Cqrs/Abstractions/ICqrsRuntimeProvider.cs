@@ -1,11 +1,13 @@
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Runtime accessor for systems that resolve CQRS dispatch at execution time.
-    /// Implementations should throw if runtime access happens before bootstrap/build completion.
+    /// Context-scoped runtime provider.
+    /// Context ids are explicit (for example, global/battle/lobby) and must be registered before lookup.
     /// </summary>
     public interface ICqrsRuntimeProvider
     {
-        ICqrsRuntime Runtime { get; }
+        void Register(string contextId, ICqrsRuntime runtime);
+
+        ICqrsRuntime Get(string contextId);
     }
 }
