@@ -83,6 +83,11 @@ namespace GameScript.GameFlow.Orchestration
 
         public void OnBattleSettlementConfirmed()
         {
+            if (!CanDispatch() || MainMachine.CurrentStateId != GameFlowStateId.Battle)
+            {
+                return;
+            }
+
             Dispatch(GameFlowEvent.BattleFinished);
         }
 

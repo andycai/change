@@ -102,6 +102,19 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             AssertContextInt(orchestrator, "MatchId", 0);
         }
 
+        [Test]
+        public void OnBattleSettlementConfirmed_Is_Ignored_When_Main_State_Is_Not_Battle()
+        {
+            var orchestrator = CreateOrchestrator();
+            Invoke(orchestrator, "Start");
+            Invoke(orchestrator, "OnBootstrapCompleted");
+            Invoke(orchestrator, "OnLoginSucceeded", 1001);
+            AssertMainState(orchestrator, "Lobby");
+
+            Invoke(orchestrator, "OnBattleSettlementConfirmed");
+            AssertMainState(orchestrator, "Lobby");
+        }
+
         private static object CreateOrchestrator()
         {
             var orchestratorType = ResolveType("GameScript.GameFlow.Orchestration.GameFlowOrchestrator");
