@@ -28,7 +28,7 @@ namespace Change.Framework.Tests
         {
             var violations = new List<string>();
 
-            foreach (var assembly in GetRelevantAssemblies())
+            foreach (var assembly in GetDomainEventHandlerAssemblies())
             {
                 foreach (var handlerType in GetConcreteDomainEventHandlerTypes(assembly))
                 {
@@ -60,7 +60,7 @@ namespace Change.Framework.Tests
         {
             var violations = new List<string>();
 
-            foreach (var assembly in GetRelevantAssemblies())
+            foreach (var assembly in GetQueryHandlerAssemblies())
             {
                 foreach (var handlerType in GetConcreteQueryHandlerTypes(assembly))
                 {
@@ -87,19 +87,33 @@ namespace Change.Framework.Tests
                 + string.Join("\n", violations));
         }
 
-        private static IEnumerable<Assembly> GetRelevantAssemblies()
+        private static IEnumerable<Assembly> GetDomainEventHandlerAssemblies()
         {
-            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(assembly => IsChangeAssembly(assembly))
-                .OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal);
-
-            foreach (var assembly in loadedAssemblies)
+            foreach (var assembly in GetChangeAssemblies())
             {
                 if (ContainsConcreteDomainEventHandler(assembly))
                 {
                     yield return assembly;
                 }
             }
+        }
+
+        private static IEnumerable<Assembly> GetQueryHandlerAssemblies()
+        {
+            foreach (var assembly in GetChangeAssemblies())
+            {
+                if (ContainsConcreteQueryHandler(assembly))
+                {
+                    yield return assembly;
+                }
+            }
+        }
+
+        private static IEnumerable<Assembly> GetChangeAssemblies()
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Where(assembly => IsChangeAssembly(assembly))
+                .OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal);
         }
 
         private static bool IsChangeAssembly(Assembly assembly)
@@ -111,7 +125,7 @@ namespace Change.Framework.Tests
 
         private static bool ContainsConcreteDomainEventHandler(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes())
+            foreach (var type in GetTypesSafely(assembly))
             {
                 if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
                 {
@@ -129,7 +143,7 @@ namespace Change.Framework.Tests
 
         private static bool ContainsConcreteQueryHandler(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes())
+            foreach (var type in GetTypesSafely(assembly))
             {
                 if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
                 {
@@ -147,7 +161,7 @@ namespace Change.Framework.Tests
 
         private static IEnumerable<Type> GetConcreteDomainEventHandlerTypes(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes())
+            foreach (var type in GetTypesSafely(assembly))
             {
                 if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
                 {
@@ -165,7 +179,7 @@ namespace Change.Framework.Tests
 
         private static IEnumerable<Type> GetConcreteQueryHandlerTypes(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes())
+            foreach (var type in GetTypesSafely(assembly))
             {
                 if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
                 {
@@ -178,6 +192,18 @@ namespace Change.Framework.Tests
                 }
 
                 yield return type;
+            }
+        }
+
+        private static IEnumerable<Type> GetTypesSafely(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(type => type != null);
             }
         }
 
