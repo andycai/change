@@ -74,8 +74,13 @@ Introduce explicit startup/runtime split:
 Runtime API shape:
 
 - `Send<TCommand>(in TCommand command)`
-- `Ask<TQuery, TResult>(in TQuery query)` (or keep `Query` name if backward compatibility is preferred)
+- `Ask<TQuery, TResult>(in TQuery query)` on `ICqrsRuntime`
 - `Publish<TDomainEvent>(in TDomainEvent event)`
+
+Compatibility note during transition:
+
+- Legacy `ICqrsBus`/`CqrsBus` keeps `Query<TQuery, TResult>(...)` and also exposes `Ask<TQuery, TResult>(...)` as an alias.
+- New runtime-facing code should prefer `Ask`, while existing bus call sites using `Query` remain valid.
 
 Bootstrap API shape:
 

@@ -266,6 +266,13 @@ namespace Change.Framework.Cqrs
             return typedRegistration.Handler.Handle(in query);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TResult Ask<TQuery, TResult>(in TQuery query)
+            where TQuery : struct, IQuery<TResult>
+        {
+            return Query<TQuery, TResult>(in query);
+        }
+
         /// <summary>
         /// Publishes an event to all subscribed handlers in registration order.
         /// All handlers are invoked even if one throws. If any handler throws,

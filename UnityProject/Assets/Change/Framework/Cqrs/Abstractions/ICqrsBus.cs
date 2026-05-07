@@ -8,6 +8,9 @@ namespace Change.Framework.Cqrs
         TResult Query<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>;
 
+        TResult Ask<TQuery, TResult>(in TQuery query)
+            where TQuery : struct, IQuery<TResult>;
+
         void Publish<TEvent>(in TEvent @event)
             where TEvent : struct, IEvent;
     }

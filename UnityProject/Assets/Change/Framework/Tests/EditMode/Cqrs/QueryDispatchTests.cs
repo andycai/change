@@ -53,6 +53,20 @@ namespace Change.Framework.Tests
         }
 
         [Test]
+        public void Ask_ReturnsResultFromRegisteredHandler()
+        {
+            var state = new ScoreState { Value = 27 };
+            var bus = new CqrsBus();
+
+            bus.RegisterQuery(new GetScoreQueryHandler(state));
+            bus.Freeze();
+
+            var result = bus.Ask<GetScoreQuery, int>(new GetScoreQuery());
+
+            Assert.AreEqual(27, result);
+        }
+
+        [Test]
         public void Query_WithoutRegistration_ThrowsHandlerNotRegisteredException()
         {
             var bus = new CqrsBus();
