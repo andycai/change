@@ -30,6 +30,7 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             AssertMainState(orchestrator, "Battle");
             AssertContextInt(orchestrator, "MatchId", 2002);
 
+            DriveBattleFlowToExit(orchestrator);
             Invoke(orchestrator, "OnBattleSettlementConfirmed");
             AssertMainState(orchestrator, "Result");
 
@@ -115,6 +116,47 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             AssertMainState(orchestrator, "Lobby");
         }
 
+        [Test]
+        public void OnBattleSettlementConfirmed_Is_Ignored_When_Battle_SubFsm_Is_Not_Exit()
+        {
+            var orchestrator = CreateOrchestrator();
+            Invoke(orchestrator, "Start");
+            Invoke(orchestrator, "OnBootstrapCompleted");
+            Invoke(orchestrator, "OnLoginSucceeded", 1001);
+            Invoke(orchestrator, "OnMatchRequested");
+            Invoke(orchestrator, "OnMatchFound", 2002);
+            AssertMainState(orchestrator, "Battle");
+            AssertBattleSubState(orchestrator, "Loading");
+
+            Invoke(orchestrator, "OnBattleSettlementConfirmed");
+            AssertMainState(orchestrator, "Battle");
+        }
+
+        [Test]
+        public void OnResultConfirmed_Clears_Match_Dedup_For_Next_Round()
+        {
+            var orchestrator = CreateOrchestrator();
+            Invoke(orchestrator, "Start");
+            Invoke(orchestrator, "OnBootstrapCompleted");
+            Invoke(orchestrator, "OnLoginSucceeded", 1001);
+            Invoke(orchestrator, "OnMatchRequested");
+            Invoke(orchestrator, "OnMatchFound", 77);
+            AssertMainState(orchestrator, "Battle");
+
+            DriveBattleFlowToExit(orchestrator);
+            Invoke(orchestrator, "OnBattleSettlementConfirmed");
+            AssertMainState(orchestrator, "Result");
+
+            Invoke(orchestrator, "OnResultConfirmed");
+            AssertMainState(orchestrator, "Lobby");
+
+            Invoke(orchestrator, "OnMatchRequested");
+            AssertMainState(orchestrator, "Match");
+            Invoke(orchestrator, "OnMatchFound", 77);
+            AssertMainState(orchestrator, "Battle");
+            AssertContextInt(orchestrator, "MatchId", 77);
+        }
+
         private static object CreateOrchestrator()
         {
             var orchestratorType = ResolveType("GameScript.GameFlow.Orchestration.GameFlowOrchestrator");
@@ -171,6 +213,37 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             var context = orchestrator.GetType().GetProperty("Context")!.GetValue(orchestrator);
             var value = (int)context!.GetType().GetProperty(propertyName)!.GetValue(context)!;
             Assert.That(value, Is.EqualTo(expected));
+        }
+
+        private static void AssertBattleSubState(object orchestrator, string expectedState)
+        {
+            var context = orchestrator.GetType().GetProperty("Context")!.GetValue(orchestrator)!;
+            var battleMachine = context.GetType().GetProperty("BattleMachine")!.GetValue(context);
+            Assert.That(battleMachine, Is.Not.Null, "BattleMachine must exist while main state is Battle.");
+
+            var state = battleMachine!.GetType().GetProperty("CurrentStateId")!.GetValue(battleMachine);
+            Assert.That(state!.ToString(), Is.EqualTo(expectedState));
+        }
+
+        private static void DriveBattleFlowToExit(object orchestrator)
+        {
+            FireBattleEvent(orchestrator, "SceneLoaded");
+            FireBattleEvent(orchestrator, "CountdownFinished");
+            FireBattleEvent(orchestrator, "WinLoseResolved");
+            FireBattleEvent(orchestrator, "SettlementConfirmed");
+            AssertBattleSubState(orchestrator, "Exit");
+        }
+
+        private static void FireBattleEvent(object orchestrator, string eventName)
+        {
+            var context = orchestrator.GetType().GetProperty("Context")!.GetValue(orchestrator)!;
+            var battleMachine = context.GetType().GetProperty("BattleMachine")!.GetValue(context);
+            Assert.That(battleMachine, Is.Not.Null, "BattleMachine must exist before firing battle events.");
+
+            var eventType = ResolveType("GameScript.GameFlow.BattleFlow.BattleFlowEvent");
+            var fireMethod = battleMachine!.GetType().GetMethod("Fire");
+            Assert.That(fireMethod, Is.Not.Null, $"{battleMachine.GetType().FullName}.Fire() must exist.");
+            fireMethod!.Invoke(battleMachine, new[] { Enum.Parse(eventType, eventName) });
         }
 
         private static object ReadMainMachine(object orchestrator)

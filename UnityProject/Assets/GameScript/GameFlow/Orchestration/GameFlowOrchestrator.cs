@@ -1,5 +1,6 @@
 using System;
 using Change.Framework.Fsm;
+using GameScript.GameFlow.BattleFlow;
 using GameScript.GameFlow.States;
 
 namespace GameScript.GameFlow.Orchestration
@@ -88,11 +89,17 @@ namespace GameScript.GameFlow.Orchestration
                 return;
             }
 
+            if (Context.BattleMachine == null || Context.BattleMachine.CurrentStateId != BattleFlowStateId.Exit)
+            {
+                return;
+            }
+
             Dispatch(GameFlowEvent.BattleFinished);
         }
 
         public void OnResultConfirmed()
         {
+            _lastMatchId = null;
             Dispatch(GameFlowEvent.ConfirmResult);
         }
 
