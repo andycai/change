@@ -1,0 +1,33 @@
+namespace Change.Framework.Cqrs
+{
+    /// <summary>
+    /// Default immutable CQRS runtime that delegates dispatch to a frozen bus.
+    /// </summary>
+    public sealed class CqrsRuntime : ICqrsRuntime
+    {
+        private readonly ICqrsBus _bus;
+
+        public CqrsRuntime(ICqrsBus bus)
+        {
+            _bus = bus;
+        }
+
+        public void Send<TCommand>(in TCommand command)
+            where TCommand : struct, ICommand
+        {
+            _bus.Send(in command);
+        }
+
+        public TResult Query<TQuery, TResult>(in TQuery query)
+            where TQuery : struct, IQuery<TResult>
+        {
+            return _bus.Query<TQuery, TResult>(in query);
+        }
+
+        public void Publish<TEvent>(in TEvent @event)
+            where TEvent : struct, IEvent
+        {
+            _bus.Publish(in @event);
+        }
+    }
+}

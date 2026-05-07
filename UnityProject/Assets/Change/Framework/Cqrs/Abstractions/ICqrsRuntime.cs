@@ -1,7 +1,8 @@
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Immutable runtime dispatch surface returned by CQRS bootstrap.
+    /// Immutable CQRS dispatch surface returned by <see cref="ICqrsBootstrap.Build"/>.
+    /// Implementations must not expose handler registration APIs.
     /// </summary>
     public interface ICqrsRuntime : ICqrsBus
     {
