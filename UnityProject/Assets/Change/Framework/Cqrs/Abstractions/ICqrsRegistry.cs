@@ -1,5 +1,9 @@
 namespace Change.Framework.Cqrs
 {
+    /// <summary>
+    /// Mutable registration surface for CQRS handlers.
+    /// Registration is valid only before <see cref="Freeze"/>.
+    /// </summary>
     public interface ICqrsRegistry
     {
         void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)

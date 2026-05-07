@@ -5,6 +5,11 @@ using Change.Framework.Logging;
 
 namespace Change.Framework.Cqrs
 {
+    /// <summary>
+    /// In-process CQRS bus with explicit registration and freeze lifecycle.
+    /// Handlers may be registered from multiple threads before <see cref="Freeze"/>.
+    /// Dispatch is allowed only after <see cref="Freeze"/>.
+    /// </summary>
     public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
     {
         private const string CommandRegisteredMessage = "Registered command handler.";
@@ -84,6 +89,7 @@ namespace Change.Framework.Cqrs
         private readonly FastDictionary<Type, ICommandHandlerRegistration> _commandHandlers = new();
         private readonly FastDictionary<QueryKey, IQueryHandlerRegistration> _queryHandlers = new();
         private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
+        private readonly object _registrationGate = new();
         private readonly ILogger _logger;
         private volatile bool _isFrozen;
 
@@ -105,9 +111,12 @@ namespace Change.Framework.Cqrs
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
             where TCommand : struct, ICommand
         {
-            if (_isFrozen)
+            lock (_registrationGate)
             {
-                throw new RegistryFrozenException("Registry is frozen.");
+                if (_isFrozen)
+                {
+                    throw new RegistryFrozenException("Registry is frozen.");
+                }
             }
 
             if (handler == null)
@@ -116,10 +125,18 @@ namespace Change.Framework.Cqrs
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
 
-            var commandType = typeof(TCommand);
-            if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
+            lock (_registrationGate)
             {
-                throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
+                if (_isFrozen)
+                {
+                    throw new RegistryFrozenException("Registry is frozen.");
+                }
+
+                var commandType = typeof(TCommand);
+                if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
+                {
+                    throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
+                }
             }
 
             SafeInfo(CommandRegisteredMessage);
@@ -128,9 +145,12 @@ namespace Change.Framework.Cqrs
         public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
             where TQuery : struct, IQuery<TResult>
         {
-            if (_isFrozen)
+            lock (_registrationGate)
             {
-                throw new RegistryFrozenException("Registry is frozen.");
+                if (_isFrozen)
+                {
+                    throw new RegistryFrozenException("Registry is frozen.");
+                }
             }
 
             if (handler == null)
@@ -139,13 +159,21 @@ namespace Change.Framework.Cqrs
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
 
-            var queryType = typeof(TQuery);
-            var resultType = typeof(TResult);
-            var queryKey = new QueryKey(queryType, resultType);
-            if (!_queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler)))
+            lock (_registrationGate)
             {
-                throw new DuplicateRegistrationException(
-                    $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
+                if (_isFrozen)
+                {
+                    throw new RegistryFrozenException("Registry is frozen.");
+                }
+
+                var queryType = typeof(TQuery);
+                var resultType = typeof(TResult);
+                var queryKey = new QueryKey(queryType, resultType);
+                if (!_queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler)))
+                {
+                    throw new DuplicateRegistrationException(
+                        $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
+                }
             }
 
             SafeInfo(QueryRegisteredMessage);
@@ -154,9 +182,12 @@ namespace Change.Framework.Cqrs
         public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
             where TEvent : struct, IEvent
         {
-            if (_isFrozen)
+            lock (_registrationGate)
             {
-                throw new RegistryFrozenException("Registry is frozen.");
+                if (_isFrozen)
+                {
+                    throw new RegistryFrozenException("Registry is frozen.");
+                }
             }
 
             if (handler == null)
@@ -165,21 +196,39 @@ namespace Change.Framework.Cqrs
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
 
-            var eventType = typeof(TEvent);
-            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            lock (_registrationGate)
             {
-                handlerList = new EventHandlerList<TEvent>();
-                _eventHandlers.TryAdd(eventType, handlerList);
-            }
+                if (_isFrozen)
+                {
+                    throw new RegistryFrozenException("Registry is frozen.");
+                }
 
-            var typedList = (EventHandlerList<TEvent>)handlerList;
-            typedList.Handlers.Add(handler);
+                var eventType = typeof(TEvent);
+                if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+                {
+                    var created = new EventHandlerList<TEvent>();
+                    if (!_eventHandlers.TryAdd(eventType, created))
+                    {
+                        _eventHandlers.TryGetValue(eventType, out handlerList);
+                    }
+                    else
+                    {
+                        handlerList = created;
+                    }
+                }
+
+                var typedList = (EventHandlerList<TEvent>)handlerList;
+                typedList.Handlers.Add(handler);
+            }
             SafeInfo(EventSubscribedMessage);
         }
 
         public void Freeze()
         {
-            _isFrozen = true;
+            lock (_registrationGate)
+            {
+                _isFrozen = true;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

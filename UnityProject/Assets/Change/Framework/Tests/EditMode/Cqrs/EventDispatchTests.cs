@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Change.Framework.Cqrs;
 using NUnit.Framework;
 
@@ -128,11 +130,46 @@ namespace Change.Framework.Tests
             CollectionAssert.AreEqual(new[] { 1, 2 }, order);
         }
 
+        [Test]
+        public void Subscribe_FromMultipleThreads_RegistersAllHandlers()
+        {
+            const int handlerCount = 64;
+            var barrier = new Barrier(handlerCount);
+            var countHandler = new CountingEventHandler();
+            var bus = new CqrsBus();
+            var tasks = new Task[handlerCount];
+
+            for (var i = 0; i < handlerCount; i++)
+            {
+                tasks[i] = Task.Run(() =>
+                {
+                    barrier.SignalAndWait();
+                    bus.Subscribe(countHandler);
+                });
+            }
+
+            Task.WaitAll(tasks);
+            bus.Freeze();
+            bus.Publish(new ScoreChangedEvent(1));
+
+            Assert.AreEqual(handlerCount, countHandler.Count);
+        }
+
         private sealed class ThrowingEventHandler : IEventHandler<ScoreChangedEvent>
         {
             public void Handle(in ScoreChangedEvent @event)
             {
                 throw new InvalidOperationException("Handler failed");
+            }
+        }
+
+        private sealed class CountingEventHandler : IEventHandler<ScoreChangedEvent>
+        {
+            public int Count;
+
+            public void Handle(in ScoreChangedEvent @event)
+            {
+                Count += @event.Delta;
             }
         }
     }
