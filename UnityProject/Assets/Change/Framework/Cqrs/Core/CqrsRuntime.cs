@@ -26,10 +26,10 @@ namespace Change.Framework.Cqrs
             return _bus.Query<TQuery, TResult>(in query);
         }
 
-        public void Publish<TEvent>(in TEvent @event)
-            where TEvent : struct, IEvent
+        public void Publish<TDomainEvent>(in TDomainEvent domainEvent)
+            where TDomainEvent : struct, IDomainEvent
         {
-            _bus.Publish(in @event);
+            _bus.Publish(in domainEvent);
         }
     }
 }

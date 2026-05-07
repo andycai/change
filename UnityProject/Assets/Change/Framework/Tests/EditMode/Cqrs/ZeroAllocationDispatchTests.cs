@@ -23,9 +23,9 @@ namespace Change.Framework.Tests
         {
         }
 
-        private readonly struct TickEvent : IEvent
+        private readonly struct TickDomainEvent : IDomainEvent
         {
-            public TickEvent(int delta)
+            public TickDomainEvent(int delta)
             {
                 Delta = delta;
             }
@@ -68,13 +68,13 @@ namespace Change.Framework.Tests
             }
         }
 
-        private sealed class TickEventHandler : IEventHandler<TickEvent>
+        private sealed class TickDomainEventHandler : IDomainEventHandler<TickDomainEvent>
         {
             public int Count;
 
-            public void Handle(in TickEvent @event)
+            public void Handle(in TickDomainEvent domainEvent)
             {
-                Count += @event.Delta;
+                Count += domainEvent.Delta;
             }
         }
 
@@ -136,15 +136,15 @@ namespace Change.Framework.Tests
         [Test]
         public void Publish_HotPath_AllocatesZeroBytesAfterWarmup()
         {
-            var handler = new TickEventHandler();
+            var handler = new TickDomainEventHandler();
             var bootstrap = new CqrsBootstrap();
             bootstrap.Subscribe(handler);
             ICqrsRuntime runtime = bootstrap.Build();
 
-            var @event = new TickEvent(1);
+            var domainEvent = new TickDomainEvent(1);
             for (var i = 0; i < WarmupIterations; i++)
             {
-                runtime.Publish(in @event);
+                runtime.Publish(in domainEvent);
             }
 
             ForceFullGc();
@@ -152,7 +152,7 @@ namespace Change.Framework.Tests
             var before = GC.GetAllocatedBytesForCurrentThread();
             for (var i = 0; i < MeasuredIterations; i++)
             {
-                runtime.Publish(in @event);
+                runtime.Publish(in domainEvent);
             }
             var after = GC.GetAllocatedBytesForCurrentThread();
 

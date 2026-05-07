@@ -15,7 +15,7 @@ namespace Change.Framework.Tests
         {
         }
 
-        private readonly struct TestEvent : IEvent
+        private readonly struct TestDomainEvent : IDomainEvent
         {
         }
 
@@ -42,16 +42,16 @@ namespace Change.Framework.Tests
             }
         }
 
-        private sealed class TestEventHandler : IEventHandler<TestEvent>
+        private sealed class TestDomainEventHandler : IDomainEventHandler<TestDomainEvent>
         {
             private readonly Counter _counter;
 
-            public TestEventHandler(Counter counter)
+            public TestDomainEventHandler(Counter counter)
             {
                 _counter = counter;
             }
 
-            public void Handle(in TestEvent @event)
+            public void Handle(in TestDomainEvent domainEvent)
             {
                 _counter.Value++;
             }
@@ -90,11 +90,11 @@ namespace Change.Framework.Tests
             var bootstrap = new CqrsBootstrap();
             var counter = new Counter();
             bootstrap.RegisterQuery(new TestQueryHandler());
-            bootstrap.Subscribe(new TestEventHandler(counter));
+            bootstrap.Subscribe(new TestDomainEventHandler(counter));
 
             var runtime = bootstrap.Build();
             var result = runtime.Ask<TestQuery, int>(new TestQuery());
-            runtime.Publish(new TestEvent());
+            runtime.Publish(new TestDomainEvent());
 
             Assert.AreEqual(42, result);
             Assert.AreEqual(1, counter.Value);
@@ -128,7 +128,7 @@ namespace Change.Framework.Tests
             bootstrap.Build();
 
             Assert.Throws<RegistryFrozenException>(() => bootstrap.RegisterQuery(new TestQueryHandler()));
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.Subscribe(new TestEventHandler(new Counter())));
+            Assert.Throws<RegistryFrozenException>(() => bootstrap.Subscribe(new TestDomainEventHandler(new Counter())));
         }
 
         [Test]
