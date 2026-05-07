@@ -53,6 +53,73 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
             AssertPropertyType(contextType, "IsBattleActive", typeof(bool));
         }
 
+        [Test]
+        public void Create_Uses_Expected_Main_GameFlow_Transitions()
+        {
+            var machine = CreateMainMachine();
+
+            AssertState(machine, "Boot");
+            FireEvent(machine, "BootstrapCompleted");
+            AssertState(machine, "Login");
+
+            FireEvent(machine, "LoginSucceeded");
+            AssertState(machine, "Lobby");
+
+            FireEvent(machine, "MatchRequested");
+            AssertState(machine, "Match");
+
+            FireEvent(machine, "MatchFound");
+            AssertState(machine, "Battle");
+
+            FireEvent(machine, "BattleFinished");
+            AssertState(machine, "Result");
+
+            FireEvent(machine, "ConfirmResult");
+            AssertState(machine, "Lobby");
+        }
+
+        private static object CreateMainMachine()
+        {
+            var factoryType = ResolveType("GameScript.GameFlow.MainGameFlowMachineFactory");
+            var stateIdType = ResolveType("GameScript.GameFlow.GameFlowStateId");
+            var createMethod = factoryType.GetMethod("Create");
+            Assert.That(createMethod, Is.Not.Null, "MainGameFlowMachineFactory.Create() must exist.");
+
+            var contextType = ResolveType("GameScript.GameFlow.Orchestration.GameFlowContext");
+            var context = Activator.CreateInstance(contextType);
+            Assert.That(context, Is.Not.Null, "GameFlowContext instance must be creatable.");
+
+            var machine = createMethod!.Invoke(null, new[] { context! });
+            Assert.That(machine, Is.Not.Null, "MainGameFlowMachineFactory.Create(context) must return a machine instance.");
+
+            var startMethod = machine!.GetType().GetMethod("Start");
+            Assert.That(startMethod, Is.Not.Null, $"{machine.GetType().FullName}.Start must exist.");
+            var bootState = Enum.Parse(stateIdType, "Boot");
+            startMethod!.Invoke(machine, new[] { bootState });
+
+            return machine!;
+        }
+
+        private static void FireEvent(object machine, string eventName)
+        {
+            var eventType = ResolveType("GameScript.GameFlow.GameFlowEvent");
+            var eventValue = Enum.Parse(eventType, eventName);
+
+            var fireMethod = machine.GetType().GetMethod("Fire");
+            Assert.That(fireMethod, Is.Not.Null, $"{machine.GetType().FullName}.Fire must exist.");
+            fireMethod!.Invoke(machine, new[] { eventValue });
+        }
+
+        private static void AssertState(object machine, string expectedStateName)
+        {
+            var property = machine.GetType().GetProperty("CurrentStateId");
+            Assert.That(property, Is.Not.Null, $"{machine.GetType().FullName}.CurrentStateId must exist.");
+
+            var value = property!.GetValue(machine);
+            Assert.That(value, Is.Not.Null);
+            Assert.That(value!.ToString(), Is.EqualTo(expectedStateName));
+        }
+
         private static void AssertEnumDefinition(string fullTypeName, params string[] expectedMembers)
         {
             var type = ResolveType(fullTypeName);

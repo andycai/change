@@ -1,3 +1,6 @@
+using Change.Framework.Fsm;
+using GameScript.GameFlow.BattleFlow;
+
 namespace GameScript.GameFlow.Orchestration
 {
     public sealed class GameFlowContext
@@ -7,5 +10,7 @@ namespace GameScript.GameFlow.Orchestration
         public int MatchId { get; set; }
 
         public bool IsBattleActive { get; set; }
+
+        public StateMachine<BattleFlowStateId, BattleFlowEvent> BattleMachine { get; set; }
     }
 }
