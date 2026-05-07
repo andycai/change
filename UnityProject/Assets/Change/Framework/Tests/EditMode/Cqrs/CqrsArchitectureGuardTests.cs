@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Change.Framework.Cqrs;
 using NUnit.Framework;
@@ -48,9 +49,42 @@ namespace Change.Framework.Tests
 
         private static IEnumerable<Assembly> GetRelevantAssemblies()
         {
-            // Framework assembly contains production handlers; this test assembly can contain sample/demo handlers.
-            yield return typeof(ICqrsRuntime).Assembly;
-            yield return typeof(CqrsArchitectureGuardTests).Assembly;
+            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(assembly => IsChangeAssembly(assembly))
+                .OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal);
+
+            foreach (var assembly in loadedAssemblies)
+            {
+                if (ContainsConcreteDomainEventHandler(assembly))
+                {
+                    yield return assembly;
+                }
+            }
+        }
+
+        private static bool IsChangeAssembly(Assembly assembly)
+        {
+            var assemblyName = assembly.GetName().Name;
+            return !string.IsNullOrEmpty(assemblyName)
+                && assemblyName.StartsWith("Change.", StringComparison.Ordinal);
+        }
+
+        private static bool ContainsConcreteDomainEventHandler(Assembly assembly)
+        {
+            foreach (var type in assembly.GetTypes())
+            {
+                if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
+                {
+                    continue;
+                }
+
+                if (ImplementsDomainEventHandler(type))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IEnumerable<Type> GetConcreteDomainEventHandlerTypes(Assembly assembly)
