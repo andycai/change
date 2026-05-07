@@ -69,11 +69,18 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
         private static object CreateBattleFlowMachine()
         {
             var factoryType = ResolveType("GameScript.GameFlow.BattleFlow.BattleFlowMachineFactory");
+            var stateIdType = ResolveType("GameScript.GameFlow.BattleFlow.BattleFlowStateId");
             var createMethod = factoryType.GetMethod("Create");
             Assert.That(createMethod, Is.Not.Null, "BattleFlowMachineFactory.Create() must exist.");
 
             var machine = createMethod!.Invoke(null, Array.Empty<object>());
             Assert.That(machine, Is.Not.Null, "BattleFlowMachineFactory.Create() must return a machine instance.");
+
+            var startMethod = machine!.GetType().GetMethod("Start");
+            Assert.That(startMethod, Is.Not.Null, $"{machine.GetType().FullName}.Start must exist.");
+            var loadingState = Enum.Parse(stateIdType, "Loading");
+            startMethod!.Invoke(machine, new[] { loadingState });
+
             return machine!;
         }
 

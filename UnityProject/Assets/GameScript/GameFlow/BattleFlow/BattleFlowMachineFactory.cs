@@ -16,7 +16,6 @@ namespace GameScript.GameFlow.BattleFlow
             machine.Register(new BattleSettlementState());
             machine.Register(new BattleExitState());
 
-            machine.Start(BattleFlowStateId.Loading);
             return machine;
         }
     }
