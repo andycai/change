@@ -66,6 +66,18 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
         }
 
         [Test]
+        public void GuardDispatch_Does_Not_Mutate_Context_Before_Start()
+        {
+            var orchestrator = CreateOrchestrator();
+
+            Invoke(orchestrator, "OnLoginSucceeded", 42);
+            Invoke(orchestrator, "OnMatchFound", 99);
+
+            AssertContextInt(orchestrator, "PlayerId", 0);
+            AssertContextInt(orchestrator, "MatchId", 0);
+        }
+
+        [Test]
         public void GuardDispatch_Does_Not_Dispatch_When_Machine_Faulted()
         {
             var orchestrator = CreateOrchestratorWithFaultingBoot();
@@ -74,6 +86,20 @@ namespace Change.Runtime.Tests.EditMode.GameFlow
 
             Invoke(orchestrator, "OnBootstrapCompleted");
             AssertMainState(orchestrator, "Boot");
+        }
+
+        [Test]
+        public void GuardDispatch_Does_Not_Mutate_Context_When_Machine_Faulted()
+        {
+            var orchestrator = CreateOrchestratorWithFaultingBoot();
+            Assert.Throws<TargetInvocationException>(() => Invoke(orchestrator, "Start"));
+            AssertMachineFaulted(orchestrator, Is.True);
+
+            Invoke(orchestrator, "OnLoginSucceeded", 7);
+            Invoke(orchestrator, "OnMatchFound", 11);
+
+            AssertContextInt(orchestrator, "PlayerId", 0);
+            AssertContextInt(orchestrator, "MatchId", 0);
         }
 
         private static object CreateOrchestrator()

@@ -50,6 +50,11 @@ namespace GameScript.GameFlow.Orchestration
 
         public void OnLoginSucceeded(int playerId)
         {
+            if (!CanDispatch())
+            {
+                return;
+            }
+
             Context.PlayerId = playerId;
             Dispatch(GameFlowEvent.LoginSucceeded);
         }
@@ -61,6 +66,11 @@ namespace GameScript.GameFlow.Orchestration
 
         public void OnMatchFound(int matchId)
         {
+            if (!CanDispatch())
+            {
+                return;
+            }
+
             if (_lastMatchId.HasValue && _lastMatchId.Value == matchId)
             {
                 return;
