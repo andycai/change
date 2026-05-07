@@ -1,3 +1,5 @@
+using System;
+
 namespace Change.Framework.Cqrs
 {
     /// <summary>
@@ -9,7 +11,7 @@ namespace Change.Framework.Cqrs
 
         public CqrsRuntime(ICqrsBus bus)
         {
-            _bus = bus;
+            _bus = bus ?? throw new ArgumentNullException(nameof(bus));
         }
 
         public void Send<TCommand>(in TCommand command)

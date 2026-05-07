@@ -40,11 +40,6 @@ namespace Change.Framework.Cqrs
             _bus.Subscribe(handler);
         }
 
-        public void Freeze()
-        {
-            _bus.Freeze();
-        }
-
         public ICqrsRuntime Build()
         {
             if (_runtime != null)

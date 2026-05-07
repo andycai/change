@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using Change.Framework.Cqrs;
 using NUnit.Framework;
 
@@ -107,6 +109,39 @@ namespace Change.Framework.Tests
             var second = bootstrap.Build();
 
             Assert.AreSame(first, second);
+        }
+
+        [Test]
+        public void Runtime_AccessedBeforeBuild_ThrowsInvalidOperationException()
+        {
+            var bootstrap = new CqrsBootstrap();
+            Assert.Throws<InvalidOperationException>(() => _ = bootstrap.Runtime);
+        }
+
+        [Test]
+        public void RegisterQueryAndSubscribe_AfterBuild_ThrowRegistryFrozenException()
+        {
+            var bootstrap = new CqrsBootstrap();
+            bootstrap.Build();
+
+            Assert.Throws<RegistryFrozenException>(() => bootstrap.RegisterQuery(new TestQueryHandler()));
+            Assert.Throws<RegistryFrozenException>(() => bootstrap.Subscribe(new TestEventHandler(new Counter())));
+        }
+
+        [Test]
+        public void Bootstrap_DoesNotExposePublicFreezeMethod()
+        {
+            var freezeMethod = typeof(CqrsBootstrap).GetMethod(
+                "Freeze",
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            Assert.IsNull(freezeMethod);
+        }
+
+        [Test]
+        public void Runtime_Constructor_WithNullBus_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new CqrsRuntime(null));
         }
     }
 }
