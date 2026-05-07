@@ -132,7 +132,7 @@ namespace Change.Runtime.Gas
             }
         }
 
-        internal IReadOnlyList<ITrigger> GetTriggers(TriggerEventType eventType)
+        public IReadOnlyList<ITrigger> GetTriggers(TriggerEventType eventType)
         {
             return _triggerGroups.TryGetValue(eventType, out var list) ? list : Array.Empty<ITrigger>();
         }

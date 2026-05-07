@@ -61,7 +61,7 @@ namespace Change.Runtime.Tests.Gas
                 TickInterval = 1f,
                 TickEffects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 20f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 20f, scalingAttribute: null)
                 }
             });
             mod.OnApply(_target);

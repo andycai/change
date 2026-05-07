@@ -1,4 +1,5 @@
 using Change.Framework.Gas;
+using System;
 
 namespace Change.Runtime.Gas.Effects
 {
@@ -6,20 +7,20 @@ namespace Change.Runtime.Gas.Effects
     {
         private readonly float _chance;
         private readonly IGameplayEffect _effect;
-        private readonly System.Random _random;
+        private readonly Random _random;
 
-        public ChanceEffect(float chance, IGameplayEffect effect)
+        public ChanceEffect(float chance, IGameplayEffect effect, Random random = null)
         {
             _chance = chance;
             _effect = effect;
-            _random = new System.Random();
+            _random = random ?? new Random();
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target)
+        public void Execute(in EffectContext context)
         {
             if (_random.NextDouble() <= _chance)
             {
-                _effect.Execute(source, target);
+                _effect.Execute(in context);
             }
         }
     }

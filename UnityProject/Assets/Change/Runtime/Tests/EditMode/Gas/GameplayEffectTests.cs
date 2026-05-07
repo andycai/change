@@ -24,16 +24,18 @@ namespace Change.Runtime.Tests.Gas
         [Test]
         public void DamageEffect_Flat_ReducesTargetHP()
         {
-            var effect = new DamageEffect(flatAmount: 50f, scalingFormula: null, scalingAttribute: null);
-            effect.Execute(_source, _target);
+            var effect = new DamageEffect(flatAmount: 50f, scalingAttribute: null);
+            var context = new EffectContext(_source, _target);
+            effect.Execute(in context);
             Assert.AreEqual(150f, _target.Attributes.GetCurrentValue("HP"));
         }
 
         [Test]
         public void DamageEffect_Scaling_UsesSourceAttribute()
         {
-            var effect = new DamageEffect(flatAmount: 10f, scalingFormula: null, scalingAttribute: "ATK", scalingMultiplier: 1.5f);
-            effect.Execute(_source, _target);
+            var effect = new DamageEffect(flatAmount: 10f, scalingAttribute: "ATK", scalingMultiplier: 1.5f);
+            var context = new EffectContext(_source, _target);
+            effect.Execute(in context);
             Assert.AreEqual(40f, _target.Attributes.GetCurrentValue("HP"));
         }
 
@@ -41,17 +43,19 @@ namespace Change.Runtime.Tests.Gas
         public void HealEffect_IncreasesTargetHP()
         {
             _target.Attributes.SetBaseValue("HP", 50f);
-            var effect = new HealEffect(flatAmount: 30f, scalingFormula: null, scalingAttribute: null);
-            effect.Execute(_source, _target);
+            var effect = new HealEffect(flatAmount: 30f, scalingAttribute: null);
+            var context = new EffectContext(_source, _target);
+            effect.Execute(in context);
             Assert.AreEqual(80f, _target.Attributes.GetCurrentValue("HP"));
         }
 
         [Test]
         public void ChanceEffect_OnSuccess_AppliesEffect()
         {
-            var innerEffect = new DamageEffect(flatAmount: 25f, scalingFormula: null, scalingAttribute: null);
+            var innerEffect = new DamageEffect(flatAmount: 25f, scalingAttribute: null);
             var effect = new ChanceEffect(chance: 1.0f, effect: innerEffect);
-            effect.Execute(_source, _target);
+            var context = new EffectContext(_source, _target);
+            effect.Execute(in context);
             Assert.AreEqual(175f, _target.Attributes.GetCurrentValue("HP"));
         }
 
@@ -59,7 +63,8 @@ namespace Change.Runtime.Tests.Gas
         public void TagEffect_Grant_AddsTagToTarget()
         {
             var effect = new TagEffect(tag: new GameplayTag("state.stunned"), isAdd: true);
-            effect.Execute(_source, _target);
+            var context = new EffectContext(_source, _target);
+            effect.Execute(in context);
             Assert.IsTrue(_target.Tags.HasTag(new GameplayTag("state.stunned")));
         }
 
@@ -68,7 +73,8 @@ namespace Change.Runtime.Tests.Gas
         {
             _target.Tags.AddTag(new GameplayTag("state.stunned"));
             var effect = new TagEffect(tag: new GameplayTag("state.stunned"), isAdd: false);
-            effect.Execute(_source, _target);
+            var context = new EffectContext(_source, _target);
+            effect.Execute(in context);
             Assert.IsFalse(_target.Tags.HasTag(new GameplayTag("state.stunned")));
         }
     }

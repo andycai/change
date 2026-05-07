@@ -39,7 +39,7 @@ namespace Change.Runtime.Tests.Gas
                 MaxCharges = 1,
                 Effects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 50f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 50f, scalingAttribute: null)
                 }
             });
 
@@ -130,7 +130,7 @@ namespace Change.Runtime.Tests.Gas
                 MaxCharges = 2,
                 Effects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 10f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 10f, scalingAttribute: null)
                 }
             });
 

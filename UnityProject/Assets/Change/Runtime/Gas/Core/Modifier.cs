@@ -28,6 +28,7 @@ namespace Change.Runtime.Gas
         public Modifier(ModifierConfig config)
         {
             _config = config;
+            _config.Validate();
             _stackCount = 1;
             _elapsedTime = 0f;
             _tickTimer = 0f;
@@ -88,7 +89,10 @@ namespace Change.Runtime.Gas
         {
             if (effects == null) return;
             for (int i = 0; i < effects.Length; i++)
-                effects[i].Execute(target, target);
+            {
+                var context = new EffectContext(target, target);
+                effects[i].Execute(in context);
+            }
         }
     }
 }

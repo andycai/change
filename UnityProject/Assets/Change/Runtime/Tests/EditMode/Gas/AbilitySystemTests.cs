@@ -32,7 +32,7 @@ namespace Change.Runtime.Tests.Gas
                 MaxCharges = 1,
                 Effects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 30f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 30f, scalingAttribute: null)
                 }
             });
 

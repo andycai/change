@@ -23,9 +23,7 @@ namespace Change.Runtime.Gas
 
             for (int i = 0; i < allEntities.Length; i++)
             {
-                var entity = allEntities[i] as AbilitySystem;
-                if (entity == null) continue;
-
+                var entity = allEntities[i];
                 var triggers = entity.GetTriggers(eventType);
                 for (int t = 0; t < triggers.Count; t++)
                 {
@@ -51,9 +49,10 @@ namespace Change.Runtime.Gas
                 case TriggerScope.Target:
                     return owner == target;
                 case TriggerScope.AllEnemies:
-                    // Assuming source is the one causing the event
+                    if (source == null) return false;
                     return owner.TeamId != source.TeamId;
                 case TriggerScope.AllAllies:
+                    if (source == null) return false;
                     return owner.TeamId == source.TeamId;
                 default:
                     return true;

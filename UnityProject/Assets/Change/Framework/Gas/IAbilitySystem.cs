@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Change.Framework.Gas
 {
@@ -14,6 +15,7 @@ namespace Change.Framework.Gas
         void RemoveModifier(string modifierId);
         void RemoveModifierByTag(GameplayTag tag);
         void AddTrigger(ITrigger trigger);
+        IReadOnlyList<ITrigger> GetTriggers(TriggerEventType eventType);
         void Tick(float deltaTime);
     }
 }

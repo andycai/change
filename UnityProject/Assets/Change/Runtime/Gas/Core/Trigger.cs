@@ -34,7 +34,10 @@ namespace Change.Runtime.Gas
         public void ExecuteEffects(IAbilitySystem source, IAbilitySystem target, int cascadeDepth)
         {
             for (int i = 0; i < _effects.Length; i++)
-                _effects[i].Execute(source, target);
+            {
+                var context = new EffectContext(source, target);
+                _effects[i].Execute(in context);
+            }
             _cooldownTimer = _cooldown;
         }
 

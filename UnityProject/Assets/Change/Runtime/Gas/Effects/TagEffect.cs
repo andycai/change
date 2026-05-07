@@ -13,12 +13,12 @@ namespace Change.Runtime.Gas.Effects
             _isAdd = isAdd;
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target)
+        public void Execute(in EffectContext context)
         {
             if (_isAdd)
-                target.Tags.AddTag(_tag);
+                context.Target.Tags.AddTag(_tag);
             else
-                target.Tags.RemoveTag(_tag);
+                context.Target.Tags.RemoveTag(_tag);
         }
     }
 }

@@ -17,12 +17,12 @@ namespace Change.Runtime.Gas.Effects
             _tag = tag;
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target)
+        public void Execute(in EffectContext context)
         {
             if (_tag.HasValue)
-                target.RemoveModifierByTag(_tag.Value);
+                context.Target.RemoveModifierByTag(_tag.Value);
             else if (!string.IsNullOrEmpty(_modifierId))
-                target.RemoveModifier(_modifierId);
+                context.Target.RemoveModifier(_modifierId);
         }
     }
 }

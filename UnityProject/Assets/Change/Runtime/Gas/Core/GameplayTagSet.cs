@@ -5,6 +5,7 @@ namespace Change.Runtime.Gas
 {
     public sealed class GameplayTagSet : IGameplayTagSet
     {
+        private static readonly Dictionary<string, GameplayTag[]> HierarchyCache = new Dictionary<string, GameplayTag[]>();
         private readonly Dictionary<int, int> _tagCounts;
         private readonly Dictionary<int, GameplayTag> _tagMap;
 
@@ -16,33 +17,26 @@ namespace Change.Runtime.Gas
 
         public void AddTag(GameplayTag tag)
         {
-            // Hierarchy support: Add the tag and all its parents
-            string value = tag.Value;
-            int lastDotIndex = value.Length;
-            while (lastDotIndex > 0)
+            var hierarchy = GetHierarchy(tag);
+            for (int i = 0; i < hierarchy.Length; i++)
             {
-                string subTagValue = value.Substring(0, lastDotIndex);
-                GameplayTag subTag = new GameplayTag(subTagValue);
+                GameplayTag subTag = hierarchy[i];
                 int hash = subTag.Hash;
-                
+
                 _tagMap[hash] = subTag;
                 if (_tagCounts.TryGetValue(hash, out int count))
                     _tagCounts[hash] = count + 1;
                 else
                     _tagCounts[hash] = 1;
-
-                lastDotIndex = value.LastIndexOf('.', lastDotIndex - 1);
             }
         }
 
         public void RemoveTag(GameplayTag tag)
         {
-            string value = tag.Value;
-            int lastDotIndex = value.Length;
-            while (lastDotIndex > 0)
+            var hierarchy = GetHierarchy(tag);
+            for (int i = 0; i < hierarchy.Length; i++)
             {
-                string subTagValue = value.Substring(0, lastDotIndex);
-                GameplayTag subTag = new GameplayTag(subTagValue);
+                GameplayTag subTag = hierarchy[i];
                 int hash = subTag.Hash;
 
                 if (_tagCounts.TryGetValue(hash, out int count))
@@ -57,9 +51,26 @@ namespace Change.Runtime.Gas
                         _tagCounts[hash] = count - 1;
                     }
                 }
-                
+            }
+        }
+
+        private static GameplayTag[] GetHierarchy(GameplayTag tag)
+        {
+            if (HierarchyCache.TryGetValue(tag.Value, out var cached))
+                return cached;
+
+            var list = new List<GameplayTag>(4);
+            string value = tag.Value;
+            int lastDotIndex = value.Length;
+            while (lastDotIndex > 0)
+            {
+                list.Add(new GameplayTag(value.Substring(0, lastDotIndex)));
                 lastDotIndex = value.LastIndexOf('.', lastDotIndex - 1);
             }
+
+            cached = list.ToArray();
+            HierarchyCache[tag.Value] = cached;
+            return cached;
         }
 
         public bool HasTag(GameplayTag tag)

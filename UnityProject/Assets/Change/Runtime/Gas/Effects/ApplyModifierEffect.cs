@@ -12,9 +12,9 @@ namespace Change.Runtime.Gas.Effects
             _modifierFactory = modifierFactory ?? throw new ArgumentNullException(nameof(modifierFactory));
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target)
+        public void Execute(in EffectContext context)
         {
-            target.AddModifier(_modifierFactory());
+            context.Target.AddModifier(_modifierFactory());
         }
     }
 }

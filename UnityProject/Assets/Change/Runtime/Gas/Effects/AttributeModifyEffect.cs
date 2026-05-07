@@ -20,8 +20,10 @@ namespace Change.Runtime.Gas.Effects
             _isDamage = isDamage;
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target)
+        public void Execute(in EffectContext context)
         {
+            var source = context.Source;
+            var target = context.Target;
             float amount = _flatAmount;
             if (_scalingAttribute != null)
             {

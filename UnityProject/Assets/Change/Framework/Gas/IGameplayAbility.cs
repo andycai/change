@@ -15,6 +15,6 @@ namespace Change.Framework.Gas
         bool CanActivate(IAbilitySystem source);
         void Activate(IAbilitySystem source, IAbilitySystem[] targets);
         void Tick(float deltaTime);
-        event Action<string> OnStateChange;
+        event Action<AbilityState> OnStateChange;
     }
 }

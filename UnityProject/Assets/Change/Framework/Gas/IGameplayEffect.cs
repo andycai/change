@@ -2,6 +2,6 @@ namespace Change.Framework.Gas
 {
     public interface IGameplayEffect
     {
-        void Execute(IAbilitySystem source, IAbilitySystem target);
+        void Execute(in EffectContext context);
     }
 }

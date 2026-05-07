@@ -34,7 +34,7 @@ namespace Change.Runtime.Tests.Gas
                 TickInterval = 1f,
                 TickEffects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 30f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 30f, scalingAttribute: null)
                 }
             };
 
@@ -51,7 +51,7 @@ namespace Change.Runtime.Tests.Gas
                 MaxCharges = 1,
                 Effects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 100f, scalingFormula: null, scalingAttribute: "ATK", scalingMultiplier: 1.5f),
+                    new DamageEffect(flatAmount: 100f, scalingAttribute: "ATK", scalingMultiplier: 1.5f),
                     new ChanceEffect(chance: 1.0f, effect: new ApplyModifierEffect(() => new Modifier(igniteConfig)))
                 }
             });
@@ -115,7 +115,7 @@ namespace Change.Runtime.Tests.Gas
                 MaxCharges = 1,
                 Effects = new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 0f, scalingFormula: null, scalingAttribute: "ATK", scalingMultiplier: 2f)
+                    new DamageEffect(flatAmount: 0f, scalingAttribute: "ATK", scalingMultiplier: 2f)
                 }
             });
 

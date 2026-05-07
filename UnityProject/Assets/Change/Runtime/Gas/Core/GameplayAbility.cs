@@ -1,5 +1,6 @@
 using System;
 using Change.Framework.Gas;
+using Change.Runtime.Gas.Effects;
 
 namespace Change.Runtime.Gas
 {
@@ -7,6 +8,8 @@ namespace Change.Runtime.Gas
     {
         private readonly AbilityConfig _config;
         private readonly IGameplayEffect[] _effects;
+        private readonly IGameplayEffect[] _costEffects;
+        private readonly IGameplayEffect[] _cooldownEffects;
         private float _cooldownTimer;
         private float _castTimer;
         private int _currentCharges;
@@ -22,12 +25,15 @@ namespace Change.Runtime.Gas
         public int MaxCharges => _config.MaxCharges;
         public int CurrentCharges => _currentCharges;
 
-        public event Action<string> OnStateChange;
+        public event Action<AbilityState> OnStateChange;
 
         public GameplayAbility(AbilityConfig config)
         {
             _config = config;
+            _config.Validate();
             _effects = config.Effects ?? Array.Empty<IGameplayEffect>();
+            _costEffects = CreateCostEffects(config);
+            _cooldownEffects = CreateCooldownEffects(config);
             _currentCharges = config.MaxCharges;
         }
 
@@ -64,13 +70,9 @@ namespace Change.Runtime.Gas
                 return;
 
             _currentSource = source;
-            _currentTargets = targets;
+            _currentTargets = targets ?? Array.Empty<IAbilitySystem>();
 
-            // Commit cost
-            if (_config.CostAttribute != null)
-            {
-                source.Attributes.ModifyCurrent(_config.CostAttribute, -_config.CostAmount);
-            }
+            ExecuteEffects(_costEffects, new EffectContext(source, source, this));
 
             if (_config.CastTime > 0f)
             {
@@ -91,7 +93,10 @@ namespace Change.Runtime.Gas
             {
                 for (int t = 0; t < _currentTargets.Length; t++)
                 {
-                    _effects[i].Execute(_currentSource, _currentTargets[t]);
+                    if (_currentTargets[t] == null)
+                        continue;
+                    var effectContext = new EffectContext(_currentSource, _currentTargets[t], this);
+                    _effects[i].Execute(in effectContext);
                 }
             }
 
@@ -103,8 +108,7 @@ namespace Change.Runtime.Gas
             _currentCharges--;
             if (_currentCharges <= 0)
             {
-                SetState(AbilityState.Cooldown);
-                _cooldownTimer = _config.CooldownDuration;
+                ExecuteEffects(_cooldownEffects, new EffectContext(_currentSource, _currentSource, this));
             }
             else
             {
@@ -140,7 +144,42 @@ namespace Change.Runtime.Gas
         private void SetState(AbilityState state)
         {
             State = state;
-            OnStateChange?.Invoke(state.ToString());
+            OnStateChange?.Invoke(state);
+        }
+
+        internal void StartCooldown(float duration)
+        {
+            if (duration <= 0f)
+            {
+                _currentCharges = _config.MaxCharges;
+                SetState(AbilityState.Ready);
+                return;
+            }
+
+            SetState(AbilityState.Cooldown);
+            _cooldownTimer = duration;
+        }
+
+        private static IGameplayEffect[] CreateCostEffects(AbilityConfig config)
+        {
+            if (string.IsNullOrEmpty(config.CostAttribute) || config.CostAmount <= 0f)
+                return Array.Empty<IGameplayEffect>();
+
+            return new IGameplayEffect[] { new CostEffect(config.CostAttribute, config.CostAmount) };
+        }
+
+        private static IGameplayEffect[] CreateCooldownEffects(AbilityConfig config)
+        {
+            if (config.CooldownDuration <= 0f)
+                return Array.Empty<IGameplayEffect>();
+
+            return new IGameplayEffect[] { new CooldownEffect(config.CooldownDuration) };
+        }
+
+        private static void ExecuteEffects(IGameplayEffect[] effects, in EffectContext context)
+        {
+            for (int i = 0; i < effects.Length; i++)
+                effects[i].Execute(in context);
         }
     }
 }

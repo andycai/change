@@ -27,7 +27,7 @@ namespace Change.Runtime.Tests.Gas
                 scope: TriggerScope.Self,
                 condition: null,
                 cooldown: 0f,
-                effects: new IGameplayEffect[] { new DamageEffect(flatAmount: 30f, scalingFormula: null, scalingAttribute: null) }
+                effects: new IGameplayEffect[] { new DamageEffect(flatAmount: 30f, scalingAttribute: null) }
             );
             trigger.ExecuteEffects(_source, _target, 0);
             Assert.AreEqual(170f, _target.Attributes.GetCurrentValue("HP"));
@@ -45,7 +45,7 @@ namespace Change.Runtime.Tests.Gas
         {
             var trigger = new Trigger(
                 TriggerEventType.OnAttack, TriggerScope.Self, null, 5f,
-                new IGameplayEffect[] { new DamageEffect(flatAmount: 10f, scalingFormula: null, scalingAttribute: null) }
+                new IGameplayEffect[] { new DamageEffect(flatAmount: 10f, scalingAttribute: null) }
             );
             trigger.ExecuteEffects(_source, _target, 0);
             bool didFire = trigger.TryFire(_source, _target, 0);

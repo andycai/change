@@ -64,6 +64,8 @@ namespace Change.Runtime.Gas
 
         public void RemoveMultiplicative(float value)
         {
+            if (System.Math.Abs(value) < float.Epsilon)
+                throw new System.InvalidOperationException("Cannot remove multiplicative modifier with zero value.");
             _multiplicativeProduct /= value;
             MarkDirty();
         }

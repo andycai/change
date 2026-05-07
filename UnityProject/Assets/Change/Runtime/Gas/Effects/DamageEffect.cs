@@ -6,12 +6,11 @@ namespace Change.Runtime.Gas.Effects
     {
         private readonly AttributeModifyEffect _inner;
 
-        public DamageEffect(float flatAmount, string scalingFormula = null,
-            string scalingAttribute = null, float scalingMultiplier = 1f, string targetAttribute = "HP")
+        public DamageEffect(float flatAmount, string scalingAttribute = null, float scalingMultiplier = 1f, string targetAttribute = "HP")
         {
             _inner = new AttributeModifyEffect(flatAmount, scalingAttribute, scalingMultiplier, targetAttribute, isDamage: true);
         }
 
-        public void Execute(IAbilitySystem source, IAbilitySystem target) => _inner.Execute(source, target);
+        public void Execute(in EffectContext context) => _inner.Execute(in context);
     }
 }

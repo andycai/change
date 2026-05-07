@@ -23,7 +23,7 @@ namespace Change.Runtime.Tests.Gas
                 cooldown: 0f,
                 effects: new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 20f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 20f, scalingAttribute: null)
                 }
             ));
 
@@ -47,7 +47,7 @@ namespace Change.Runtime.Tests.Gas
                 cooldown: 0f,
                 effects: new IGameplayEffect[]
                 {
-                    new DamageEffect(flatAmount: 10f, scalingFormula: null, scalingAttribute: null)
+                    new DamageEffect(flatAmount: 10f, scalingAttribute: null)
                 }
             ));
 
