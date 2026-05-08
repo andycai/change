@@ -14,7 +14,7 @@ namespace GameScript.UI.Inventory
         public InventoryWindowViewModel Execute(in OpenInventoryRequest request)
         {
             var query = new GetInventorySummaryQuery(request.PlayerId);
-            var result = _bus.Query<GetInventorySummaryQuery, InventorySummaryResult>(in query);
+            var result = _bus.Ask<GetInventorySummaryQuery, InventorySummaryResult>(in query);
             return new InventoryWindowViewModel(result.ItemCount, result.Gold);
         }
     }
