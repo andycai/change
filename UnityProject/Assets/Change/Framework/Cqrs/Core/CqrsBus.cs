@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Change.Framework.Collections;
 using Change.Framework.Logging;
@@ -88,6 +89,7 @@ namespace Change.Framework.Cqrs
 
         private readonly FastDictionary<Type, ICommandHandlerRegistration> _commandHandlers = new();
         private readonly FastDictionary<QueryKey, IQueryHandlerRegistration> _queryHandlers = new();
+        private readonly FastDictionary<Type, Type> _queryResultByQueryType = new();
         private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
         private readonly object _registrationGate = new();
         private readonly ILogger _logger;
@@ -113,24 +115,13 @@ namespace Change.Framework.Cqrs
         {
             lock (_registrationGate)
             {
-                if (_isFrozen)
-                {
-                    throw new RegistryFrozenException("Registry is frozen.");
-                }
-            }
+                ThrowIfFrozen();
 
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-            ThrowIfValueTypeHandler(handler, nameof(handler));
-
-            lock (_registrationGate)
-            {
-                if (_isFrozen)
+                if (handler == null)
                 {
-                    throw new RegistryFrozenException("Registry is frozen.");
+                    throw new ArgumentNullException(nameof(handler));
                 }
+                ThrowIfValueTypeHandler(handler, nameof(handler));
 
                 var commandType = typeof(TCommand);
                 if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
@@ -147,33 +138,33 @@ namespace Change.Framework.Cqrs
         {
             lock (_registrationGate)
             {
-                if (_isFrozen)
-                {
-                    throw new RegistryFrozenException("Registry is frozen.");
-                }
-            }
+                ThrowIfFrozen();
 
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-            ThrowIfValueTypeHandler(handler, nameof(handler));
-
-            lock (_registrationGate)
-            {
-                if (_isFrozen)
+                if (handler == null)
                 {
-                    throw new RegistryFrozenException("Registry is frozen.");
+                    throw new ArgumentNullException(nameof(handler));
                 }
+                ThrowIfValueTypeHandler(handler, nameof(handler));
 
                 var queryType = typeof(TQuery);
                 var resultType = typeof(TResult);
-                var queryKey = new QueryKey(queryType, resultType);
-                if (!_queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler)))
+
+                if (_queryResultByQueryType.TryGetValue(queryType, out var existingResultType))
                 {
+                    if (existingResultType == resultType)
+                    {
+                        throw new DuplicateRegistrationException(
+                            $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
+                    }
+
                     throw new DuplicateRegistrationException(
-                        $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
+                        $"Query type already registered with a different result: {queryType.FullName} -> {existingResultType.FullName}; " +
+                        $"each query supports exactly one handler.");
                 }
+
+                var queryKey = new QueryKey(queryType, resultType);
+                _queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler));
+                _queryResultByQueryType.TryAdd(queryType, resultType);
             }
 
             SafeInfo(QueryRegisteredMessage);
@@ -184,42 +175,25 @@ namespace Change.Framework.Cqrs
         {
             lock (_registrationGate)
             {
-                if (_isFrozen)
-                {
-                    throw new RegistryFrozenException("Registry is frozen.");
-                }
-            }
+                ThrowIfFrozen();
 
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-            ThrowIfValueTypeHandler(handler, nameof(handler));
-
-            lock (_registrationGate)
-            {
-                if (_isFrozen)
+                if (handler == null)
                 {
-                    throw new RegistryFrozenException("Registry is frozen.");
+                    throw new ArgumentNullException(nameof(handler));
                 }
+                ThrowIfValueTypeHandler(handler, nameof(handler));
 
                 var eventType = typeof(TEvent);
                 if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
                 {
-                    var created = new EventHandlerList<TEvent>();
-                    if (!_eventHandlers.TryAdd(eventType, created))
-                    {
-                        _eventHandlers.TryGetValue(eventType, out handlerList);
-                    }
-                    else
-                    {
-                        handlerList = created;
-                    }
+                    handlerList = new EventHandlerList<TEvent>();
+                    _eventHandlers.TryAdd(eventType, handlerList);
                 }
 
                 var typedList = (EventHandlerList<TEvent>)handlerList;
                 typedList.Handlers.Add(handler);
             }
+
             SafeInfo(EventSubscribedMessage);
         }
 
@@ -275,6 +249,8 @@ namespace Change.Framework.Cqrs
 
         /// <summary>
         /// Publishes an event to all subscribed handlers in registration order.
+        /// Subscribers are matched strictly by the closed generic type <typeparamref name="TEvent"/>;
+        /// no base-interface fan-out is performed.
         /// All handlers are invoked even if one throws. If any handler throws,
         /// exceptions are collected and re-thrown as an <see cref="AggregateException"/>.
         /// </summary>
@@ -295,7 +271,7 @@ namespace Change.Framework.Cqrs
             var count = handlers.Count;
             if (count == 0) return;
 
-            FastList<Exception> exceptions = null;
+            List<Exception> exceptions = null;
             for (var i = 0; i < count; i++)
             {
                 try
@@ -304,20 +280,14 @@ namespace Change.Framework.Cqrs
                 }
                 catch (Exception ex)
                 {
-                    exceptions ??= new FastList<Exception>();
+                    exceptions ??= new List<Exception>();
                     exceptions.Add(ex);
                 }
             }
 
             if (exceptions != null)
             {
-                var innerExceptions = new Exception[exceptions.Count];
-                for (var i = 0; i < exceptions.Count; i++)
-                {
-                    innerExceptions[i] = exceptions[i];
-                }
-
-                throw new AggregateException(innerExceptions);
+                throw new AggregateException(exceptions);
             }
         }
 
@@ -325,6 +295,11 @@ namespace Change.Framework.Cqrs
         private void ThrowIfNotFrozen()
         {
             if (!_isFrozen) throw new InvalidOperationException("Registry must be frozen before dispatch.");
+        }
+
+        private void ThrowIfFrozen()
+        {
+            if (_isFrozen) throw new RegistryFrozenException("Registry is frozen.");
         }
 
         private static void ThrowIfValueTypeHandler(object handler, string paramName)

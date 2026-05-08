@@ -30,11 +30,11 @@ namespace Change.Framework.Tests
         }
 
         [Test]
-        public void Get_WhenContextNotRegistered_ThrowsHandlerNotRegisteredException()
+        public void Get_WhenContextNotRegistered_ThrowsContextNotRegisteredException()
         {
             var provider = new CqrsContextRuntimeProvider();
 
-            Assert.Throws<HandlerNotRegisteredException>(() => provider.Get("battle"));
+            Assert.Throws<ContextNotRegisteredException>(() => provider.Get("battle"));
         }
 
         [Test]

@@ -4,11 +4,17 @@ namespace Change.Framework.Cqrs
 {
     /// <summary>
     /// Default CQRS bootstrap that owns registration and creates a single runtime instance.
+    /// <para>
+    /// After the first <see cref="Build"/>, subsequent calls return the same
+    /// <see cref="ICqrsRuntime"/> instance. <see cref="Build"/> is safe to call
+    /// concurrently; runtime construction happens at most once.
+    /// </para>
     /// </summary>
     public sealed class CqrsBootstrap : ICqrsBootstrap
     {
         private readonly CqrsBus _bus;
-        private ICqrsRuntime _runtime;
+        private readonly object _buildGate = new();
+        private volatile ICqrsRuntime _runtime;
 
         public CqrsBootstrap()
             : this(new CqrsBus())
@@ -40,14 +46,23 @@ namespace Change.Framework.Cqrs
 
         public ICqrsRuntime Build()
         {
-            if (_runtime != null)
+            var runtime = _runtime;
+            if (runtime != null)
             {
-                return _runtime;
+                return runtime;
             }
 
-            _bus.Freeze();
-            _runtime = new CqrsRuntime(_bus);
-            return _runtime;
+            lock (_buildGate)
+            {
+                if (_runtime != null)
+                {
+                    return _runtime;
+                }
+
+                _bus.Freeze();
+                _runtime = new CqrsRuntime(_bus);
+                return _runtime;
+            }
         }
     }
 }

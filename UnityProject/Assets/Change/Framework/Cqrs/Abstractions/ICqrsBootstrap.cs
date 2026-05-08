@@ -17,7 +17,8 @@ namespace Change.Framework.Cqrs
 
         /// <summary>
         /// Freezes registration and returns the runtime dispatch surface.
-        /// Repeated calls must follow a deterministic implementation-defined behavior.
+        /// Implementations must return the same <see cref="ICqrsRuntime"/> instance on every
+        /// subsequent call and must be safe to invoke concurrently.
         /// </summary>
         ICqrsRuntime Build();
     }

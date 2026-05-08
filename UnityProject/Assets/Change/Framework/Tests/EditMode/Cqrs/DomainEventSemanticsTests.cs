@@ -15,6 +15,10 @@ namespace Change.Framework.Tests
             public int RewardGold { get; }
         }
 
+        private readonly struct ItemPickedUpDomainEvent : IDomainEvent
+        {
+        }
+
         private sealed class DomainEventCounter
         {
             public int TotalRewardGold;
@@ -35,6 +39,16 @@ namespace Change.Framework.Tests
             }
         }
 
+        private sealed class ItemPickedUpHandler : IEventHandler<ItemPickedUpDomainEvent>
+        {
+            public int InvocationCount;
+
+            public void Handle(in ItemPickedUpDomainEvent @event)
+            {
+                InvocationCount++;
+            }
+        }
+
         [Test]
         public void PublishDomainEvent_ThroughRuntime_InvokesDomainEventHandler()
         {
@@ -46,6 +60,24 @@ namespace Change.Framework.Tests
             runtime.Publish(new EnemyDefeatedDomainEvent(15));
 
             Assert.AreEqual(15, counter.TotalRewardGold);
+        }
+
+        [Test]
+        public void PublishDomainEvent_DoesNotFanOutToHandlersOfDifferentDomainEventType()
+        {
+            var counter = new DomainEventCounter();
+            var unrelated = new ItemPickedUpHandler();
+
+            var bootstrap = new CqrsBootstrap();
+            bootstrap.Subscribe(new EnemyDefeatedDomainEventHandler(counter));
+            bootstrap.Subscribe(unrelated);
+            var runtime = bootstrap.Build();
+
+            runtime.Publish(new EnemyDefeatedDomainEvent(7));
+
+            Assert.AreEqual(7, counter.TotalRewardGold);
+            Assert.AreEqual(0, unrelated.InvocationCount,
+                "Publish must match subscribers strictly by closed generic type; unrelated handlers must not be invoked.");
         }
     }
 }

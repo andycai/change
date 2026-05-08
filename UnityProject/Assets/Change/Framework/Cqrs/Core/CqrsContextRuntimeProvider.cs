@@ -37,7 +37,7 @@ namespace Change.Framework.Cqrs
 
             if (!_runtimes.TryGetValue(contextId, out var runtime))
             {
-                throw new HandlerNotRegisteredException($"Runtime not registered for context: {contextId}");
+                throw new ContextNotRegisteredException($"Runtime not registered for context: {contextId}");
             }
 
             return runtime;

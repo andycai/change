@@ -10,6 +10,10 @@ namespace Change.Framework.Tests
         {
         }
 
+        private readonly struct GetMultiResultQuery : IQuery<int>, IQuery<string>
+        {
+        }
+
         private sealed class ScoreState
         {
             public int Value;
@@ -36,6 +40,16 @@ namespace Change.Framework.Tests
             {
                 return 0;
             }
+        }
+
+        private sealed class GetMultiResultIntHandler : IQueryHandler<GetMultiResultQuery, int>
+        {
+            public int Handle(in GetMultiResultQuery query) => 1;
+        }
+
+        private sealed class GetMultiResultStringHandler : IQueryHandler<GetMultiResultQuery, string>
+        {
+            public string Handle(in GetMultiResultQuery query) => "x";
         }
 
         [Test]
@@ -129,6 +143,16 @@ namespace Change.Framework.Tests
             var bus = new CqrsBus();
 
             Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new StructGetScoreQueryHandler()));
+        }
+
+        [Test]
+        public void RegisterQuery_SameQueryType_DifferentResultType_ThrowsDuplicateRegistrationException()
+        {
+            var bus = new CqrsBus();
+            bus.RegisterQuery(new GetMultiResultIntHandler());
+
+            Assert.Throws<DuplicateRegistrationException>(
+                () => bus.RegisterQuery(new GetMultiResultStringHandler()));
         }
     }
 }

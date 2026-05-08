@@ -1,5 +1,7 @@
 using System;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Change.Framework.Cqrs;
 using NUnit.Framework;
 
@@ -145,6 +147,36 @@ namespace Change.Framework.Tests
         public void Runtime_Constructor_WithNullBus_ThrowsArgumentNullException()
         {
             Assert.Throws<ArgumentNullException>(() => new CqrsRuntime(null));
+        }
+
+        [Test]
+        public void Build_FromMultipleThreadsConcurrently_ReturnsSameRuntimeInstance()
+        {
+            const int callerCount = 32;
+            var bootstrap = new CqrsBootstrap();
+            var barrier = new Barrier(callerCount);
+            var results = new ICqrsRuntime[callerCount];
+            var tasks = new Task[callerCount];
+
+            for (var i = 0; i < callerCount; i++)
+            {
+                var index = i;
+                tasks[index] = Task.Run(() =>
+                {
+                    barrier.SignalAndWait();
+                    results[index] = bootstrap.Build();
+                });
+            }
+
+            Task.WaitAll(tasks);
+
+            var first = results[0];
+            Assert.IsNotNull(first);
+            for (var i = 1; i < callerCount; i++)
+            {
+                Assert.AreSame(first, results[i],
+                    "Concurrent Build() must return the same runtime instance to all callers.");
+            }
         }
     }
 }
