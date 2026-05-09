@@ -8,7 +8,8 @@ namespace Change.Framework.UI
     {
         public static readonly WindowId Inventory = new("Inventory");
         public static readonly WindowId Loading = new("Loading");
-        
+        public static readonly WindowId Quest = new("Quest");
+
         // 可以在此处添加更多系统级窗口 ID
     }
 }

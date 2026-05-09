@@ -21,6 +21,7 @@ namespace Change.Runtime.UI
 
         public WindowId Id { get; }
         public WindowLayer Layer { get; }
+        public GComponent Root => _root;
         public WindowState State { get; private set; }
 
         public void SetState(WindowState state)
