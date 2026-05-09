@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root Version="v2025.8.28">
+  <Common ShowPackageView="False" ShowEditorAlias="False" UniqueBundleName="False" />
+  <Package PackageName="DefaultPackage" PackageDesc="" AutoAddressable="True" SupportExtensionless="True" LocationToLower="False" IncludeAssetGUID="False" IgnoreRuleName="NormalIgnoreRule">
+    <Group GroupActiveRule="EnableGroup" GroupName="battle" GroupDesc="战斗" AssetTags="">
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/Effect" CollectGUID="7157b8b26cc794ad2ba571f1395e9f4a" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/Entity" CollectGUID="fd014eb6f400a4c7fbcfc1c5ed2a6920" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/Audio" CollectGUID="a2d3d5e6441784bc89160fcb5e3eb0ad" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/EffectArt" CollectGUID="898b4d632841246bbb9458155c6656af" CollectType="DependAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/EntityArt" CollectGUID="364921ab9c1c24a1488a5aed39f19e93" CollectType="DependAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+    </Group>
+    <Group GroupActiveRule="EnableGroup" GroupName="shader" GroupDesc="着色器" AssetTags="">
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/Shader" CollectGUID="f0103ccaefb0646cab45f898e46ae0b9" CollectType="StaticAssetCollector" AddressRule="AddressByFileName" PackRule="PackShader" FilterRule="CollectShader" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/ShaderVariants" CollectGUID="ec4543289aa124eff99fad50e7408462" CollectType="StaticAssetCollector" AddressRule="AddressByFileName" PackRule="PackShaderVariants" FilterRule="CollectShaderVariants" UserData="" AssetTags="" />
+    </Group>
+    <Group GroupActiveRule="EnableGroup" GroupName="scene" GroupDesc="场景" AssetTags="">
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/Scene" CollectGUID="a7ab49ea0ec75416594f8b47d13820aa" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackSeparately" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/SceneArt" CollectGUID="72573145d3ac94b20a2f58d4709026f8" CollectType="DependAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+    </Group>
+    <Group GroupActiveRule="EnableGroup" GroupName="ugui" GroupDesc="面板" AssetTags="">
+      <Collector CollectPath="Assets/Change/QuestTest/Prefabs" CollectGUID="a9b8c7d6e5f40392817061524354657" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/UIPanel" CollectGUID="adda61276976d40d3981ed8bf7a259d5" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/UIPanelArt" CollectGUID="f0a02e84b6315436e9f4f4d64ec5ec05" CollectType="DependAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/UIFont" CollectGUID="4b298c75302684826814afb6ad127e6c" CollectType="DependAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectAll" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/UISprite" CollectGUID="988e024b4854b40f3ba77e69cc3ede52" CollectType="StaticAssetCollector" AddressRule="AddressByFileName" PackRule="PackDirectory" FilterRule="CollectSprite" UserData="" AssetTags="" />
+      <Collector CollectPath="Assets/Change/YooSpaceShooter/GameRes/UISpriteAtlas" CollectGUID="0993a77ca345f43028ce0ab603b8f595" CollectType="MainAssetCollector" AddressRule="AddressByFileName" PackRule="PackSeparately" FilterRule="CollectAll" UserData="" AssetTags="" />
+    </Group>
+  </Package>
+</root>

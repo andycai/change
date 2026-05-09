@@ -35,7 +35,8 @@ namespace GameScript.Composition
                 new StaticWindowLocationResolver(new Dictionary<string, string>
                 {
                     [WindowIds.Inventory.Value] = "ui/inventory.prefab",
-                    [WindowIds.Quest.Value] = "ui/quest_panel.prefab"
+                    // YooAsset AddressByFileName on Prefabs/quest_panel.prefab → address "quest_panel"
+                    [WindowIds.Quest.Value] = "quest_panel"
                 }), Lifetime.Singleton);
             builder.Register<IWindowFactory, FairyGuiWindowFactory>(Lifetime.Singleton);
             builder.Register<WindowManager>(c => new WindowManager(c.Resolve<IWindowFactory>(), c.Resolve<IWindowPresenterHost>()), Lifetime.Singleton);

@@ -3,6 +3,9 @@
     "rootNamespace": "Change.Runtime",
     "references": [
         "Change.Runtime",
+        "Change.Framework",
+        "GameScript",
+        "FairyGUI",
         "UniTask"
     ],
     "optionalUnityReferences": [

@@ -20,30 +20,48 @@ namespace GameScript.UI.Quest
             _root.GetChild("txtMainProgress").asTextField.text =
                 snap.Main.Completed ? "-" : $"{snap.Main.Progress}/{snap.Main.Target}";
 
-            var listSide = _root.GetChild("listSide").asList;
-            listSide.RemoveChildrenToPool();
-            foreach (var row in snap.Sides)
-            {
-                var item = listSide.AddItemFromPool().asCom;
-                item.GetChild("title").asTextField.text = $"支线 {row.Id}";
-                item.GetChild("progress").asTextField.text = $"{row.Progress}/{row.Target}";
-                item.GetChild("btnClaim").asButton.touchable = row.CanClaim;
-            }
-
-            var listDaily = _root.GetChild("listDaily").asList;
-            listDaily.RemoveChildrenToPool();
-            foreach (var row in snap.Dailies)
-            {
-                var item = listDaily.AddItemFromPool().asCom;
-                item.GetChild("title").asTextField.text = $"日常 {row.Id}";
-                item.GetChild("progress").asTextField.text = $"{row.Progress}/{row.Target}";
-                item.GetChild("btnClaim").asButton.touchable = row.CanClaim;
-            }
+            FillSideList(_root.GetChild("listSide").asList, snap.Sides);
+            FillDailyList(_root.GetChild("listDaily").asList, snap.Dailies);
 
             var tabs = _root.GetController("tabs");
             if (tabs != null)
             {
                 tabs.selectedIndex = model.ActiveTabIndex;
+            }
+        }
+
+        private static void FillSideList(GList list, System.Collections.Generic.IReadOnlyList<SideQuestVm> rows)
+        {
+            ClearList(list);
+            foreach (var row in rows)
+            {
+                var item = QuestUiRootBuilder.BuildQuestRowItem();
+                list.AddChild(item);
+                item.GetChild("title").asTextField.text = $"支线 {row.Id}";
+                item.GetChild("progress").asTextField.text = $"{row.Progress}/{row.Target}";
+                item.GetChild("btnClaim").asButton.touchable = row.CanClaim;
+            }
+        }
+
+        private static void FillDailyList(GList list, System.Collections.Generic.IReadOnlyList<DailyQuestVm> rows)
+        {
+            ClearList(list);
+            foreach (var row in rows)
+            {
+                var item = QuestUiRootBuilder.BuildQuestRowItem();
+                list.AddChild(item);
+                item.GetChild("title").asTextField.text = $"日常 {row.Id}";
+                item.GetChild("progress").asTextField.text = $"{row.Progress}/{row.Target}";
+                item.GetChild("btnClaim").asButton.touchable = row.CanClaim;
+            }
+        }
+
+        private static void ClearList(GList list)
+        {
+            for (var i = list.numChildren - 1; i >= 0; i--)
+            {
+                var child = list.GetChildAt(i);
+                list.RemoveChild(child, true);
             }
         }
     }

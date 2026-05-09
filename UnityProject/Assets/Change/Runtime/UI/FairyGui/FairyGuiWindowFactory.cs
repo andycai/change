@@ -27,15 +27,24 @@ namespace Change.Runtime.UI
             var lease = await _loader.LoadPrefabAsync(request.Id, location, cancellationToken);
 
             UIPanel panel = lease.Instance?.GetComponent<UIPanel>();
+            IFairyGuiWindowRootSource rootSource = lease.Instance?.GetComponent<IFairyGuiWindowRootSource>();
 
-            GComponent root;
-            if (panel == null || panel.ui == null)
+            GComponent root = null;
+            if (panel != null && panel.ui != null)
             {
-                DisposeLeaseNoThrow(lease);
-                throw new InvalidOperationException($"UIPanel or GComponent (panel.ui) missing on window prefab at: {location}. Ensure the prefab has a UIPanel component and it is correctly initialized.");
+                root = panel.ui;
+            }
+            else if (rootSource != null)
+            {
+                root = rootSource.GetWindowRoot();
             }
 
-            root = panel.ui;
+            if (root == null)
+            {
+                DisposeLeaseNoThrow(lease);
+                throw new InvalidOperationException(
+                    $"No FairyGUI root on window prefab at: {location}. Add a {nameof(UIPanel)} with valid package/component, or implement {nameof(IFairyGuiWindowRootSource)} on the prefab root.");
+            }
 
             return new FairyGuiWindowView(request.Id, request.Options.Layer, root, lease);
         }
