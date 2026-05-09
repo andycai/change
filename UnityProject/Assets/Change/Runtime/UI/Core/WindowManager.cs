@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
+using Change.Framework.Application;
 using Change.Framework.UI;
+using Cysharp.Threading.Tasks;
 
 namespace Change.Runtime.UI
 {
@@ -24,18 +25,35 @@ namespace Change.Runtime.UI
         }
 
         private readonly IWindowFactory _factory;
+        private readonly IWindowPresenterHost _host;
         private readonly object _gate = new();
-        private readonly Dictionary<WindowRequest, IWindowView> _opened = new();
+        private readonly Dictionary<WindowRequest, OpenedWindowEntry> _opened = new();
         private readonly Dictionary<WindowRequest, InflightEntry> _inflight = new();
 
         public WindowManager(IWindowFactory factory)
+            : this(factory, NullWindowPresenterHost.Instance)
+        {
+        }
+
+        public WindowManager(IWindowFactory factory, IWindowPresenterHost host)
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            _host = host ?? throw new ArgumentNullException(nameof(host));
         }
 
         public bool TryGet(in WindowRequest request, out IWindowView view)
         {
-            return _opened.TryGetValue(request, out view);
+            lock (_gate)
+            {
+                if (_opened.TryGetValue(request, out var entry))
+                {
+                    view = entry.View;
+                    return true;
+                }
+            }
+
+            view = null;
+            return false;
         }
 
         public UniTask<IWindowView> OpenAsync(in WindowRequest request, CancellationToken cancellationToken)
@@ -48,13 +66,14 @@ namespace Change.Runtime.UI
         {
             InflightEntry entry = null;
             IWindowView existing = null;
-            IWindowView toDispose = null;
+            OpenedWindowEntry toDisposeEntry = null;
             var shouldStartCreate = false;
 
             lock (_gate)
             {
-                if (request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out existing))
+                if (request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out var reuseEntry))
                 {
+                    existing = reuseEntry.View;
                 }
                 else if (_inflight.TryGetValue(request, out entry))
                 {
@@ -72,7 +91,7 @@ namespace Change.Runtime.UI
 
                 if (entry == null && existing == null)
                 {
-                    if (!request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out toDispose))
+                    if (!request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out toDisposeEntry))
                     {
                         _opened.Remove(request);
                     }
@@ -93,7 +112,10 @@ namespace Change.Runtime.UI
                 return existing;
             }
 
-            toDispose?.Dispose();
+            if (toDisposeEntry != null)
+            {
+                DisposeOpenedEntryWithHost(in request, toDisposeEntry);
+            }
 
             if (shouldStartCreate)
             {
@@ -105,10 +127,10 @@ namespace Change.Runtime.UI
 
         public bool Close(in WindowRequest request)
         {
-            IWindowView window;
+            OpenedWindowEntry entry;
             lock (_gate)
             {
-                if (!_opened.TryGetValue(request, out window))
+                if (!_opened.TryGetValue(request, out entry))
                 {
                     return false;
                 }
@@ -116,9 +138,21 @@ namespace Change.Runtime.UI
                 _opened.Remove(request);
             }
 
-            window.SetState(WindowState.Closing);
-            window.Dispose();
+            entry.Presenter?.OnClose();
+            entry.WindowScope?.Dispose();
+            _host.OnClosing(in request, entry.View, entry.Presenter, entry.WindowScope);
+            entry.View.SetState(WindowState.Closing);
+            entry.View.Dispose();
             return true;
+        }
+
+        private void DisposeOpenedEntryWithHost(in WindowRequest request, OpenedWindowEntry entry)
+        {
+            entry.Presenter?.OnClose();
+            entry.WindowScope?.Dispose();
+            _host.OnClosing(in request, entry.View, entry.Presenter, entry.WindowScope);
+            entry.View.SetState(WindowState.Closing);
+            entry.View.Dispose();
         }
 
         private async UniTaskVoid CreateAndCacheAsync(WindowRequest request, InflightEntry entry)
@@ -126,19 +160,18 @@ namespace Change.Runtime.UI
             try
             {
                 var created = await _factory.CreateAsync(in request, entry.Cancellation.Token);
-                IWindowView replaced = null;
+                OpenedWindowEntry replacedEntry = null;
                 var shouldSetVisible = false;
                 lock (_gate)
                 {
                     var isCurrentEntry = _inflight.TryGetValue(request, out var currentEntry) && ReferenceEquals(currentEntry, entry);
                     if (isCurrentEntry && !entry.Cancellation.IsCancellationRequested)
                     {
-                        if (_opened.TryGetValue(request, out replaced))
+                        if (_opened.TryGetValue(request, out replacedEntry))
                         {
                             _opened.Remove(request);
                         }
 
-                        _opened[request] = created;
                         shouldSetVisible = true;
                     }
 
@@ -157,7 +190,19 @@ namespace Change.Runtime.UI
                 }
 
                 created.SetVisible(true);
-                replaced?.Dispose();
+                if (replacedEntry != null)
+                {
+                    DisposeOpenedEntryWithHost(in request, replacedEntry);
+                }
+
+                _host.OnOpened(in request, created, out var windowScope, out var presenter);
+                presenter?.OnOpen();
+
+                lock (_gate)
+                {
+                    _opened[request] = new OpenedWindowEntry(created, presenter, windowScope);
+                }
+
                 entry.Completion.TrySetResult(created);
             }
             catch (OperationCanceledException) when (entry.Cancellation.IsCancellationRequested)
