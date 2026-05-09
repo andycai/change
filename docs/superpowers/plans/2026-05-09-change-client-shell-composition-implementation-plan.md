@@ -25,8 +25,8 @@
 ### Packages / asmdef
 
 - Modify: `UnityProject/Packages/manifest.json`（如缺少则添加 `"jp.hadashikick.vcontainer": "file:jp.hadashikick.vcontainer"`，与 `packages-lock.json` 一致）
-- Modify: `UnityProject/Assets/Change/Runtime/Change.Runtime.asmdef`（添加 `jp.hadashikick.vcontainer` 引用）
-- Modify: `UnityProject/Assets/Change/Runtime/Tests/EditMode/Change.Runtime.EditModeTests.asmdef`（添加 `jp.hadashikick.vcontainer`）
+- Modify: `UnityProject/Assets/Change/Runtime/Change.Runtime.asmdef`（添加 `VContainer` 程序集引用）
+- Modify: `UnityProject/Assets/Change/Runtime/Tests/EditMode/Change.Runtime.EditModeTests.asmdef`（添加 `VContainer`）
 
 ### Runtime — 网络通道（双通道 A）
 
@@ -85,7 +85,7 @@
 
 - [ ] **Step 2: 更新 `Change.Runtime.asmdef` 的 `references`**
 
-追加字符串：`"jp.hadashikick.vcontainer"`。
+追加字符串：`"VContainer"`（UPM 包 id 为 `jp.hadashikick.vcontainer`，但 **`.asmdef` 的 `references` 必须使用程序集名**，与 `Packages/jp.hadashikick.vcontainer/Runtime/VContainer.asmdef` 的 `name` 一致）。
 
 完整示例：
 
@@ -98,7 +98,7 @@
         "UniTask",
         "YooAsset",
         "FairyGUI",
-        "jp.hadashikick.vcontainer"
+        "VContainer"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
@@ -108,7 +108,7 @@
 
 - [ ] **Step 3: 更新 `Change.Runtime.EditModeTests.asmdef`**
 
-在 `references` 中追加：`"jp.hadashikick.vcontainer"`。
+在 `references` 中追加：`"VContainer"`。
 
 - [ ] **Step 4: Commit**
 
