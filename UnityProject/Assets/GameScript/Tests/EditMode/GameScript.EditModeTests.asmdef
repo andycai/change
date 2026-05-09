@@ -9,9 +9,5 @@
   ],
   "includePlatforms": [
     "Editor"
-  ],
-  "optionalUnityReferences": [
-    "UnityEngine.TestRunner",
-    "UnityEditor.TestRunner"
   ]
 }
