@@ -245,6 +245,12 @@
       "dependencies": {},
       "hash": "ce0d235b50a8f89036133f7cb8143f097621fb2f"
     },
+    "jp.hadashikick.vcontainer": {
+      "version": "file:jp.hadashikick.vcontainer",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.modules.ai": {
       "version": "1.0.0",
       "depth": 0,
