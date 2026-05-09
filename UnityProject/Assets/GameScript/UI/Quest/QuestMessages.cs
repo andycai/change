@@ -70,4 +70,62 @@ namespace GameScript.UI.Quest
         public bool CanClaim { get; }
         public bool Claimed { get; }
     }
+
+    public readonly struct BumpMainQuestProgressCommand : ICommand
+    {
+        public BumpMainQuestProgressCommand(int delta)
+        {
+            Delta = delta;
+        }
+
+        public int Delta { get; }
+    }
+
+    public readonly struct AdvanceMainQuestStepCommand : ICommand
+    {
+    }
+
+    public readonly struct ClaimSideQuestRewardCommand : ICommand
+    {
+        public ClaimSideQuestRewardCommand(int sideId)
+        {
+            SideId = sideId;
+        }
+
+        public int SideId { get; }
+    }
+
+    public readonly struct ClaimDailyQuestRewardCommand : ICommand
+    {
+        public ClaimDailyQuestRewardCommand(int dailyId)
+        {
+            DailyId = dailyId;
+        }
+
+        public int DailyId { get; }
+    }
+
+    public readonly struct BumpSideQuestProgressCommand : ICommand
+    {
+        public BumpSideQuestProgressCommand(int sideId, int delta)
+        {
+            SideId = sideId;
+            Delta = delta;
+        }
+
+        public int SideId { get; }
+        public int Delta { get; }
+    }
+
+    public readonly struct BumpDailyQuestProgressCommand : ICommand
+    {
+        public BumpDailyQuestProgressCommand(int dailyId, int delta)
+        {
+            DailyId = dailyId;
+            Delta = delta;
+        }
+
+        public int DailyId { get; }
+        public int Delta { get; }
+    }
 }
