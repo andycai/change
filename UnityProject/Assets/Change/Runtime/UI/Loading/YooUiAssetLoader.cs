@@ -61,6 +61,12 @@ namespace Change.Runtime.UI
             _package = package ?? throw new ArgumentNullException(nameof(package));
         }
 
+        public static IUiAssetLoader FromResourcePackage(ResourcePackage package)
+        {
+            if (package == null) throw new ArgumentNullException(nameof(package));
+            return new YooUiAssetLoader(new YooAssetPackageAdapter(package));
+        }
+
         public async UniTask<UiAssetLease> LoadPrefabAsync(WindowId windowId, string location, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(location))

@@ -1,3 +1,7 @@
+using Change.Framework.UI;
+using Change.Runtime.UI;
+using Cysharp.Threading.Tasks;
+using GameScript.Composition;
 using GameScript.GameFlow.Orchestration;
 using GameScript.GameFlow.BattleFlow;
 using UnityEngine;
@@ -8,6 +12,7 @@ namespace GameScript.GameFlow.Entry
     {
         [SerializeField] private int _demoPlayerId = 1001;
         [SerializeField] private int _demoMatchId = 2002;
+        [SerializeField] private GameHotfixRootScope _hotfixScope;
 
         private GameFlowOrchestrator _orchestrator;
 
@@ -69,6 +74,13 @@ namespace GameScript.GameFlow.Entry
             if (Input.GetKeyDown(KeyCode.Alpha0))
             {
                 TriggerResultConfirm();
+            }
+
+            if (Input.GetKeyDown(KeyCode.F4) && _hotfixScope != null && _hotfixScope.Container != null)
+            {
+                var wm = _hotfixScope.Container.Resolve<WindowManager>();
+                var request = new WindowRequest(WindowIds.Quest, WindowOpenOptions.Default);
+                wm.OpenAsync(in request, this.GetCancellationTokenOnDestroy()).Forget();
             }
         }
 
