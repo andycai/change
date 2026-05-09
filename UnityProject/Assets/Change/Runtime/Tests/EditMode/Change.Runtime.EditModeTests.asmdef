@@ -4,6 +4,7 @@
     "references": [
         "Change.Runtime",
         "Change.Framework",
+        "GameScript",
         "UniTask",
         "VContainer"
     ],

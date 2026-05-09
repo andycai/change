@@ -12,6 +12,10 @@ namespace Change.Runtime.UI.Tests
         private const string OpenInventoryUseCaseTypeName = "GameScript.UI.Inventory.OpenInventoryUseCase";
         private const string OpenInventoryUseCaseContractTypeName = "GameScript.UI.Inventory.IOpenInventoryUseCase";
 
+        private const string QuestWindowPresenterTypeName = "GameScript.UI.Quest.QuestWindowPresenter";
+        private const string OpenQuestPanelUseCaseTypeName = "GameScript.UI.Quest.OpenQuestPanelUseCase";
+        private const string OpenQuestPanelUseCaseContractTypeName = "GameScript.UI.Quest.IOpenQuestPanelUseCase";
+
         [Test]
         public void InventoryWindowPresenter_TypeExists_InLoadedAssemblies()
         {
@@ -62,6 +66,58 @@ namespace Change.Runtime.UI.Tests
             Assert.IsTrue(
                 constructorParameterTypes.Any(x => x == typeof(ICqrsBus)),
                 $"Type `{OpenInventoryUseCaseTypeName}` must depend on `{typeof(ICqrsBus).FullName}`.");
+        }
+
+        [Test]
+        public void QuestWindowPresenter_TypeExists_InLoadedAssemblies()
+        {
+            var type = ResolveType(QuestWindowPresenterTypeName);
+            Assert.IsNotNull(type, $"Type `{QuestWindowPresenterTypeName}` was not found in loaded assemblies.");
+        }
+
+        [Test]
+        public void OpenQuestPanelUseCase_TypeExists_InLoadedAssemblies()
+        {
+            var type = ResolveType(OpenQuestPanelUseCaseTypeName);
+            Assert.IsNotNull(type, $"Type `{OpenQuestPanelUseCaseTypeName}` was not found in loaded assemblies.");
+        }
+
+        [Test]
+        public void QuestWindowPresenter_DependsOnOpenQuestPanelUseCase_AndNotDirectlyOnBus()
+        {
+            var presenterType = RequireType(QuestWindowPresenterTypeName);
+            var useCaseContractType = RequireType(OpenQuestPanelUseCaseContractTypeName);
+            var constructorParameterTypes = presenterType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+                .SelectMany(x => x.GetParameters())
+                .Select(x => x.ParameterType)
+                .ToArray();
+            var fieldTypes = presenterType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Select(x => x.FieldType)
+                .ToArray();
+
+            Assert.IsTrue(
+                constructorParameterTypes.Any(x => useCaseContractType.IsAssignableFrom(x)),
+                $"Type `{QuestWindowPresenterTypeName}` must depend on `{OpenQuestPanelUseCaseContractTypeName}`.");
+            Assert.IsFalse(
+                constructorParameterTypes.Any(x => x == typeof(ICqrsBus)),
+                $"Type `{QuestWindowPresenterTypeName}` must not depend directly on `{typeof(ICqrsBus).FullName}` constructor parameters.");
+            Assert.IsFalse(
+                fieldTypes.Any(x => x == typeof(ICqrsBus)),
+                $"Type `{QuestWindowPresenterTypeName}` must not depend directly on `{typeof(ICqrsBus).FullName}` fields.");
+        }
+
+        [Test]
+        public void OpenQuestPanelUseCase_DependsOnCqrsBus()
+        {
+            var useCaseType = RequireType(OpenQuestPanelUseCaseTypeName);
+            var constructorParameterTypes = useCaseType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+                .SelectMany(x => x.GetParameters())
+                .Select(x => x.ParameterType)
+                .ToArray();
+
+            Assert.IsTrue(
+                constructorParameterTypes.Any(x => x == typeof(ICqrsBus)),
+                $"Type `{OpenQuestPanelUseCaseTypeName}` must depend on `{typeof(ICqrsBus).FullName}`.");
         }
 
         private static Type ResolveType(string fullName)
