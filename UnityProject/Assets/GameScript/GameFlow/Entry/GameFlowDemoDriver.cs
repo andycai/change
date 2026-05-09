@@ -5,6 +5,7 @@ using GameScript.Composition;
 using GameScript.GameFlow.Orchestration;
 using GameScript.GameFlow.BattleFlow;
 using UnityEngine;
+using VContainer;
 
 namespace GameScript.GameFlow.Entry
 {
