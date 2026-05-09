@@ -5,7 +5,8 @@
         "Change.Framework",
         "UniTask",
         "YooAsset",
-        "FairyGUI"
+        "FairyGUI",
+        "VContainer"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],

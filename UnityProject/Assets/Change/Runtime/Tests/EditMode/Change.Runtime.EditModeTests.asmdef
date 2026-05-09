@@ -4,7 +4,8 @@
     "references": [
         "Change.Runtime",
         "Change.Framework",
-        "UniTask"
+        "UniTask",
+        "VContainer"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",
