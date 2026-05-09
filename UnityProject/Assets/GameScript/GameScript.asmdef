@@ -1,0 +1,21 @@
+{
+  "name": "GameScript",
+  "rootNamespace": "GameScript",
+  "references": [
+    "Change.Framework",
+    "Change.Runtime",
+    "FairyGUI",
+    "UniTask",
+    "VContainer",
+    "YooAsset"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
