@@ -1,0 +1,17 @@
+{
+  "name": "GameScript.EditModeTests",
+  "rootNamespace": "GameScript.Tests",
+  "references": [
+    "GameScript",
+    "Change.Framework",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ]
+}
