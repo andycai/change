@@ -2,7 +2,8 @@ namespace Change.Framework.Cqrs
 {
     /// <summary>
     /// Mutable registration surface for CQRS handlers.
-    /// Registration is valid only before <see cref="Freeze"/>.
+    /// Registration and unregistration may be called at any time on the main thread.
+    /// Thread safety is the caller's responsibility.
     /// </summary>
     public interface ICqrsRegistry
     {
@@ -15,6 +16,13 @@ namespace Change.Framework.Cqrs
         void Subscribe<TEvent>(IEventHandler<TEvent> handler)
             where TEvent : struct, IEvent;
 
-        void Freeze();
+        void UnregisterCommand<TCommand>()
+            where TCommand : struct, ICommand;
+
+        void UnregisterQuery<TQuery, TResult>()
+            where TQuery : struct, IQuery<TResult>;
+
+        void Unsubscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent;
     }
 }
