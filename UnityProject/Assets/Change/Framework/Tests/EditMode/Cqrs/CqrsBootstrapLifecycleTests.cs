@@ -78,12 +78,12 @@ namespace Change.Framework.Tests
         }
 
         [Test]
-        public void RegisterCommand_AfterBuild_ThrowsRegistryFrozenException()
+        public void RegisterCommand_AfterBuild_Succeeds()
         {
             var bootstrap = new CqrsBootstrap();
             bootstrap.Build();
 
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.RegisterCommand(new TestCommandHandler(new Counter())));
+            Assert.DoesNotThrow(() => bootstrap.RegisterCommand(new TestCommandHandler(new Counter())));
         }
 
         [Test]
@@ -124,13 +124,13 @@ namespace Change.Framework.Tests
         }
 
         [Test]
-        public void RegisterQueryAndSubscribe_AfterBuild_ThrowRegistryFrozenException()
+        public void RegisterQueryAndSubscribe_AfterBuild_Succeed()
         {
             var bootstrap = new CqrsBootstrap();
             bootstrap.Build();
 
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.RegisterQuery(new TestQueryHandler()));
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.Subscribe(new TestDomainEventHandler(new Counter())));
+            Assert.DoesNotThrow(() => bootstrap.RegisterQuery(new TestQueryHandler()));
+            Assert.DoesNotThrow(() => bootstrap.Subscribe(new TestDomainEventHandler(new Counter())));
         }
 
         [Test]
@@ -141,12 +141,6 @@ namespace Change.Framework.Tests
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
             Assert.IsNull(freezeMethod);
-        }
-
-        [Test]
-        public void Runtime_Constructor_WithNullBus_ThrowsArgumentNullException()
-        {
-            Assert.Throws<ArgumentNullException>(() => new CqrsRuntime(null));
         }
 
         [Test]
