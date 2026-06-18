@@ -7,11 +7,11 @@ using Change.Framework.Logging;
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// In-process CQRS bus with explicit registration and freeze lifecycle.
-    /// Handlers may be registered from multiple threads before <see cref="Freeze"/>.
-    /// Dispatch is allowed only after <see cref="Freeze"/>.
+    /// In-process CQRS bus implementing registration, dispatch, and runtime surfaces.
+    /// Supports runtime registration and unregistration on the main thread.
+    /// Thread safety for registration is the caller's responsibility.
     /// </summary>
-    public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
+    public sealed class CqrsBus : ICqrsBus, ICqrsRegistry, ICqrsRuntime
     {
         private const string CommandRegisteredMessage = "Registered command handler.";
         private const string QueryRegisteredMessage = "Registered query handler.";

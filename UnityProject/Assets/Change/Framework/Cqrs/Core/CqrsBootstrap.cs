@@ -3,11 +3,11 @@ using System;
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Default CQRS bootstrap that owns registration and creates a single runtime instance.
+    /// Default CQRS bootstrap that owns registration and exposes the bus as a runtime.
     /// <para>
     /// After the first <see cref="Build"/>, subsequent calls return the same
-    /// <see cref="ICqrsRuntime"/> instance. <see cref="Build"/> is safe to call
-    /// concurrently; runtime construction happens at most once.
+    /// <see cref="ICqrsRuntime"/> instance (the underlying CqrsBus directly).
+    /// Registration and dispatch are both available through the returned bus.
     /// </para>
     /// </summary>
     public sealed class CqrsBootstrap : ICqrsBootstrap
@@ -59,8 +59,7 @@ namespace Change.Framework.Cqrs
                     return _runtime;
                 }
 
-                _bus.Freeze();
-                _runtime = new CqrsRuntime(_bus);
+                _runtime = _bus;
                 return _runtime;
             }
         }
