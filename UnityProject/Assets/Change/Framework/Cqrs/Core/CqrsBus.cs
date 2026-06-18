@@ -91,14 +91,7 @@ namespace Change.Framework.Cqrs
         private readonly FastDictionary<QueryKey, IQueryHandlerRegistration> _queryHandlers = new();
         private readonly FastDictionary<Type, Type> _queryResultByQueryType = new();
         private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
-        private readonly object _registrationGate = new();
         private readonly ILogger _logger;
-        private volatile bool _isFrozen;
-
-        /// <summary>
-        /// Gets whether the registry is frozen and ready for dispatch.
-        /// </summary>
-        public bool IsFrozen => _isFrozen;
 
         public CqrsBus()
             : this(NullLogger.Instance)
@@ -113,21 +106,16 @@ namespace Change.Framework.Cqrs
         public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
             where TCommand : struct, ICommand
         {
-            lock (_registrationGate)
+            if (handler == null)
             {
-                ThrowIfFrozen();
+                throw new ArgumentNullException(nameof(handler));
+            }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
 
-                if (handler == null)
-                {
-                    throw new ArgumentNullException(nameof(handler));
-                }
-                ThrowIfValueTypeHandler(handler, nameof(handler));
-
-                var commandType = typeof(TCommand);
-                if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
-                {
-                    throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
-                }
+            var commandType = typeof(TCommand);
+            if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
+            {
+                throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
             }
 
             SafeInfo(CommandRegisteredMessage);
@@ -136,36 +124,31 @@ namespace Change.Framework.Cqrs
         public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
             where TQuery : struct, IQuery<TResult>
         {
-            lock (_registrationGate)
+            if (handler == null)
             {
-                ThrowIfFrozen();
-
-                if (handler == null)
-                {
-                    throw new ArgumentNullException(nameof(handler));
-                }
-                ThrowIfValueTypeHandler(handler, nameof(handler));
-
-                var queryType = typeof(TQuery);
-                var resultType = typeof(TResult);
-
-                if (_queryResultByQueryType.TryGetValue(queryType, out var existingResultType))
-                {
-                    if (existingResultType == resultType)
-                    {
-                        throw new DuplicateRegistrationException(
-                            $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
-                    }
-
-                    throw new DuplicateRegistrationException(
-                        $"Query type already registered with a different result: {queryType.FullName} -> {existingResultType.FullName}; " +
-                        $"each query supports exactly one handler.");
-                }
-
-                var queryKey = new QueryKey(queryType, resultType);
-                _queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler));
-                _queryResultByQueryType.TryAdd(queryType, resultType);
+                throw new ArgumentNullException(nameof(handler));
             }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            var queryType = typeof(TQuery);
+            var resultType = typeof(TResult);
+
+            if (_queryResultByQueryType.TryGetValue(queryType, out var existingResultType))
+            {
+                if (existingResultType == resultType)
+                {
+                    throw new DuplicateRegistrationException(
+                        $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
+                }
+
+                throw new DuplicateRegistrationException(
+                    $"Query type already registered with a different result: {queryType.FullName} -> {existingResultType.FullName}; " +
+                    $"each query supports exactly one handler.");
+            }
+
+            var queryKey = new QueryKey(queryType, resultType);
+            _queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler));
+            _queryResultByQueryType.TryAdd(queryType, resultType);
 
             SafeInfo(QueryRegisteredMessage);
         }
@@ -173,35 +156,70 @@ namespace Change.Framework.Cqrs
         public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
             where TEvent : struct, IEvent
         {
-            lock (_registrationGate)
+            if (handler == null)
             {
-                ThrowIfFrozen();
-
-                if (handler == null)
-                {
-                    throw new ArgumentNullException(nameof(handler));
-                }
-                ThrowIfValueTypeHandler(handler, nameof(handler));
-
-                var eventType = typeof(TEvent);
-                if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
-                {
-                    handlerList = new EventHandlerList<TEvent>();
-                    _eventHandlers.TryAdd(eventType, handlerList);
-                }
-
-                var typedList = (EventHandlerList<TEvent>)handlerList;
-                typedList.Handlers.Add(handler);
+                throw new ArgumentNullException(nameof(handler));
             }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                handlerList = new EventHandlerList<TEvent>();
+                _eventHandlers.TryAdd(eventType, handlerList);
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            typedList.Handlers.Add(handler);
 
             SafeInfo(EventSubscribedMessage);
         }
 
-        public void Freeze()
+        public void UnregisterCommand<TCommand>()
+            where TCommand : struct, ICommand
         {
-            lock (_registrationGate)
+            var commandType = typeof(TCommand);
+            if (!_commandHandlers.Remove(commandType))
             {
-                _isFrozen = true;
+                throw new HandlerNotRegisteredException($"Command handler not registered: {commandType.FullName}");
+            }
+        }
+
+        public void UnregisterQuery<TQuery, TResult>()
+            where TQuery : struct, IQuery<TResult>
+        {
+            var queryType = typeof(TQuery);
+            var resultType = typeof(TResult);
+            var queryKey = new QueryKey(queryType, resultType);
+
+            if (!_queryHandlers.Remove(queryKey))
+            {
+                throw new HandlerNotRegisteredException(
+                    $"Query handler not registered: {queryType.FullName} -> {resultType.FullName}");
+            }
+
+            _queryResultByQueryType.Remove(queryType);
+        }
+
+        public void Unsubscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                return;
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            var index = typedList.Handlers.IndexOf(handler);
+            if (index >= 0)
+            {
+                typedList.Handlers.RemoveAt(index);
             }
         }
 
@@ -209,8 +227,6 @@ namespace Change.Framework.Cqrs
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
-            ThrowIfNotFrozen();
-
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryGetValue(commandType, out var registration))
             {
@@ -225,8 +241,6 @@ namespace Change.Framework.Cqrs
         public TResult Query<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
-            ThrowIfNotFrozen();
-
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
             var queryKey = new QueryKey(queryType, resultType);
@@ -258,8 +272,6 @@ namespace Change.Framework.Cqrs
         public void Publish<TEvent>(in TEvent @event)
             where TEvent : struct, IEvent
         {
-            ThrowIfNotFrozen();
-
             var eventType = typeof(TEvent);
             if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
             {
@@ -289,17 +301,6 @@ namespace Change.Framework.Cqrs
             {
                 throw new AggregateException(exceptions);
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ThrowIfNotFrozen()
-        {
-            if (!_isFrozen) throw new InvalidOperationException("Registry must be frozen before dispatch.");
-        }
-
-        private void ThrowIfFrozen()
-        {
-            if (_isFrozen) throw new RegistryFrozenException("Registry is frozen.");
         }
 
         private static void ThrowIfValueTypeHandler(object handler, string paramName)
