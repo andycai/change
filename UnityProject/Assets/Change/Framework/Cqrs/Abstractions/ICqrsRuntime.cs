@@ -16,7 +16,7 @@ namespace Change.Framework.Cqrs
         TResult Ask<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>;
 
-        void Publish<TDomainEvent>(in TDomainEvent domainEvent)
-            where TDomainEvent : struct, IDomainEvent;
+        void Publish<TEvent>(in TEvent @event)
+            where TEvent : struct, IEvent;
     }
 }
