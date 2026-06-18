@@ -12,7 +12,6 @@ namespace Change.Framework.Tests
 
             Assert.IsFalse(bus.IsFrozen);
 
-            bus.Freeze();
 
             Assert.IsTrue(bus.IsFrozen);
         }

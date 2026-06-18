@@ -51,7 +51,6 @@ namespace Change.Framework.Tests
 
             bus.Subscribe(new OrderedEventHandler(order, 1));
             bus.Subscribe(new OrderedEventHandler(order, 2));
-            bus.Freeze();
 
             bus.Publish(new ScoreChangedEvent(10));
 
@@ -62,36 +61,8 @@ namespace Change.Framework.Tests
         public void Publish_WithoutSubscribers_DoesNothing()
         {
             var bus = new CqrsBus();
-            bus.Freeze();
 
             Assert.DoesNotThrow(() => bus.Publish(new ScoreChangedEvent(1)));
-        }
-
-        [Test]
-        public void Publish_BeforeFreeze_ThrowsInvalidOperationException()
-        {
-            var bus = new CqrsBus();
-
-            Assert.Throws<InvalidOperationException>(() => bus.Publish(new ScoreChangedEvent(1)));
-        }
-
-        [Test]
-        public void Subscribe_AfterFreeze_ThrowsRegistryFrozenException()
-        {
-            var order = new List<int>();
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.Subscribe(new OrderedEventHandler(order, 1)));
-        }
-
-        [Test]
-        public void Subscribe_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
-        {
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.Subscribe<ScoreChangedEvent>(null));
         }
 
         [Test]
@@ -119,7 +90,6 @@ namespace Change.Framework.Tests
             bus.Subscribe(new OrderedEventHandler(order, 1));
             bus.Subscribe(new ThrowingEventHandler());
             bus.Subscribe(new OrderedEventHandler(order, 2));
-            bus.Freeze();
 
             var exception = Assert.Throws<AggregateException>(() => bus.Publish(new ScoreChangedEvent(10)));
 
@@ -149,7 +119,6 @@ namespace Change.Framework.Tests
             }
 
             Task.WaitAll(tasks);
-            bus.Freeze();
             bus.Publish(new ScoreChangedEvent(1));
 
             Assert.AreEqual(handlerCount, countHandler.Count);

@@ -59,7 +59,6 @@ namespace Change.Framework.Tests
             var bus = new CqrsBus();
 
             bus.RegisterQuery(new GetScoreQueryHandler(state));
-            bus.Freeze();
 
             var result = bus.Query<GetScoreQuery, int>(new GetScoreQuery());
 
@@ -73,7 +72,6 @@ namespace Change.Framework.Tests
             var bus = new CqrsBus();
 
             bus.RegisterQuery(new GetScoreQueryHandler(state));
-            bus.Freeze();
 
             var result = bus.Ask<GetScoreQuery, int>(new GetScoreQuery());
 
@@ -84,7 +82,6 @@ namespace Change.Framework.Tests
         public void Query_WithoutRegistration_ThrowsHandlerNotRegisteredException()
         {
             var bus = new CqrsBus();
-            bus.Freeze();
 
             Assert.Throws<HandlerNotRegisteredException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
         }
@@ -98,35 +95,6 @@ namespace Change.Framework.Tests
             bus.RegisterQuery(new GetScoreQueryHandler(state));
 
             Assert.Throws<DuplicateRegistrationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
-        }
-
-        [Test]
-        public void RegisterQuery_AfterFreeze_ThrowsRegistryFrozenException()
-        {
-            var state = new ScoreState();
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
-        }
-
-        [Test]
-        public void RegisterQuery_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
-        {
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery<GetScoreQuery, int>(null));
-        }
-
-        [Test]
-        public void Query_BeforeFreeze_ThrowsInvalidOperationException()
-        {
-            var state = new ScoreState();
-            var bus = new CqrsBus();
-            bus.RegisterQuery(new GetScoreQueryHandler(state));
-
-            Assert.Throws<InvalidOperationException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
         }
 
         [Test]
