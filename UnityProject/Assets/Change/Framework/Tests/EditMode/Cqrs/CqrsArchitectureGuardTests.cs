@@ -216,7 +216,7 @@ namespace Change.Framework.Tests
                     continue;
                 }
 
-                if (@interface.GetGenericTypeDefinition() == typeof(IDomainEventHandler<>))
+                if (@interface.GetGenericTypeDefinition() == typeof(IEventHandler<>))
                 {
                     return true;
                 }

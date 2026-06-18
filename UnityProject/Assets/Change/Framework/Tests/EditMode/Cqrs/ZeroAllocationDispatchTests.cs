@@ -23,7 +23,7 @@ namespace Change.Framework.Tests
         {
         }
 
-        private readonly struct TickDomainEvent : IDomainEvent
+        private readonly struct TickDomainEvent : IEvent
         {
             public TickDomainEvent(int delta)
             {
@@ -68,7 +68,7 @@ namespace Change.Framework.Tests
             }
         }
 
-        private sealed class TickDomainEventHandler : IDomainEventHandler<TickDomainEvent>
+        private sealed class TickDomainEventHandler : IEventHandler<TickDomainEvent>
         {
             public int Count;
 

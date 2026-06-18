@@ -17,7 +17,7 @@ namespace Change.Framework.Tests
         {
         }
 
-        private readonly struct TestDomainEvent : IDomainEvent
+        private readonly struct TestDomainEvent : IEvent
         {
         }
 
@@ -44,7 +44,7 @@ namespace Change.Framework.Tests
             }
         }
 
-        private sealed class TestDomainEventHandler : IDomainEventHandler<TestDomainEvent>
+        private sealed class TestDomainEventHandler : IEventHandler<TestDomainEvent>
         {
             private readonly Counter _counter;
 

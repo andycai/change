@@ -5,7 +5,7 @@ namespace Change.Framework.Tests
 {
     public class DomainEventSemanticsTests
     {
-        private readonly struct EnemyDefeatedDomainEvent : IDomainEvent
+        private readonly struct EnemyDefeatedDomainEvent : IEvent
         {
             public EnemyDefeatedDomainEvent(int rewardGold)
             {
@@ -15,7 +15,7 @@ namespace Change.Framework.Tests
             public int RewardGold { get; }
         }
 
-        private readonly struct ItemPickedUpDomainEvent : IDomainEvent
+        private readonly struct ItemPickedUpDomainEvent : IEvent
         {
         }
 
@@ -24,7 +24,7 @@ namespace Change.Framework.Tests
             public int TotalRewardGold;
         }
 
-        private sealed class EnemyDefeatedDomainEventHandler : IDomainEventHandler<EnemyDefeatedDomainEvent>
+        private sealed class EnemyDefeatedDomainEventHandler : IEventHandler<EnemyDefeatedDomainEvent>
         {
             private readonly DomainEventCounter _counter;
 
