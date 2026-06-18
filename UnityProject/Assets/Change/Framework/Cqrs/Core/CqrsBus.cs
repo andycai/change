@@ -8,9 +8,19 @@ namespace Change.Framework.Cqrs
 {
     /// <summary>
     /// In-process CQRS bus implementing registration, dispatch, and runtime surfaces.
-    /// Supports runtime registration and unregistration on the main thread.
-    /// Thread safety for registration is the caller's responsibility.
+    /// Supports runtime registration and unregistration.
     /// </summary>
+    /// <remarks>
+    /// <para><b>Thread safety:</b> Registration and unregistration methods
+    /// (<see cref="RegisterCommand{TCommand}"/>, <see cref="UnregisterCommand{TCommand}"/>,
+    /// etc.) must be called from the main thread only. The caller is responsible for
+    /// ensuring thread safety — no internal locking is performed.</para>
+    /// <para>Dispatch methods (<see cref="Send{TCommand}"/>, <see cref="Ask{TQuery, TResult}"/>,
+    /// <see cref="Publish{TEvent}"/>) may be called from any thread after registration
+    /// is complete, as the internal dictionaries are read-only during dispatch.</para>
+    /// <para>Registration during an active dispatch on the same thread is safe
+    /// (synchronous execution guarantees no interleaving).</para>
+    /// </remarks>
     public sealed class CqrsBus : ICqrsBus, ICqrsRegistry, ICqrsRuntime
     {
         private const string CommandRegisteredMessage = "Registered command handler.";
