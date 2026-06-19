@@ -98,5 +98,66 @@ namespace Change.Framework.Tests
 
             Assert.AreEqual(9, result);
         }
+
+        private const int WarmupIterations = 1000;
+        private const int MeasuredIterations = 100000;
+
+        private static void ForceFullGc()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+
+        [Test]
+        public void Send_SelfHandlingHotPath_AllocatesZeroBytesAfterWarmup()
+        {
+            var counter = new Counter();
+            var bus = new CqrsBus();
+            var command = new BumpSelfHandlingCommand(counter, 1);
+
+            for (var i = 0; i < WarmupIterations; i++)
+            {
+                bus.Send(command);
+            }
+
+            ForceFullGc();
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < MeasuredIterations; i++)
+            {
+                bus.Send(command);
+            }
+            var after = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.AreEqual(before, after);
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, counter.Value);
+        }
+
+        [Test]
+        public void Ask_SelfHandlingHotPath_AllocatesZeroBytesAfterWarmup()
+        {
+            var source = new Source { Value = 3 };
+            var bus = new CqrsBus();
+            var query = new ReadSelfHandlingQuery(source);
+
+            for (var i = 0; i < WarmupIterations; i++)
+            {
+                bus.Ask<ReadSelfHandlingQuery, int>(query);
+            }
+
+            ForceFullGc();
+
+            var sum = 0;
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < MeasuredIterations; i++)
+            {
+                sum += bus.Ask<ReadSelfHandlingQuery, int>(query);
+            }
+            var after = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.AreEqual(before, after);
+            Assert.AreEqual(3 * MeasuredIterations, sum);
+        }
     }
 }
