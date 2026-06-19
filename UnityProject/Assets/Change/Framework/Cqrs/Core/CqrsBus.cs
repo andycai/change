@@ -324,6 +324,55 @@ namespace Change.Framework.Cqrs
             }
         }
 
+        private static class SelfHandlingQueryCache<TQuery>
+            where TQuery : struct
+        {
+            public static readonly bool IsSelfHandling = Compute();
+
+            private static bool Compute()
+            {
+                foreach (var i in typeof(TQuery).GetInterfaces())
+                {
+                    if (i.IsGenericType
+                        && i.GetGenericTypeDefinition() == typeof(ISelfHandlingQuery<>))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private static class SelfHandlingQueryInvokeCache<TQuery, TResult>
+            where TQuery : struct, IQuery<TResult>
+        {
+            public static readonly Func<TQuery, TResult> Invoke = BuildInvoke();
+
+            private static Func<TQuery, TResult> BuildInvoke()
+            {
+                if (!SelfHandlingQueryCache<TQuery>.IsSelfHandling)
+                {
+                    return null;
+                }
+
+                var executeMethod = typeof(ISelfHandlingQuery<TResult>).GetMethod(
+                    "Execute", BindingFlags.Public | BindingFlags.Instance);
+                // DynamicMethod 避免 Delegate.CreateDelegate 对值类型实例方法的 Mono 限制
+                var dm = new DynamicMethod(
+                    "SelfHandlingQueryInvoke_" + typeof(TQuery).Name,
+                    returnType: typeof(TResult),
+                    parameterTypes: new[] { typeof(TQuery) },
+                    restrictedSkipVisibility: true);
+                var il = dm.GetILGenerator();
+                il.Emit(OpCodes.Ldarga_S, 0);
+                il.Emit(OpCodes.Constrained, typeof(TQuery));
+                il.Emit(OpCodes.Callvirt, executeMethod);
+                il.Emit(OpCodes.Ret);
+                return (Func<TQuery, TResult>)dm.CreateDelegate(typeof(Func<TQuery, TResult>));
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
@@ -349,6 +398,12 @@ namespace Change.Framework.Cqrs
         public TResult Query<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
+            if (SelfHandlingQueryCache<TQuery>.IsSelfHandling)
+            {
+                var invoke = SelfHandlingQueryInvokeCache<TQuery, TResult>.Invoke;
+                return invoke(query);
+            }
+
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
             var queryKey = new QueryKey(queryType, resultType);

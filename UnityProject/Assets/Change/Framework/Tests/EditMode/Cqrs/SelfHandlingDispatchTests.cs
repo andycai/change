@@ -62,5 +62,41 @@ namespace Change.Framework.Tests
 
             Assert.AreEqual(42, handler.Received);
         }
+
+        private sealed class Source
+        {
+            public int Value;
+        }
+
+        private readonly struct ReadSelfHandlingQuery : ISelfHandlingQuery<int>
+        {
+            private readonly Source _source;
+
+            public ReadSelfHandlingQuery(Source source) { _source = source; }
+
+            public int Execute() => _source.Value;
+        }
+
+        [Test]
+        public void Ask_SelfHandlingQuery_ReturnsExecuteResultWithoutRegistration()
+        {
+            var source = new Source { Value = 7 };
+            var bus = new CqrsBus();
+
+            var result = bus.Ask<ReadSelfHandlingQuery, int>(new ReadSelfHandlingQuery(source));
+
+            Assert.AreEqual(7, result);
+        }
+
+        [Test]
+        public void Query_SelfHandlingQuery_ReturnsExecuteResultWithoutRegistration()
+        {
+            var source = new Source { Value = 9 };
+            var bus = new CqrsBus();
+
+            var result = bus.Query<ReadSelfHandlingQuery, int>(new ReadSelfHandlingQuery(source));
+
+            Assert.AreEqual(9, result);
+        }
     }
 }
