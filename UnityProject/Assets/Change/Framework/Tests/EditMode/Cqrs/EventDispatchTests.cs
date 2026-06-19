@@ -282,6 +282,20 @@ namespace Change.Framework.Tests
                 () => bus.Unsubscribe<ScoreChangedEvent>((Action<ScoreChangedEvent>)null));
         }
 
+        [Test]
+        public void Bootstrap_SubscribeStaticDelegate_InvokesOnPublish()
+        {
+            _staticCounter = 0;
+            var bootstrap = new CqrsBootstrap();
+
+            bootstrap.Subscribe<ScoreChangedEvent>(StaticIncrementHandler);
+            ICqrsRuntime runtime = bootstrap.Build();
+
+            runtime.Publish(new ScoreChangedEvent(9));
+
+            Assert.AreEqual(9, _staticCounter);
+        }
+
         private sealed class ThrowingEventHandler : IEventHandler<ScoreChangedEvent>
         {
             public void Handle(in ScoreChangedEvent @event)

@@ -1,8 +1,12 @@
+using System;
+
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Mutable CQRS bootstrap surface used to register handlers before runtime creation.
-    /// After <see cref="Build"/> is called, registrations are no longer valid.
+    /// Mutable CQRS bootstrap surface used to register handlers and delegates.
+    /// Registration remains valid before and after <see cref="Build"/>; the returned
+    /// <see cref="ICqrsRuntime"/> is the underlying bus, which also exposes the
+    /// <see cref="ICqrsRegistry"/> registration surface.
     /// </summary>
     public interface ICqrsBootstrap
     {
@@ -16,9 +20,16 @@ namespace Change.Framework.Cqrs
             where TEvent : struct, IEvent;
 
         /// <summary>
-        /// Freezes registration and returns the runtime dispatch surface.
-        /// Implementations must return the same <see cref="ICqrsRuntime"/> instance on every
-        /// subsequent call and must be safe to invoke concurrently.
+        /// Subscribes a static delegate. Must not capture variables; a capturing
+        /// delegate throws <see cref="ClosureCaptureException"/>.
+        /// </summary>
+        void Subscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IEvent;
+
+        /// <summary>
+        /// Returns the runtime dispatch surface (the underlying bus).
+        /// Implementations must return the same <see cref="ICqrsRuntime"/> instance on
+        /// every subsequent call and must be safe to invoke concurrently.
         /// </summary>
         ICqrsRuntime Build();
     }

@@ -44,6 +44,12 @@ namespace Change.Framework.Cqrs
             _bus.Subscribe(handler);
         }
 
+        public void Subscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            _bus.Subscribe(handler);
+        }
+
         public ICqrsRuntime Build()
         {
             var runtime = _runtime;
