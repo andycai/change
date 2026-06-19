@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 
 namespace Change.Framework.Cqrs
 {
@@ -8,10 +9,16 @@ namespace Change.Framework.Cqrs
     /// allocate a closure object on the heap, violating the 0-GC dispatch guarantee.
     /// Only static methods or non-capturing lambdas may be subscribed.
     /// </summary>
+    [Serializable]
     public sealed class ClosureCaptureException : InvalidOperationException
     {
         public ClosureCaptureException(string message)
             : base(message)
+        {
+        }
+
+        private ClosureCaptureException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
         {
         }
     }
