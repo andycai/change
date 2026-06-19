@@ -574,10 +574,31 @@ namespace Change.Framework.Cqrs
             }
         }
 
-        public Task SendAsync<TCommand>(TCommand command)
+        public async Task SendAsync<TCommand>(TCommand command)
             where TCommand : struct, ICommand
         {
-            throw new System.NotImplementedException();
+            if (SelfHandlingCommandCache<TCommand>.Invoke != null)
+            {
+                throw new NotSupportedException(
+                    $"Self-handling command {typeof(TCommand).FullName} does not support async dispatch. Use Send().");
+            }
+
+            var commandType = typeof(TCommand);
+            if (!_asyncCommandHandlers.TryGetValue(commandType, out var registration))
+            {
+                throw new HandlerNotRegisteredException(
+                    $"Async command handler not registered: {commandType.FullName}");
+            }
+
+            var handler = ((AsyncCommandHandlerRegistration<TCommand>)registration).Handler;
+            try
+            {
+                await handler.ExecuteAsync(command);
+            }
+            finally
+            {
+                ResetIfPoolable(handler, commandType);
+            }
         }
 
         public Task<TResult> AskAsync<TQuery, TResult>(TQuery query)
