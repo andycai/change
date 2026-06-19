@@ -158,6 +158,13 @@ namespace Change.Framework.Cqrs
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
 
+            if (SelfHandlingCommandCache<TCommand>.Invoke != null)
+            {
+                throw new ModeConflictException(
+                    $"Cannot register a Class handler for self-handling command {typeof(TCommand).FullName}: "
+                    + "it implements ISelfHandlingCommand. Use exactly one mode.");
+            }
+
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
             {
@@ -175,6 +182,13 @@ namespace Change.Framework.Cqrs
                 throw new ArgumentNullException(nameof(handler));
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            if (SelfHandlingQueryCache<TQuery>.IsSelfHandling)
+            {
+                throw new ModeConflictException(
+                    $"Cannot register a Class handler for self-handling query {typeof(TQuery).FullName}: "
+                    + "it implements ISelfHandlingQuery<TResult>. Use exactly one mode.");
+            }
 
             var queryType = typeof(TQuery);
             var resultType = typeof(TResult);
@@ -330,6 +344,13 @@ namespace Change.Framework.Cqrs
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
 
+            if (SelfHandlingCommandCache<TCommand>.Invoke != null)
+            {
+                throw new ModeConflictException(
+                    $"Cannot register a Class handler for self-handling command {typeof(TCommand).FullName}: "
+                    + "it implements ISelfHandlingCommand. Use exactly one mode.");
+            }
+
             var commandType = typeof(TCommand);
             if (!_asyncCommandHandlers.TryAdd(
                     commandType, new AsyncCommandHandlerRegistration<TCommand>(handler)))
@@ -349,6 +370,13 @@ namespace Change.Framework.Cqrs
                 throw new ArgumentNullException(nameof(handler));
             }
             ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            if (SelfHandlingQueryCache<TQuery>.IsSelfHandling)
+            {
+                throw new ModeConflictException(
+                    $"Cannot register a Class handler for self-handling query {typeof(TQuery).FullName}: "
+                    + "it implements ISelfHandlingQuery<TResult>. Use exactly one mode.");
+            }
 
             var queryKey = new QueryKey(typeof(TQuery), typeof(TResult));
             if (!_asyncQueryHandlers.TryAdd(
