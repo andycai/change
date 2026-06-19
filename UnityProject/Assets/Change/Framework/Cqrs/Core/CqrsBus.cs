@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using Change.Framework.Collections;
 using Change.Framework.Logging;
@@ -233,10 +235,52 @@ namespace Change.Framework.Cqrs
             }
         }
 
+        private static class SelfHandlingCommandCache<TCommand>
+            where TCommand : struct, ICommand
+        {
+            public static readonly Action<TCommand> Invoke = BuildInvoke();
+
+            private static Action<TCommand> BuildInvoke()
+            {
+                if (!typeof(ISelfHandlingCommand).IsAssignableFrom(typeof(TCommand)))
+                {
+                    return null;
+                }
+
+                // 通过 DynamicMethod 发出 constrained.callvirt：对 struct this 的约束调用，
+                // 零装箱、零 GC 分配。委托签名为 Action<TCommand>（按值传入 struct 副本，仅栈拷贝）；
+                // IL 取参数地址后以 constrained. 前缀调用接口方法，等价于 box-free 虚分派。
+                // （注：直接的 Delegate.CreateDelegate 在 Mono 上无法把 by-value Action<TCommand>
+                // 绑定到值类型实例方法 —— 值类型实例方法的隐式 this 为 ref T，签名不兼容。）
+                var executeMethod = typeof(ISelfHandlingCommand).GetMethod(
+                    "Execute", BindingFlags.Public | BindingFlags.Instance);
+
+                var dm = new DynamicMethod(
+                    "SelfHandlingCommandInvoke_" + typeof(TCommand).Name,
+                    returnType: null,
+                    parameterTypes: new[] { typeof(TCommand) },
+                    restrictedSkipVisibility: true);
+                var il = dm.GetILGenerator();
+                il.Emit(OpCodes.Ldarga_S, (byte)0);
+                il.Emit(OpCodes.Constrained, typeof(TCommand));
+                il.EmitCall(OpCodes.Callvirt, executeMethod, null);
+                il.Emit(OpCodes.Ret);
+
+                return (Action<TCommand>)dm.CreateDelegate(typeof(Action<TCommand>));
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
+            var invoke = SelfHandlingCommandCache<TCommand>.Invoke;
+            if (invoke != null)
+            {
+                invoke(command);
+                return;
+            }
+
             var commandType = typeof(TCommand);
             if (!_commandHandlers.TryGetValue(commandType, out var registration))
             {
