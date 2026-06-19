@@ -76,5 +76,20 @@ namespace Change.Framework.Tests
             Assert.Throws<ModeConflictException>(
                 () => bus.RegisterQuery(new SelfHandlingQueryHandler()));
         }
+
+        private sealed class AsyncSelfHandlingQueryHandler : IAsyncQueryHandler<SelfHandlingQuery, int>
+        {
+            public System.Threading.Tasks.Task<int> ExecuteAsync(SelfHandlingQuery query)
+                => System.Threading.Tasks.Task.FromResult(0);
+        }
+
+        [Test]
+        public void RegisterAsyncQuery_OnSelfHandlingType_ThrowsModeConflictException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<ModeConflictException>(
+                () => bus.RegisterAsyncQuery(new AsyncSelfHandlingQueryHandler()));
+        }
     }
 }
