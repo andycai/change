@@ -160,7 +160,7 @@ namespace Change.Framework.Tests
         public void Unsubscribe_WithNullHandler_ThrowsArgumentNullException()
         {
             var bus = new CqrsBus();
-            Assert.Throws<ArgumentNullException>(() => bus.Unsubscribe<RegTestEvent>(null));
+            Assert.Throws<ArgumentNullException>(() => bus.Unsubscribe<RegTestEvent>((IEventHandler<RegTestEvent>)null));
         }
 
         // === Full Lifecycle Tests ===
