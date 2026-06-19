@@ -4,6 +4,7 @@
   "references": [
     "GameScript",
     "Change.Framework",
+    "FairyGUI",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],
