@@ -601,10 +601,31 @@ namespace Change.Framework.Cqrs
             }
         }
 
-        public Task<TResult> AskAsync<TQuery, TResult>(TQuery query)
+        public async Task<TResult> AskAsync<TQuery, TResult>(TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
-            throw new System.NotImplementedException();
+            if (SelfHandlingQueryCache<TQuery>.IsSelfHandling)
+            {
+                throw new NotSupportedException(
+                    $"Self-handling query {typeof(TQuery).FullName} does not support async dispatch. Use Ask().");
+            }
+
+            var queryKey = new QueryKey(typeof(TQuery), typeof(TResult));
+            if (!_asyncQueryHandlers.TryGetValue(queryKey, out var registration))
+            {
+                throw new HandlerNotRegisteredException(
+                    $"Async query handler not registered: {typeof(TQuery).FullName} -> {typeof(TResult).FullName}");
+            }
+
+            var handler = ((AsyncQueryHandlerRegistration<TQuery, TResult>)registration).Handler;
+            try
+            {
+                return await handler.ExecuteAsync(query);
+            }
+            finally
+            {
+                ResetIfPoolable(handler, typeof(TQuery));
+            }
         }
 
         private static void ThrowIfValueTypeHandler(object handler, string paramName)

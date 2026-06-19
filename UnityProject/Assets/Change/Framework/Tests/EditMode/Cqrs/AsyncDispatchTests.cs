@@ -56,5 +56,40 @@ namespace Change.Framework.Tests
                 bus.SendAsync(new SelfHandlingAsyncCommand()).GetAwaiter().GetResult();
             });
         }
+        private readonly struct AsyncQuery : IQuery<int>
+        {
+            public int Seed { get; }
+            public AsyncQuery(int seed) { Seed = seed; }
+        }
+
+        private sealed class AsyncQueryHandler
+            : IAsyncQueryHandler<AsyncQuery, int>, IPoolable
+        {
+            public int ResetCount;
+            public Task<int> ExecuteAsync(AsyncQuery query) => Task.FromResult(query.Seed * 3);
+            public void Reset() { ResetCount++; }
+        }
+
+        [Test]
+        public void AskAsync_DispatchesHandler_ReturnsResult_AndResetsAfter()
+        {
+            var bus = new CqrsBus();
+            var handler = new AsyncQueryHandler();
+            bus.RegisterAsyncQuery(handler);
+
+            var result = bus.AskAsync<AsyncQuery, int>(new AsyncQuery(4)).GetAwaiter().GetResult();
+
+            Assert.AreEqual(12, result);
+            Assert.AreEqual(1, handler.ResetCount);
+        }
+
+        [Test]
+        public void AskAsync_WhenNotRegistered_ThrowsHandlerNotRegisteredException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<HandlerNotRegisteredException>(
+                () => bus.AskAsync<AsyncQuery, int>(new AsyncQuery(4)).GetAwaiter().GetResult());
+        }
     }
 }
