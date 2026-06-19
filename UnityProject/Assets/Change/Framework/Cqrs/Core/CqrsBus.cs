@@ -421,8 +421,15 @@ namespace Change.Framework.Cqrs
                     $"Query handler not registered: {queryType.FullName} -> {resultType.FullName}");
             }
 
-            var typedRegistration = (QueryHandlerRegistration<TQuery, TResult>)registration;
-            return typedRegistration.Handler.Handle(in query);
+            var handler = ((QueryHandlerRegistration<TQuery, TResult>)registration).Handler;
+            try
+            {
+                return handler.Handle(in query);
+            }
+            finally
+            {
+                ResetIfPoolable(handler, typeof(TQuery));
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
