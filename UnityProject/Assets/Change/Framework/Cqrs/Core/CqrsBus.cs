@@ -5,6 +5,7 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using Change.Framework.Collections;
 using Change.Framework.Logging;
+using Change.Framework.Pooling;
 
 namespace Change.Framework.Cqrs
 {
@@ -390,8 +391,15 @@ namespace Change.Framework.Cqrs
                 throw new HandlerNotRegisteredException($"Command handler not registered: {commandType.FullName}");
             }
 
-            var typedRegistration = (CommandHandlerRegistration<TCommand>)registration;
-            typedRegistration.Handler.Handle(in command);
+            var handler = ((CommandHandlerRegistration<TCommand>)registration).Handler;
+            try
+            {
+                handler.Handle(in command);
+            }
+            finally
+            {
+                ResetIfPoolable(handler, typeof(TCommand));
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -508,6 +516,28 @@ namespace Change.Framework.Cqrs
 #if UNITY_EDITOR || DEBUG
                 System.Diagnostics.Debug.WriteLine($"[CqrsBus] Logger error: {ex.Message}");
 #endif
+            }
+        }
+
+        private void ResetIfPoolable(object handler, Type messageType)
+        {
+            if (handler is IPoolable poolable)
+            {
+                try
+                {
+                    poolable.Reset();
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        _logger.Error($"Reset() failed for {messageType.FullName}: {ex.Message}");
+                    }
+                    catch (Exception)
+                    {
+                        // 日志本身失败时静默，不影响命令执行。
+                    }
+                }
             }
         }
     }
