@@ -28,6 +28,7 @@ namespace Change.Framework.Cqrs
         private const string CommandRegisteredMessage = "Registered command handler.";
         private const string QueryRegisteredMessage = "Registered query handler.";
         private const string EventSubscribedMessage = "Subscribed event handler.";
+        private const string EventDelegateSubscribedMessage = "Subscribed event delegate.";
 
         private interface ICommandHandlerRegistration
         {
@@ -67,6 +68,7 @@ namespace Change.Framework.Cqrs
             where TEvent : struct, IEvent
         {
             public FastList<IEventHandler<TEvent>> Handlers { get; } = new();
+            public FastList<Action<TEvent>> Delegates { get; } = new();
         }
 
         private readonly struct QueryKey : IEquatable<QueryKey>
@@ -187,6 +189,36 @@ namespace Change.Framework.Cqrs
             SafeInfo(EventSubscribedMessage);
         }
 
+        public void Subscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            // 闭包检测：Target != null 表示委托捕获了实例或局部变量，会触发堆分配，破坏 0GC。
+            if (handler.Target != null)
+            {
+                throw new ClosureCaptureException(
+                    "Delegate captures variables; only static methods or non-capturing lambdas " +
+                    "are allowed to maintain the 0-GC guarantee. " +
+                    $"Delegate type: {handler.GetType().FullName}, Target: {handler.Target.GetType().FullName}.");
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                handlerList = new EventHandlerList<TEvent>();
+                _eventHandlers.TryAdd(eventType, handlerList);
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            typedList.Delegates.Add(handler);
+
+            SafeInfo(EventDelegateSubscribedMessage);
+        }
+
         public void UnregisterCommand<TCommand>()
             where TCommand : struct, ICommand
         {
@@ -232,6 +264,28 @@ namespace Change.Framework.Cqrs
             if (index >= 0)
             {
                 typedList.Handlers.RemoveAt(index);
+            }
+        }
+
+        public void Unsubscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                return;
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            var index = typedList.Delegates.IndexOf(handler);
+            if (index >= 0)
+            {
+                typedList.Delegates.RemoveAt(index);
             }
         }
 
@@ -316,11 +370,12 @@ namespace Change.Framework.Cqrs
         }
 
         /// <summary>
-        /// Publishes an event to all subscribed handlers in registration order.
-        /// Subscribers are matched strictly by the closed generic type <typeparamref name="TEvent"/>;
-        /// no base-interface fan-out is performed.
-        /// All handlers are invoked even if one throws. If any handler throws,
-        /// exceptions are collected and re-thrown as an <see cref="AggregateException"/>.
+        /// Publishes an event to all subscribed class handlers then to all subscribed
+        /// delegates, each in registration order. Subscribers are matched strictly by the
+        /// closed generic type <typeparamref name="TEvent"/>; no base-interface fan-out
+        /// is performed. Class handlers are invoked before delegates. All subscribers
+        /// are invoked even if one throws. If any throws, exceptions are collected and
+        /// re-thrown as an <see cref="AggregateException"/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Publish<TEvent>(in TEvent @event)
@@ -334,15 +389,36 @@ namespace Change.Framework.Cqrs
 
             var typedList = (EventHandlerList<TEvent>)handlerList;
             var handlers = typedList.Handlers;
-            var count = handlers.Count;
-            if (count == 0) return;
+            var delegates = typedList.Delegates;
+
+            var handlerCount = handlers.Count;
+            var delegateCount = delegates.Count;
+            if (handlerCount == 0 && delegateCount == 0)
+            {
+                return;
+            }
 
             List<Exception> exceptions = null;
-            for (var i = 0; i < count; i++)
+
+            for (var i = 0; i < handlerCount; i++)
             {
                 try
                 {
                     handlers[i].Handle(in @event);
+                }
+                catch (Exception ex)
+                {
+                    exceptions ??= new List<Exception>();
+                    exceptions.Add(ex);
+                }
+            }
+
+            for (var i = 0; i < delegateCount; i++)
+            {
+                try
+                {
+                    // Action<TEvent> 按值传递 struct（无 in），拷贝在栈上，无堆分配
+                    delegates[i](@event);
                 }
                 catch (Exception ex)
                 {

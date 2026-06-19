@@ -70,7 +70,7 @@ namespace Change.Framework.Tests
         {
             var bus = new CqrsBus();
 
-            Assert.Throws<ArgumentNullException>(() => bus.Subscribe<ScoreChangedEvent>(null));
+            Assert.Throws<ArgumentNullException>(() => bus.Subscribe<ScoreChangedEvent>((IEventHandler<ScoreChangedEvent>)null));
         }
 
         [Test]
@@ -131,6 +131,155 @@ namespace Change.Framework.Tests
 
             Assert.IsInstanceOf<InvalidOperationException>(ex);
             Assert.AreEqual("captured!", ex.Message);
+        }
+
+        // ===== Delegate mode fixtures =====
+
+        private static int _staticCounter;
+
+        private static void StaticIncrementHandler(ScoreChangedEvent @event)
+        {
+            _staticCounter += @event.Delta;
+        }
+
+        private sealed class DelegateRecorder
+        {
+            // 实例方法引用示例，仅用于闭包检测反例测试（Target != null，应被拒绝）
+            public void Record(ScoreChangedEvent @event) { }
+        }
+
+        private static System.Collections.Generic.List<int> _publishDelegateOrder;
+
+        private static void RecordDelegateCallStatic(ScoreChangedEvent @event)
+        {
+            _publishDelegateOrder?.Add(1);
+        }
+
+        private static void StaticThrowingHandler(ScoreChangedEvent @event)
+        {
+            throw new InvalidOperationException("Delegate failed");
+        }
+
+        // ===== Delegate subscribe tests =====
+
+        [Test]
+        public void Subscribe_StaticDelegate_InvokesOnPublish()
+        {
+            _staticCounter = 0;
+            var bus = new CqrsBus();
+
+            bus.Subscribe<ScoreChangedEvent>(StaticIncrementHandler);
+
+            bus.Publish(new ScoreChangedEvent(7));
+
+            Assert.AreEqual(7, _staticCounter);
+        }
+
+        [Test]
+        public void Subscribe_NullDelegate_ThrowsArgumentNullException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<ArgumentNullException>(
+                () => bus.Subscribe<ScoreChangedEvent>((Action<ScoreChangedEvent>)null));
+        }
+
+        [Test]
+        public void Subscribe_CapturingLambda_ThrowsClosureCaptureException()
+        {
+            var bus = new CqrsBus();
+            var captured = 0;
+
+            // lambda 捕获局部变量 captured → Target != null
+            Assert.Throws<ClosureCaptureException>(
+                () => bus.Subscribe<ScoreChangedEvent>(e => captured += e.Delta));
+        }
+
+        [Test]
+        public void Subscribe_InstanceMethod_ThrowsClosureCaptureException()
+        {
+            var bus = new CqrsBus();
+            var recorder = new DelegateRecorder();
+
+            // 实例方法引用 → Target == recorder != null
+            Assert.Throws<ClosureCaptureException>(
+                () => bus.Subscribe<ScoreChangedEvent>(recorder.Record));
+        }
+
+        [Test]
+        public void Publish_InvokesHandlersThenDelegates()
+        {
+            var handlerOrder = new System.Collections.Generic.List<int>();
+            var delegateOrder = new System.Collections.Generic.List<int>();
+            var bus = new CqrsBus();
+
+            bus.Subscribe(new OrderedEventHandler(handlerOrder, 1));
+            _publishDelegateOrder = delegateOrder;
+            bus.Subscribe<ScoreChangedEvent>(RecordDelegateCallStatic);
+
+            bus.Publish(new ScoreChangedEvent(0));
+
+            CollectionAssert.AreEqual(new[] { 1 }, handlerOrder);
+            Assert.AreEqual(1, delegateOrder.Count, "delegate should be invoked once");
+        }
+
+        [Test]
+        public void Publish_WithoutSubscribers_DoesNothing_DelegatePath()
+        {
+            var bus = new CqrsBus();
+
+            Assert.DoesNotThrow(() => bus.Publish(new ScoreChangedEvent(1)));
+        }
+
+        [Test]
+        public void Publish_HandlerAndDelegateBothThrow_AggregatesAllExceptions()
+        {
+            var bus = new CqrsBus();
+
+            bus.Subscribe(new ThrowingEventHandler());
+            bus.Subscribe<ScoreChangedEvent>(StaticThrowingHandler);
+
+            var exception = Assert.Throws<AggregateException>(
+                () => bus.Publish(new ScoreChangedEvent(0)));
+
+            Assert.AreEqual(2, exception.InnerExceptions.Count,
+                "both handler and delegate exceptions should be aggregated");
+        }
+
+        // ===== Delegate unsubscribe tests =====
+
+        [Test]
+        public void Unsubscribe_Delegate_RemovesSpecificDelegate()
+        {
+            _staticCounter = 0;
+            var bus = new CqrsBus();
+
+            bus.Subscribe<ScoreChangedEvent>(StaticIncrementHandler);
+            bus.Subscribe<ScoreChangedEvent>(StaticIncrementHandler);
+            bus.Unsubscribe<ScoreChangedEvent>(StaticIncrementHandler);
+
+            bus.Publish(new ScoreChangedEvent(5));
+
+            // 订阅两次，反注册一次（移除首个匹配），剩余一次
+            Assert.AreEqual(5, _staticCounter);
+        }
+
+        [Test]
+        public void Unsubscribe_Delegate_WhenNotSubscribed_IsIdempotent()
+        {
+            var bus = new CqrsBus();
+
+            Assert.DoesNotThrow(
+                () => bus.Unsubscribe<ScoreChangedEvent>(StaticIncrementHandler));
+        }
+
+        [Test]
+        public void Unsubscribe_NullDelegate_ThrowsArgumentNullException()
+        {
+            var bus = new CqrsBus();
+
+            Assert.Throws<ArgumentNullException>(
+                () => bus.Unsubscribe<ScoreChangedEvent>((Action<ScoreChangedEvent>)null));
         }
 
         private sealed class ThrowingEventHandler : IEventHandler<ScoreChangedEvent>
