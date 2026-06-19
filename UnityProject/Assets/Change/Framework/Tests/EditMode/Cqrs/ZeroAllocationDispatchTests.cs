@@ -78,6 +78,13 @@ namespace Change.Framework.Tests
             }
         }
 
+        private static int _sStaticTickCount;
+
+        private static void StaticTickHandler(TickDomainEvent domainEvent)
+        {
+            _sStaticTickCount += domainEvent.Delta;
+        }
+
         [Test]
         public void Send_HotPath_AllocatesZeroBytesAfterWarmup()
         {
@@ -158,6 +165,34 @@ namespace Change.Framework.Tests
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(WarmupIterations + MeasuredIterations, handler.Count);
+        }
+
+        [Test]
+        public void Publish_DelegateHotPath_AllocatesZeroBytesAfterWarmup()
+        {
+            _sStaticTickCount = 0;
+            var bus = new CqrsBus();
+
+            bus.Subscribe<TickDomainEvent>(StaticTickHandler);
+
+            var domainEvent = new TickDomainEvent(1);
+            for (var i = 0; i < WarmupIterations; i++)
+            {
+                bus.Publish(in domainEvent);
+            }
+
+            ForceFullGc();
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < MeasuredIterations; i++)
+            {
+                bus.Publish(in domainEvent);
+            }
+            var after = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.AreEqual(before, after,
+                "delegate publish hot path must not allocate");
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, _sStaticTickCount);
         }
 
         private static void ForceFullGc()
