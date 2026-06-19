@@ -42,5 +42,11 @@ namespace Change.Framework.Cqrs
         /// </summary>
         void Unsubscribe<TEvent>(Action<TEvent> handler)
             where TEvent : struct, IEvent;
+
+        void RegisterAsyncCommand<TCommand>(IAsyncCommandHandler<TCommand> handler)
+            where TCommand : struct, ICommand;
+
+        void RegisterAsyncQuery<TQuery, TResult>(IAsyncQueryHandler<TQuery, TResult> handler)
+            where TQuery : struct, IQuery<TResult>;
     }
 }

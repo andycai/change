@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using Change.Framework.Collections;
 using Change.Framework.Logging;
 using Change.Framework.Pooling;
+using System.Threading.Tasks;
 
 namespace Change.Framework.Cqrs
 {
@@ -41,6 +42,34 @@ namespace Change.Framework.Cqrs
 
         private interface IEventHandlerList
         {
+        }
+
+        private interface IAsyncCommandHandlerRegistration { }
+
+        private interface IAsyncQueryHandlerRegistration { }
+
+        private sealed class AsyncCommandHandlerRegistration<TCommand>
+            : IAsyncCommandHandlerRegistration
+            where TCommand : struct, ICommand
+        {
+            public AsyncCommandHandlerRegistration(IAsyncCommandHandler<TCommand> handler)
+            {
+                Handler = handler;
+            }
+
+            public IAsyncCommandHandler<TCommand> Handler { get; }
+        }
+
+        private sealed class AsyncQueryHandlerRegistration<TQuery, TResult>
+            : IAsyncQueryHandlerRegistration
+            where TQuery : struct, IQuery<TResult>
+        {
+            public AsyncQueryHandlerRegistration(IAsyncQueryHandler<TQuery, TResult> handler)
+            {
+                Handler = handler;
+            }
+
+            public IAsyncQueryHandler<TQuery, TResult> Handler { get; }
         }
 
         private sealed class CommandHandlerRegistration<TCommand> : ICommandHandlerRegistration
@@ -106,6 +135,8 @@ namespace Change.Framework.Cqrs
         private readonly FastDictionary<QueryKey, IQueryHandlerRegistration> _queryHandlers = new();
         private readonly FastDictionary<Type, Type> _queryResultByQueryType = new();
         private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
+        private readonly FastDictionary<Type, IAsyncCommandHandlerRegistration> _asyncCommandHandlers = new();
+        private readonly FastDictionary<QueryKey, IAsyncQueryHandlerRegistration> _asyncQueryHandlers = new();
         private readonly ILogger _logger;
 
         public CqrsBus()
@@ -288,6 +319,46 @@ namespace Change.Framework.Cqrs
             {
                 typedList.Delegates.RemoveAt(index);
             }
+        }
+
+        public void RegisterAsyncCommand<TCommand>(IAsyncCommandHandler<TCommand> handler)
+            where TCommand : struct, ICommand
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            var commandType = typeof(TCommand);
+            if (!_asyncCommandHandlers.TryAdd(
+                    commandType, new AsyncCommandHandlerRegistration<TCommand>(handler)))
+            {
+                throw new DuplicateRegistrationException(
+                    $"Async command handler already registered: {commandType.FullName}");
+            }
+
+            SafeInfo(CommandRegisteredMessage);
+        }
+
+        public void RegisterAsyncQuery<TQuery, TResult>(IAsyncQueryHandler<TQuery, TResult> handler)
+            where TQuery : struct, IQuery<TResult>
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+            ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            var queryKey = new QueryKey(typeof(TQuery), typeof(TResult));
+            if (!_asyncQueryHandlers.TryAdd(
+                    queryKey, new AsyncQueryHandlerRegistration<TQuery, TResult>(handler)))
+            {
+                throw new DuplicateRegistrationException(
+                    $"Async query handler already registered: {queryKey.QueryType.FullName} -> {queryKey.ResultType.FullName}");
+            }
+
+            SafeInfo(QueryRegisteredMessage);
         }
 
         private static class SelfHandlingCommandCache<TCommand>
@@ -501,6 +572,18 @@ namespace Change.Framework.Cqrs
             {
                 throw new AggregateException(exceptions);
             }
+        }
+
+        public Task SendAsync<TCommand>(TCommand command)
+            where TCommand : struct, ICommand
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<TResult> AskAsync<TQuery, TResult>(TQuery query)
+            where TQuery : struct, IQuery<TResult>
+        {
+            throw new System.NotImplementedException();
         }
 
         private static void ThrowIfValueTypeHandler(object handler, string paramName)

@@ -50,6 +50,18 @@ namespace Change.Framework.Cqrs
             _bus.Subscribe(handler);
         }
 
+        public void RegisterAsyncCommand<TCommand>(IAsyncCommandHandler<TCommand> handler)
+            where TCommand : struct, ICommand
+        {
+            _bus.RegisterAsyncCommand(handler);
+        }
+
+        public void RegisterAsyncQuery<TQuery, TResult>(IAsyncQueryHandler<TQuery, TResult> handler)
+            where TQuery : struct, IQuery<TResult>
+        {
+            _bus.RegisterAsyncQuery(handler);
+        }
+
         public ICqrsRuntime Build()
         {
             var runtime = _runtime;
