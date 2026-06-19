@@ -124,6 +124,15 @@ namespace Change.Framework.Tests
             Assert.AreEqual(handlerCount, countHandler.Count);
         }
 
+        [Test]
+        public void ClosureCaptureException_IsInvalidOperationException_WithMessage()
+        {
+            var ex = new ClosureCaptureException("captured!");
+
+            Assert.IsInstanceOf<InvalidOperationException>(ex);
+            Assert.AreEqual("captured!", ex.Message);
+        }
+
         private sealed class ThrowingEventHandler : IEventHandler<ScoreChangedEvent>
         {
             public void Handle(in ScoreChangedEvent @event)
