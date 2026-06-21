@@ -211,3 +211,50 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - `.gitignore` is scoped to `UnityProject/` subdirectory
 - Excluded: `Library/`, `Temp/`, `Build/`, `Logs/`, `UserSettings/`, `*.csproj`, `*.sln`, `Samples/`, `Bundles/`, `yoo/`
 - Embedded packages (HybridCLR, FairyGUI) are versioned in `Packages/`
+
+## Unity 命令行测试规范（强制）
+
+Unity 编辑器路径："/Applications/Unity/Unity.app/Contents/MacOS/Unity"
+
+1. 所有自动化测试默认使用 `-batchmode -nographics`，禁止依赖手工点选 Test Runner 窗口。
+2. 统一使用绝对路径参数，测试结果统一输出到 `TestResults/` 目录。
+3. 先跑编译回归，再跑 EditMode，最后跑 PlayMode，避免无效长时等待。
+4. PlayMode 必须设置超时保护，防止域重载或回调异常导致 CI 卡死。
+5. **测试命令禁止携带 `-quit`**，否则可能出现进程正常退出但测试未执行、`XML` 未产出的假通过。
+6. 结果必须包含 `JSON + XML + log` 三类文件，且保留最近一次执行日志用于追溯。
+
+推荐命令（本项目）：
+
+> 说明：仅编译回归命令使用 `-quit`；EditMode/PlayMode 测试命令不得带 `-quit`。
+
+```bash
+# 1) 编译回归
+"/Applications/Unity/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -nographics \
+  -projectPath "<项目绝对路径>" \
+  -logFile "<项目绝对路径>/TestResults/game-module-compile.log" \
+  -quit
+
+# 2) EditMode 批处理
+"/Applications/Unity/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -nographics \
+  -projectPath "<项目绝对路径>" \
+  -executeMethod Game.Module.Editor.ModuleTestCommand.RunFromCommandLine \
+  -hudTestPlatform EditMode \
+  -hudTestFilter Game.Tests.EditMode.ModuleConfigTests \
+  -hudTestTimeoutSec 120 \
+  -hudTestResult "<项目绝对路径>/TestResults/game-module-editmode.json" \
+  -hudTestXml "<项目绝对路径>/TestResults/game-module-editmode.xml" \
+  -logFile "<项目绝对路径>/TestResults/game-module-editmode-run.log"
+
+# 3) PlayMode 批处理
+"/Applications/Unity/Unity.app/Contents/MacOS/Unity" \
+  -batchmode -nographics \
+  -projectPath "<项目绝对路径>" \
+  -executeMethod Game.Module.Editor.ModuleTestCommand.RunFromCommandLine \
+  -hudTestPlatform PlayMode \
+  -hudTestTimeoutSec 240 \
+  -hudTestResult "<项目绝对路径>/TestResults/game-module-playmode.json" \
+  -hudTestXml "<项目绝对路径>/TestResults/game-module-playmode.xml" \
+  -logFile "<项目绝对路径>/TestResults/game-module-playmode-run.log"
+```

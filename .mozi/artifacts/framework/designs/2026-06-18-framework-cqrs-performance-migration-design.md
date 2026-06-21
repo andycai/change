@@ -50,7 +50,7 @@
 | 监控隔离方式 | `#if ENABLE_CQRS_MONITORING` 条件编译 | 发布版本零开销，开发版本可随时启用 |
 | 监控访问的线程模型 | 单线程（主线程） | 继承 FRD #1 的主线程注册约束，监控无需加锁（避免锁带来 GC） |
 | Quest 迁移模式选择 | `BumpMainQuestProgressCommand` → Struct 自处理；所有 Command Handler → Class + `IPoolable`；`GetQuestPanelQueryHandler` → Class 模式（不复用 buffer） | 简单进度 Command 适合栈分配；有依赖注入的领奖 Command 适合 Class；Query 返回值需被调用方持有，buffer 复用会因 `Reset()` 清空而失效 |
-| Struct 模式依赖传递 | 通过 `Execute(state)` 参数显式传递，由框架服务定位器注入 | 满足 FRD #2 未决问题 #1 的建议方向，避免全局服务定位器的隐式依赖 |
+| Struct 模式依赖传递 | **FRD #2 已确定 `Execute()` 为无参签名**；依赖通过 struct 的 readonly 字段在构造时注入（如 `BumpMainQuestProgressCommand` 携带 `QuestSessionState` 字段），不引入服务定位器 | FRD #2 的 `ISelfHandlingCommand.Execute()` 实现为无参；构造字段注入保持 0GC 且依赖显式可追踪 |
 | Query Handler 的 0GC 策略 | Query 不复用 buffer，改为按调用方持有 snapshot 语义；若需 0GC 由调用方传入预分配 buffer（未来扩展） | snapshot 的 List 引用被调用方持有，复用 buffer 会导致数据失效；Command 无返回值可安全复用 |
 
 ## 文件地图
@@ -200,7 +200,7 @@ public readonly struct PerformanceAlert
 
 | 接口 | 签名 | 行为 |
 |------|------|------|
-| `BumpMainQuestProgressCommand.Execute` | `void Execute(QuestSessionState state)` | Struct 自处理：直接调用 `state.BumpMainProgress(Delta)`，由框架注入 `QuestSessionState` |
+| `BumpMainQuestProgressCommand.Execute` | `void Execute()`（无参）| Struct 自处理：直接调用携带的 `QuestSessionState` 字段的 `BumpMainProgress(Delta)`。依赖通过 readonly 字段在构造时注入 |
 | `ClaimSideQuestRewardHandler` | `: ICommandHandler<...>, IPoolable` | Class 模式不变，新增 `Reset()`（当前无字段需重置，空实现） |
 | `GetQuestPanelQueryHandler` | `: IQueryHandler<...>, IPoolable` | Class 模式，保留每次 new List 的现有实现（不复用 buffer）；`Reset()` 为空（Handler 无状态字段需重置） |
 | `GetQuestPanelQueryHandler.Handle` | `QuestPanelSnapshot Handle(in GetQuestPanelQuery query)` | 维持现有逻辑：构造 List 填充并返回 snapshot。snapshot 被 Presenter 持有，复用 buffer 会因下次 `Reset()` 清空而失效，故 Query 路径暂不追求 0GC |
@@ -209,13 +209,20 @@ public readonly struct PerformanceAlert
 
 ```csharp
 // Struct 自处理迁移（QuestMessages.cs）
-public readonly struct BumpMainQuestProgressCommand : ICommand
+// Execute() 为无参签名（FRD #2 ISelfHandlingCommand）；QuestSessionState 作为
+// readonly 字段在构造时注入，保持 0GC 且依赖显式可追踪。
+public readonly struct BumpMainQuestProgressCommand : ISelfHandlingCommand
 {
+    private readonly QuestSessionState _state;
     public int Delta { get; }
-    public void Execute(QuestSessionState state)
+
+    public BumpMainQuestProgressCommand(QuestSessionState state, int delta)
     {
-        state.BumpMainProgress(Delta);
+        _state = state;
+        Delta = delta;
     }
+
+    public void Execute() => _state.BumpMainProgress(Delta);
 }
 
 // Class + IPoolable 迁移（QuestQueryHandlers.cs）
@@ -244,7 +251,7 @@ public sealed class GetQuestPanelQueryHandler
 
 **行为契约：**
 
-- Struct 模式：`CqrsBus.Send(in BumpMainQuestProgressCommand)` 检测到该 Command 实现 `Execute(QuestSessionState)`，框架通过服务定位器获取 `QuestSessionState` 并直接调用，无 Handler 实例化、无 GC
+- Struct 模式：`CqrsBus.Send(in BumpMainQuestProgressCommand)` 检测到该 Command 实现 `ISelfHandlingCommand`（每类型缓存的 constrained.callvirt 委托，FRD #2 已实现），直接调用无参 `Execute()`，无 Handler 实例化、无 GC。`QuestSessionState` 由 struct 的 readonly 字段携带（构造注入）。
 - Class 模式：`CqrsBus` 从对象池获取 Handler 实例，调用 `Handle`，执行后调用 `Reset()`；Command Handler 的 `Reset()` 清理状态（Quest 的 Command Handler 无字段需重置，空实现）；Query Handler 因返回值被持有不复用 buffer。Handler 实例归还由 DI 容器或用户管理（FRD #2 决策 #5）
 - 业务语义不变：任务进度更新、奖励发放、异常抛出（重复领取）行为与迁移前一致
 
@@ -256,11 +263,11 @@ public sealed class GetQuestPanelQueryHandler
 - [ ] Unity Profiler 手动验证：完成任务（BumpProgress），Profiler 的 GC.Alloc 列为 0
 - [ ] Unity Profiler 手动验证：领取奖励（ClaimReward，Class 池化），Profiler 的 GC.Alloc 列为 0
 - [ ] Query 路径（OpenPanel）允许 GC 分配（snapshot 持有语义决定），不纳入 0GC 验收
-- [ ] 调用方适配：`OpenQuestPanelUseCase`（注入 `ICqrsBus`，调用 `Ask`/`Send`）适配 FRD #2 的新 API 签名；Struct Command 移除注册代码
+- [ ] 调用方适配：`OpenQuestPanelUseCase`（注入 `ICqrsBus`，调用 `Ask`/`Send`）适配 FRD #2 的新 API 签名；`BumpMainQuestProgressCommand` 迁移为 `ISelfHandlingCommand` 后移除对应 Class Handler 注册，并在构造时传入 `QuestSessionState` 依赖
 - [ ] `QuestWindowPresenter` 经验证无需改动（它通过 `IOpenQuestPanelUseCase` 间接访问 CQRS，不直接持有 `ICqrsBus`）
 
 **回归风险评估：**
-- 影响范围：Quest 模块所有 Handler 接口签名变更；`OpenQuestPanelUseCase`（注入 `ICqrsBus`，调用 `Ask`/`Send`）需适配 FRD #2 的新 API；`QuestSessionState` 需对框架服务定位器可见（Struct 模式依赖注入）。`QuestWindowPresenter` 通过 `IOpenQuestPanelUseCase` 间接访问 CQRS，预期无需改动
+- 影响范围：Quest 模块所有 Handler 接口签名变更；`OpenQuestPanelUseCase`（注入 `ICqrsBus`，调用 `Ask`/`Send`）需适配 FRD #2 的新 API；`BumpMainQuestProgressCommand` 迁移为 `ISelfHandlingCommand` 后须在构造时传入 `QuestSessionState`（无参 `Execute()`，依赖走 struct 字段）。`QuestWindowPresenter` 通过 `IOpenQuestPanelUseCase` 间接访问 CQRS，预期无需改动
 - 缓解措施：
   1. 迁移前确认现有 Quest 功能测试（如有）作为基线
   2. 迁移后 `QuestMigrationTests` 覆盖原有业务分支
@@ -348,9 +355,10 @@ public interface IPerformanceThresholdPolicy
 }
 
 // 切片 C 暴露给框架（Struct 自处理 + 池化 Handler）
-public readonly struct BumpMainQuestProgressCommand : ICommand
+// ISelfHandlingCommand.Execute() 为无参签名（FRD #2）；依赖通过 struct 字段注入
+public readonly struct BumpMainQuestProgressCommand : ISelfHandlingCommand
 {
-    void Execute(QuestSessionState state);
+    void Execute();
 }
 
 // Query Handler 池化但不复用 buffer（snapshot 被持有语义决定）
