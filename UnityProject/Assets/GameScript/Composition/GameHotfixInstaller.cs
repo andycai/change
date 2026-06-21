@@ -15,23 +15,8 @@ namespace GameScript.Composition
             builder.Register<ICqrsBus>(c => c.Resolve<CqrsBus>(), Lifetime.Singleton);
             builder.Register<IOpenQuestPanelUseCase, OpenQuestPanelUseCase>(Lifetime.Transient);
 
-            builder.RegisterBuildCallback(c =>
-            {
-                var bus = c.Resolve<CqrsBus>();
-                var bootstrap = new CqrsBootstrap(bus);
-                var state = c.Resolve<QuestSessionState>();
-                var wallet = c.Resolve<QuestRewardWallet>();
-
-                bootstrap.RegisterQuery(new GetQuestPanelQueryHandler(state, wallet));
-                // BumpMainQuestProgressCommand 已是 ISelfHandlingCommand，无需注册 Class handler。
-                bootstrap.RegisterCommand(new AdvanceMainQuestStepHandler(state, wallet));
-                bootstrap.RegisterCommand(new BumpSideQuestProgressHandler(state));
-                bootstrap.RegisterCommand(new ClaimSideQuestRewardHandler(state, wallet));
-                bootstrap.RegisterCommand(new BumpDailyQuestProgressHandler(state));
-                bootstrap.RegisterCommand(new ClaimDailyQuestRewardHandler(state, wallet));
-
-                bootstrap.Build();
-            });
+            // Command/Query are self-handling structs — no registration needed.
+            // Dependencies are injected via struct constructor fields at call sites.
         }
     }
 }

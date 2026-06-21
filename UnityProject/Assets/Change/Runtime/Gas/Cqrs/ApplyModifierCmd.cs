@@ -1,4 +1,3 @@
-using System;
 using Change.Framework.Cqrs;
 
 namespace Change.Runtime.Gas.Cqrs
@@ -15,9 +14,8 @@ namespace Change.Runtime.Gas.Cqrs
 
         public void Execute()
         {
-            throw new NotSupportedException(
-                "ApplyModifierCmd is dispatched through the GAS system, not the CQRS bus. " +
-                "Use GasService.ApplyModifier() instead.");
+            throw new System.NotSupportedException(
+                "ApplyModifierCmd is dispatched through the GAS system, not the CQRS bus.");
         }
     }
 }

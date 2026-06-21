@@ -32,7 +32,7 @@ namespace GameScript.UI.Inventory
         {
             throw new System.NotSupportedException(
                 "GetInventorySummaryQuery requires an inventory data source. " +
-                "This query is dispatched through the UseCase; implement Query() with actual data access.");
+                "Implement Query() with actual data access.");
         }
     }
 
