@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -138,6 +139,54 @@ namespace Change.Framework.Cqrs
         private readonly FastDictionary<Type, IAsyncCommandHandlerRegistration> _asyncCommandHandlers = new();
         private readonly FastDictionary<QueryKey, IAsyncQueryHandlerRegistration> _asyncQueryHandlers = new();
         private readonly ILogger _logger;
+
+#if ENABLE_CQRS_MONITORING
+        // 安装当前线程的监控。仅诊断构建（定义了 ENABLE_CQRS_MONITORING）可用。
+        // 默认 OFF 时整个监控接入块不编译，分发路径与现状逐字节一致、保持 0GC。
+        [ThreadStatic]
+        private static Monitoring.CqrsPerformanceMonitor _activeMonitor;
+
+        /// <summary>
+        /// 为当前线程安装监控；传 null 清除。仅在诊断构建可用。
+        /// </summary>
+        public static void SetActiveMonitor(Monitoring.CqrsPerformanceMonitor monitor)
+        {
+            _activeMonitor = monitor;
+        }
+
+        // 用 GC.GetTotalMemory(false) 测量单次分发的堆增长（GetAllocatedBytesForCurrentThread
+        // 在 Unity 2022.3 Mono EditMode 失效）。false 不强制 GC，分发内的瞬态分配在两次快照间
+        // 仍在堆上，故能被检出；0GC 分发则 delta≈0。
+        private void RecordMonitored(Type messageType, Action body)
+        {
+            var monitor = _activeMonitor;
+            if (monitor == null) { body(); return; }
+            var before = GC.GetTotalMemory(false);
+            var ticksBefore = Stopwatch.GetTimestamp();
+            try { body(); }
+            finally
+            {
+                monitor.RecordExecution(messageType,
+                    Stopwatch.GetTimestamp() - ticksBefore,
+                    GC.GetTotalMemory(false) - before);
+            }
+        }
+
+        private TResult RecordMonitored<TResult>(Type messageType, Func<TResult> body)
+        {
+            var monitor = _activeMonitor;
+            if (monitor == null) { return body(); }
+            var before = GC.GetTotalMemory(false);
+            var ticksBefore = Stopwatch.GetTimestamp();
+            try { return body(); }
+            finally
+            {
+                monitor.RecordExecution(messageType,
+                    Stopwatch.GetTimestamp() - ticksBefore,
+                    GC.GetTotalMemory(false) - before);
+            }
+        }
+#endif
 
         public CqrsBus()
             : this(NullLogger.Instance)
@@ -480,7 +529,12 @@ namespace Change.Framework.Cqrs
             var invoke = SelfHandlingCommandCache<TCommand>.Invoke;
             if (invoke != null)
             {
+#if ENABLE_CQRS_MONITORING
+                var cmdCopy = command;
+                RecordMonitored(typeof(TCommand), () => invoke(cmdCopy));
+#else
                 invoke(command);
+#endif
                 return;
             }
 
@@ -491,6 +545,21 @@ namespace Change.Framework.Cqrs
             }
 
             var handler = ((CommandHandlerRegistration<TCommand>)registration).Handler;
+#if ENABLE_CQRS_MONITORING
+            try
+            {
+                var cmdCopy = command;
+                RecordMonitored(commandType, () =>
+                {
+                    var c = cmdCopy;
+                    handler.Handle(in c);
+                });
+            }
+            finally
+            {
+                ResetIfPoolable(handler, commandType);
+            }
+#else
             try
             {
                 handler.Handle(in command);
@@ -499,6 +568,7 @@ namespace Change.Framework.Cqrs
             {
                 ResetIfPoolable(handler, typeof(TCommand));
             }
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -508,7 +578,12 @@ namespace Change.Framework.Cqrs
             if (SelfHandlingQueryCache<TQuery>.IsSelfHandling)
             {
                 var invoke = SelfHandlingQueryInvokeCache<TQuery, TResult>.Invoke;
+#if ENABLE_CQRS_MONITORING
+                var qCopy = query;
+                return RecordMonitored(typeof(TQuery), () => invoke(qCopy));
+#else
                 return invoke(query);
+#endif
             }
 
             var queryType = typeof(TQuery);
@@ -521,6 +596,23 @@ namespace Change.Framework.Cqrs
             }
 
             var handler = ((QueryHandlerRegistration<TQuery, TResult>)registration).Handler;
+#if ENABLE_CQRS_MONITORING
+            TResult qResult;
+            try
+            {
+                var qLocal = query;
+                qResult = RecordMonitored(queryType, () =>
+                {
+                    var q = qLocal;
+                    return handler.Handle(in q);
+                });
+            }
+            finally
+            {
+                ResetIfPoolable(handler, queryType);
+            }
+            return qResult;
+#else
             try
             {
                 return handler.Handle(in query);
@@ -529,6 +621,7 @@ namespace Change.Framework.Cqrs
             {
                 ResetIfPoolable(handler, typeof(TQuery));
             }
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -567,6 +660,27 @@ namespace Change.Framework.Cqrs
                 return;
             }
 
+#if ENABLE_CQRS_MONITORING
+            var evCopy = @event;
+            RecordMonitored(eventType, () =>
+            {
+                var ev = evCopy;
+                PublishBody(handlers, delegates, handlerCount, delegateCount, in ev);
+            });
+#else
+            PublishBody(handlers, delegates, handlerCount, delegateCount, in @event);
+#endif
+        }
+
+        // Extracted for both ON (wrapped in RecordMonitored) and OFF (direct) paths.
+        // Used by Publish<TEvent> — not a standalone public API.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void PublishBody<TEvent>(
+            FastList<IEventHandler<TEvent>> handlers,
+            FastList<Action<TEvent>> delegates,
+            int handlerCount, int delegateCount,
+            in TEvent @event) where TEvent : struct, IEvent
+        {
             List<Exception> exceptions = null;
 
             for (var i = 0; i < handlerCount; i++)
