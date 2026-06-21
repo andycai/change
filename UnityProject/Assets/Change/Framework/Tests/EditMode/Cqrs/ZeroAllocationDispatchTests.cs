@@ -101,12 +101,12 @@ namespace Change.Framework.Tests
 
             ForceFullGc();
 
-            var before = GC.GetAllocatedBytesForCurrentThread();
+            var before = GC.GetTotalMemory(true);
             for (var i = 0; i < MeasuredIterations; i++)
             {
                 runtime.Send(in command);
             }
-            var after = GC.GetAllocatedBytesForCurrentThread();
+            var after = GC.GetTotalMemory(true);
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(WarmupIterations + MeasuredIterations, state.Value);
@@ -128,13 +128,13 @@ namespace Change.Framework.Tests
 
             ForceFullGc();
 
-            var before = GC.GetAllocatedBytesForCurrentThread();
+            var before = GC.GetTotalMemory(true);
             var sum = 0;
             for (var i = 0; i < MeasuredIterations; i++)
             {
                 sum += runtime.Ask<GetTickQuery, int>(in query);
             }
-            var after = GC.GetAllocatedBytesForCurrentThread();
+            var after = GC.GetTotalMemory(true);
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(7 * MeasuredIterations, sum);
@@ -156,12 +156,12 @@ namespace Change.Framework.Tests
 
             ForceFullGc();
 
-            var before = GC.GetAllocatedBytesForCurrentThread();
+            var before = GC.GetTotalMemory(true);
             for (var i = 0; i < MeasuredIterations; i++)
             {
                 runtime.Publish(in domainEvent);
             }
-            var after = GC.GetAllocatedBytesForCurrentThread();
+            var after = GC.GetTotalMemory(true);
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(WarmupIterations + MeasuredIterations, handler.Count);
@@ -183,12 +183,12 @@ namespace Change.Framework.Tests
 
             ForceFullGc();
 
-            var before = GC.GetAllocatedBytesForCurrentThread();
+            var before = GC.GetTotalMemory(true);
             for (var i = 0; i < MeasuredIterations; i++)
             {
                 bus.Publish(in domainEvent);
             }
-            var after = GC.GetAllocatedBytesForCurrentThread();
+            var after = GC.GetTotalMemory(true);
 
             Assert.AreEqual(before, after,
                 "delegate publish hot path must not allocate");

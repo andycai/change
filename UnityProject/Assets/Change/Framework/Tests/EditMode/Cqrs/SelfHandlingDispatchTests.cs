@@ -123,12 +123,12 @@ namespace Change.Framework.Tests
 
             ForceFullGc();
 
-            var before = GC.GetAllocatedBytesForCurrentThread();
+            var before = GC.GetTotalMemory(true);
             for (var i = 0; i < MeasuredIterations; i++)
             {
                 bus.Send(command);
             }
-            var after = GC.GetAllocatedBytesForCurrentThread();
+            var after = GC.GetTotalMemory(true);
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(WarmupIterations + MeasuredIterations, counter.Value);
@@ -149,12 +149,12 @@ namespace Change.Framework.Tests
             ForceFullGc();
 
             var sum = 0;
-            var before = GC.GetAllocatedBytesForCurrentThread();
+            var before = GC.GetTotalMemory(true);
             for (var i = 0; i < MeasuredIterations; i++)
             {
                 sum += bus.Ask<ReadSelfHandlingQuery, int>(query);
             }
-            var after = GC.GetAllocatedBytesForCurrentThread();
+            var after = GC.GetTotalMemory(true);
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(3 * MeasuredIterations, sum);
