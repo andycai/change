@@ -3,11 +3,10 @@ using System;
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Default CQRS bootstrap that owns registration and creates a single runtime instance.
+    /// Default CQRS bootstrap that owns event subscription and exposes the bus as a runtime.
     /// <para>
     /// After the first <see cref="Build"/>, subsequent calls return the same
-    /// <see cref="ICqrsRuntime"/> instance. <see cref="Build"/> is safe to call
-    /// concurrently; runtime construction happens at most once.
+    /// <see cref="ICqrsRuntime"/> instance (the underlying CqrsBus directly).
     /// </para>
     /// </summary>
     public sealed class CqrsBootstrap : ICqrsBootstrap
@@ -26,19 +25,13 @@ namespace Change.Framework.Cqrs
             _bus = bus ?? throw new ArgumentNullException(nameof(bus));
         }
 
-        public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
-            where TCommand : struct, ICommand
-        {
-            _bus.RegisterCommand(handler);
-        }
-
-        public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
-            where TQuery : struct, IQuery<TResult>
-        {
-            _bus.RegisterQuery(handler);
-        }
-
         public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            _bus.Subscribe(handler);
+        }
+
+        public void Subscribe<TEvent>(Action<TEvent> handler)
             where TEvent : struct, IEvent
         {
             _bus.Subscribe(handler);
@@ -59,8 +52,7 @@ namespace Change.Framework.Cqrs
                     return _runtime;
                 }
 
-                _bus.Freeze();
-                _runtime = new CqrsRuntime(_bus);
+                _runtime = _bus;
                 return _runtime;
             }
         }

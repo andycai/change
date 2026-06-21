@@ -1,104 +1,31 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using Change.Framework.Collections;
 using Change.Framework.Logging;
+using Cysharp.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// In-process CQRS bus with explicit registration and freeze lifecycle.
-    /// Handlers may be registered from multiple threads before <see cref="Freeze"/>.
-    /// Dispatch is allowed only after <see cref="Freeze"/>.
+    /// In-process CQRS bus implementing dispatch, registration, and runtime surfaces.
+    /// Command/Query handlers are not needed — all commands and queries are
+    /// self-handling structs with intrinsic <c>Execute()</c>/<c>Query()</c> methods.
+    /// Only events require registration (<see cref="Subscribe{TEvent}"/>).
     /// </summary>
-    public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
+    public sealed class CqrsBus : ICqrsBus, ICqrsRegistry, ICqrsRuntime
     {
-        private const string CommandRegisteredMessage = "Registered command handler.";
-        private const string QueryRegisteredMessage = "Registered query handler.";
-        private const string EventSubscribedMessage = "Subscribed event handler.";
-
-        private interface ICommandHandlerRegistration
-        {
-        }
-
-        private interface IQueryHandlerRegistration
-        {
-        }
-
-        private interface IEventHandlerList
-        {
-        }
-
-        private sealed class CommandHandlerRegistration<TCommand> : ICommandHandlerRegistration
-            where TCommand : struct, ICommand
-        {
-            public CommandHandlerRegistration(ICommandHandler<TCommand> handler)
-            {
-                Handler = handler;
-            }
-
-            public ICommandHandler<TCommand> Handler { get; }
-        }
-
-        private sealed class QueryHandlerRegistration<TQuery, TResult> : IQueryHandlerRegistration
-            where TQuery : struct, IQuery<TResult>
-        {
-            public QueryHandlerRegistration(IQueryHandler<TQuery, TResult> handler)
-            {
-                Handler = handler;
-            }
-
-            public IQueryHandler<TQuery, TResult> Handler { get; }
-        }
+        private interface IEventHandlerList { }
 
         private sealed class EventHandlerList<TEvent> : IEventHandlerList
             where TEvent : struct, IEvent
         {
             public FastList<IEventHandler<TEvent>> Handlers { get; } = new();
+            public FastList<Action<TEvent>> Delegates { get; } = new();
         }
 
-        private readonly struct QueryKey : IEquatable<QueryKey>
-        {
-            public QueryKey(Type queryType, Type resultType)
-            {
-                QueryType = queryType;
-                ResultType = resultType;
-            }
-
-            public Type QueryType { get; }
-            public Type ResultType { get; }
-
-            public bool Equals(QueryKey other)
-            {
-                return QueryType == other.QueryType && ResultType == other.ResultType;
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj is QueryKey other && Equals(other);
-            }
-
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    return (QueryType.GetHashCode() * 397) ^ ResultType.GetHashCode();
-                }
-            }
-        }
-
-        private readonly FastDictionary<Type, ICommandHandlerRegistration> _commandHandlers = new();
-        private readonly FastDictionary<QueryKey, IQueryHandlerRegistration> _queryHandlers = new();
-        private readonly FastDictionary<Type, Type> _queryResultByQueryType = new();
         private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
-        private readonly object _registrationGate = new();
         private readonly ILogger _logger;
-        private volatile bool _isFrozen;
-
-        /// <summary>
-        /// Gets whether the registry is frozen and ready for dispatch.
-        /// </summary>
-        public bool IsFrozen => _isFrozen;
 
         public CqrsBus()
             : this(NullLogger.Instance)
@@ -110,156 +37,34 @@ namespace Change.Framework.Cqrs
             _logger = logger ?? NullLogger.Instance;
         }
 
-        public void RegisterCommand<TCommand>(ICommandHandler<TCommand> handler)
-            where TCommand : struct, ICommand
-        {
-            lock (_registrationGate)
-            {
-                ThrowIfFrozen();
-
-                if (handler == null)
-                {
-                    throw new ArgumentNullException(nameof(handler));
-                }
-                ThrowIfValueTypeHandler(handler, nameof(handler));
-
-                var commandType = typeof(TCommand);
-                if (!_commandHandlers.TryAdd(commandType, new CommandHandlerRegistration<TCommand>(handler)))
-                {
-                    throw new DuplicateRegistrationException($"Command handler already registered: {commandType.FullName}");
-                }
-            }
-
-            SafeInfo(CommandRegisteredMessage);
-        }
-
-        public void RegisterQuery<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
-            where TQuery : struct, IQuery<TResult>
-        {
-            lock (_registrationGate)
-            {
-                ThrowIfFrozen();
-
-                if (handler == null)
-                {
-                    throw new ArgumentNullException(nameof(handler));
-                }
-                ThrowIfValueTypeHandler(handler, nameof(handler));
-
-                var queryType = typeof(TQuery);
-                var resultType = typeof(TResult);
-
-                if (_queryResultByQueryType.TryGetValue(queryType, out var existingResultType))
-                {
-                    if (existingResultType == resultType)
-                    {
-                        throw new DuplicateRegistrationException(
-                            $"Query handler already registered: {queryType.FullName} -> {resultType.FullName}");
-                    }
-
-                    throw new DuplicateRegistrationException(
-                        $"Query type already registered with a different result: {queryType.FullName} -> {existingResultType.FullName}; " +
-                        $"each query supports exactly one handler.");
-                }
-
-                var queryKey = new QueryKey(queryType, resultType);
-                _queryHandlers.TryAdd(queryKey, new QueryHandlerRegistration<TQuery, TResult>(handler));
-                _queryResultByQueryType.TryAdd(queryType, resultType);
-            }
-
-            SafeInfo(QueryRegisteredMessage);
-        }
-
-        public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
-            where TEvent : struct, IEvent
-        {
-            lock (_registrationGate)
-            {
-                ThrowIfFrozen();
-
-                if (handler == null)
-                {
-                    throw new ArgumentNullException(nameof(handler));
-                }
-                ThrowIfValueTypeHandler(handler, nameof(handler));
-
-                var eventType = typeof(TEvent);
-                if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
-                {
-                    handlerList = new EventHandlerList<TEvent>();
-                    _eventHandlers.TryAdd(eventType, handlerList);
-                }
-
-                var typedList = (EventHandlerList<TEvent>)handlerList;
-                typedList.Handlers.Add(handler);
-            }
-
-            SafeInfo(EventSubscribedMessage);
-        }
-
-        public void Freeze()
-        {
-            lock (_registrationGate)
-            {
-                _isFrozen = true;
-            }
-        }
+        // ===== Command Dispatch (self-handling) =====
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand
         {
-            ThrowIfNotFrozen();
-
-            var commandType = typeof(TCommand);
-            if (!_commandHandlers.TryGetValue(commandType, out var registration))
-            {
-                throw new HandlerNotRegisteredException($"Command handler not registered: {commandType.FullName}");
-            }
-
-            var typedRegistration = (CommandHandlerRegistration<TCommand>)registration;
-            typedRegistration.Handler.Handle(in command);
+            // Stack copy avoids boxing when calling interface method on in-param value type.
+            // The JIT emits a constrained callvirt on the local copy — zero allocation.
+            var cmd = command;
+            cmd.Execute();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TResult Query<TQuery, TResult>(in TQuery query)
-            where TQuery : struct, IQuery<TResult>
-        {
-            ThrowIfNotFrozen();
-
-            var queryType = typeof(TQuery);
-            var resultType = typeof(TResult);
-            var queryKey = new QueryKey(queryType, resultType);
-            if (!_queryHandlers.TryGetValue(queryKey, out var registration))
-            {
-                throw new HandlerNotRegisteredException(
-                    $"Query handler not registered: {queryType.FullName} -> {resultType.FullName}");
-            }
-
-            var typedRegistration = (QueryHandlerRegistration<TQuery, TResult>)registration;
-            return typedRegistration.Handler.Handle(in query);
-        }
+        // ===== Query Dispatch (self-handling) =====
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TResult Ask<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>
         {
-            return Query<TQuery, TResult>(in query);
+            var q = query;
+            return q.Query();
         }
 
-        /// <summary>
-        /// Publishes an event to all subscribed handlers in registration order.
-        /// Subscribers are matched strictly by the closed generic type <typeparamref name="TEvent"/>;
-        /// no base-interface fan-out is performed.
-        /// All handlers are invoked even if one throws. If any handler throws,
-        /// exceptions are collected and re-thrown as an <see cref="AggregateException"/>.
-        /// </summary>
+        // ===== Event Dispatch =====
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Publish<TEvent>(in TEvent @event)
             where TEvent : struct, IEvent
         {
-            ThrowIfNotFrozen();
-
             var eventType = typeof(TEvent);
             if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
             {
@@ -268,15 +73,35 @@ namespace Change.Framework.Cqrs
 
             var typedList = (EventHandlerList<TEvent>)handlerList;
             var handlers = typedList.Handlers;
-            var count = handlers.Count;
-            if (count == 0) return;
+            var delegates = typedList.Delegates;
+
+            var handlerCount = handlers.Count;
+            var delegateCount = delegates.Count;
+            if (handlerCount == 0 && delegateCount == 0)
+            {
+                return;
+            }
 
             List<Exception> exceptions = null;
-            for (var i = 0; i < count; i++)
+
+            for (var i = 0; i < handlerCount; i++)
             {
                 try
                 {
                     handlers[i].Handle(in @event);
+                }
+                catch (Exception ex)
+                {
+                    exceptions ??= new List<Exception>();
+                    exceptions.Add(ex);
+                }
+            }
+
+            for (var i = 0; i < delegateCount; i++)
+            {
+                try
+                {
+                    delegates[i](@event);
                 }
                 catch (Exception ex)
                 {
@@ -291,23 +116,115 @@ namespace Change.Framework.Cqrs
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ThrowIfNotFrozen()
+        // ===== Async Dispatch (self-handling) =====
+
+        public async UniTask SendAsync<TCommand>(TCommand command)
+            where TCommand : struct, IAsyncCommand
         {
-            if (!_isFrozen) throw new InvalidOperationException("Registry must be frozen before dispatch.");
+            await command.ExecuteAsync();
         }
 
-        private void ThrowIfFrozen()
+        public async UniTask<TResult> AskAsync<TQuery, TResult>(TQuery query)
+            where TQuery : struct, IAsyncQuery<TResult>
         {
-            if (_isFrozen) throw new RegistryFrozenException("Registry is frozen.");
+            return await query.QueryAsync();
         }
+
+        // ===== Event Subscribe / Unsubscribe =====
+
+        public void Subscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            ThrowIfValueTypeHandler(handler, nameof(handler));
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                handlerList = new EventHandlerList<TEvent>();
+                _eventHandlers.TryAdd(eventType, handlerList);
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            typedList.Handlers.Add(handler);
+
+            SafeInfo("Subscribed event handler.");
+        }
+
+        public void Subscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
+            // Closure detection: Target != null means the delegate captures variables,
+            // which would allocate a closure object (breaking the 0-GC guarantee).
+            if (handler.Target != null)
+            {
+                throw new ClosureCaptureException(
+                    "Delegate captures variables; only static methods or non-capturing lambdas "
+                    + "are allowed to maintain the 0-GC guarantee. "
+                    + $"Delegate type: {handler.GetType().FullName}, Target: {handler.Target.GetType().FullName}.");
+            }
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                handlerList = new EventHandlerList<TEvent>();
+                _eventHandlers.TryAdd(eventType, handlerList);
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            typedList.Delegates.Add(handler);
+
+            SafeInfo("Subscribed event delegate.");
+        }
+
+        public void Unsubscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                return;
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            var index = typedList.Handlers.IndexOf(handler);
+            if (index >= 0)
+            {
+                typedList.Handlers.RemoveAt(index);
+            }
+        }
+
+        public void Unsubscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IEvent
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
+            var eventType = typeof(TEvent);
+            if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
+            {
+                return;
+            }
+
+            var typedList = (EventHandlerList<TEvent>)handlerList;
+            var index = typedList.Delegates.IndexOf(handler);
+            if (index >= 0)
+            {
+                typedList.Delegates.RemoveAt(index);
+            }
+        }
+
+        // ===== Helpers =====
 
         private static void ThrowIfValueTypeHandler(object handler, string paramName)
         {
             if (handler.GetType().IsValueType)
             {
                 throw new InvalidOperationException(
-                    $"Value-type handlers are not supported: {paramName} must be implemented by a class to avoid boxing.");
+                    $"Value-type handlers are not supported: {paramName} must be implemented by a class.");
             }
         }
 
