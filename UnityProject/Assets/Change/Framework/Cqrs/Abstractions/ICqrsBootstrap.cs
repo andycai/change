@@ -25,11 +25,5 @@ namespace Change.Framework.Cqrs
         /// to invoke concurrently.
         /// </summary>
         ICqrsRuntime Build();
-
-        void RegisterAsyncCommand<TCommand>(IAsyncCommandHandler<TCommand> handler)
-            where TCommand : struct, ICommand;
-
-        void RegisterAsyncQuery<TQuery, TResult>(IAsyncQueryHandler<TQuery, TResult> handler)
-            where TQuery : struct, IQuery<TResult>;
     }
 }

@@ -241,27 +241,5 @@ namespace Change.Framework.Cqrs
 #endif
             }
         }
-
-        private void ResetIfPoolable(object handler, Type messageType)
-        {
-            if (handler is IPoolable poolable)
-            {
-                try
-                {
-                    poolable.Reset();
-                }
-                catch (Exception ex)
-                {
-                    try
-                    {
-                        _logger.Error($"Reset() failed for {messageType.FullName}: {ex.Message}");
-                    }
-                    catch (Exception)
-                    {
-                        // 日志本身失败时静默，不影响命令执行。
-                    }
-                }
-            }
-        }
     }
 }
