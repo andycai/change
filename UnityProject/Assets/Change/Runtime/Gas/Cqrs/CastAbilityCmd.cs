@@ -1,3 +1,4 @@
+using System;
 using Change.Framework.Cqrs;
 
 namespace Change.Runtime.Gas.Cqrs
@@ -11,5 +12,12 @@ namespace Change.Runtime.Gas.Cqrs
         public string AbilityId { get; }
         public string SourceId { get; }
         public string[] TargetIds { get; }
+
+        public void Execute()
+        {
+            throw new NotSupportedException(
+                "CastAbilityCmd is dispatched through the GAS system, not the CQRS bus. " +
+                "Use GasService.CastAbility() instead.");
+        }
     }
 }

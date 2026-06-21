@@ -1,3 +1,4 @@
+using System;
 using Change.Framework.Cqrs;
 
 namespace Change.Runtime.Gas.Cqrs
@@ -10,5 +11,12 @@ namespace Change.Runtime.Gas.Cqrs
         }
         public string TargetId { get; }
         public string AttributeName { get; }
+
+        public float Query()
+        {
+            throw new NotSupportedException(
+                "GetAttributeValueQry is dispatched through the GAS system, not the CQRS bus. " +
+                "Use GasService.GetAttributeValue() instead.");
+        }
     }
 }
