@@ -19,8 +19,8 @@ namespace Change.Runtime.Tests.PlayMode.Quest
             var bootstrap = new CqrsBootstrap(bus);
             state = new QuestSessionState();
             wallet = new QuestRewardWallet();
+            // BumpMainQuestProgressCommand 已是 ISelfHandlingCommand，无需注册 Class handler。
             bootstrap.RegisterQuery(new GetQuestPanelQueryHandler(state, wallet));
-            bootstrap.RegisterCommand(new BumpMainQuestProgressHandler(state));
             bootstrap.RegisterCommand(new AdvanceMainQuestStepHandler(state, wallet));
             bootstrap.RegisterCommand(new BumpSideQuestProgressHandler(state));
             bootstrap.RegisterCommand(new ClaimSideQuestRewardHandler(state, wallet));

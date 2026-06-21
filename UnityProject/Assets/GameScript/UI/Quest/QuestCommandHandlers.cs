@@ -1,21 +1,10 @@
 using System;
 using Change.Framework.Cqrs;
+using Change.Framework.Pooling;
 
 namespace GameScript.UI.Quest
 {
-    public sealed class BumpMainQuestProgressHandler : ICommandHandler<BumpMainQuestProgressCommand>
-    {
-        private readonly QuestSessionState _state;
-
-        public BumpMainQuestProgressHandler(QuestSessionState state) => _state = state;
-
-        public void Handle(in BumpMainQuestProgressCommand command)
-        {
-            _state.BumpMainProgress(command.Delta);
-        }
-    }
-
-    public sealed class AdvanceMainQuestStepHandler : ICommandHandler<AdvanceMainQuestStepCommand>
+    public sealed class AdvanceMainQuestStepHandler : ICommandHandler<AdvanceMainQuestStepCommand>, IPoolable
     {
         private readonly QuestSessionState _state;
         private readonly QuestRewardWallet _wallet;
@@ -31,9 +20,11 @@ namespace GameScript.UI.Quest
             _state.CompleteMainIfReady();
             _wallet.AddGold(20);
         }
+
+        public void Reset() { }
     }
 
-    public sealed class BumpSideQuestProgressHandler : ICommandHandler<BumpSideQuestProgressCommand>
+    public sealed class BumpSideQuestProgressHandler : ICommandHandler<BumpSideQuestProgressCommand>, IPoolable
     {
         private readonly QuestSessionState _state;
 
@@ -45,9 +36,11 @@ namespace GameScript.UI.Quest
             if (row.RewardClaimed) throw new InvalidOperationException("Side quest already claimed.");
             row.Progress = Math.Min(row.Progress + command.Delta, row.Target);
         }
+
+        public void Reset() { }
     }
 
-    public sealed class ClaimSideQuestRewardHandler : ICommandHandler<ClaimSideQuestRewardCommand>
+    public sealed class ClaimSideQuestRewardHandler : ICommandHandler<ClaimSideQuestRewardCommand>, IPoolable
     {
         private readonly QuestSessionState _state;
         private readonly QuestRewardWallet _wallet;
@@ -65,9 +58,11 @@ namespace GameScript.UI.Quest
             row.RewardClaimed = true;
             _wallet.AddGold(row.RewardGold);
         }
+
+        public void Reset() { }
     }
 
-    public sealed class BumpDailyQuestProgressHandler : ICommandHandler<BumpDailyQuestProgressCommand>
+    public sealed class BumpDailyQuestProgressHandler : ICommandHandler<BumpDailyQuestProgressCommand>, IPoolable
     {
         private readonly QuestSessionState _state;
 
@@ -79,9 +74,11 @@ namespace GameScript.UI.Quest
             if (row.RewardClaimed) throw new InvalidOperationException("Daily quest reward already claimed.");
             row.Progress = Math.Min(row.Progress + command.Delta, row.Target);
         }
+
+        public void Reset() { }
     }
 
-    public sealed class ClaimDailyQuestRewardHandler : ICommandHandler<ClaimDailyQuestRewardCommand>
+    public sealed class ClaimDailyQuestRewardHandler : ICommandHandler<ClaimDailyQuestRewardCommand>, IPoolable
     {
         private readonly QuestSessionState _state;
         private readonly QuestRewardWallet _wallet;
@@ -99,5 +96,7 @@ namespace GameScript.UI.Quest
             row.RewardClaimed = true;
             _wallet.AddGold(row.RewardGold);
         }
+
+        public void Reset() { }
     }
 }

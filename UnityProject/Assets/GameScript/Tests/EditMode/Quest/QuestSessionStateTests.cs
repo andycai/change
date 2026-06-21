@@ -13,8 +13,8 @@ namespace GameScript.Tests.Quest
             var bootstrap = new CqrsBootstrap(bus);
             state = new QuestSessionState();
             wallet = new QuestRewardWallet();
+            // BumpMainQuestProgressCommand 已是 ISelfHandlingCommand，无需注册 Class handler。
             bootstrap.RegisterQuery(new GetQuestPanelQueryHandler(state, wallet));
-            bootstrap.RegisterCommand(new BumpMainQuestProgressHandler(state));
             bootstrap.RegisterCommand(new AdvanceMainQuestStepHandler(state, wallet));
             bootstrap.RegisterCommand(new BumpSideQuestProgressHandler(state));
             bootstrap.RegisterCommand(new ClaimSideQuestRewardHandler(state, wallet));
@@ -28,10 +28,10 @@ namespace GameScript.Tests.Quest
         public void MainQuest_Linear_AcrossSteps()
         {
             var bus = CreateBus(out var state, out _);
-            bus.Send(new BumpMainQuestProgressCommand(2));
+            bus.Send(new BumpMainQuestProgressCommand(state, 2));
             bus.Send(new AdvanceMainQuestStepCommand());
             Assert.AreEqual(1, state.MainIndex);
-            bus.Send(new BumpMainQuestProgressCommand(2));
+            bus.Send(new BumpMainQuestProgressCommand(state, 2));
             bus.Send(new AdvanceMainQuestStepCommand());
             Assert.AreEqual(2, state.MainIndex);
         }
@@ -62,7 +62,7 @@ namespace GameScript.Tests.Quest
             var bus = CreateBus(out var state, out var wallet);
             for (var step = 0; step < 3; step++)
             {
-                bus.Send(new BumpMainQuestProgressCommand(2));
+                bus.Send(new BumpMainQuestProgressCommand(state, 2));
                 bus.Send(new AdvanceMainQuestStepCommand());
             }
 

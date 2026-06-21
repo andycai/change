@@ -71,14 +71,20 @@ namespace GameScript.UI.Quest
         public bool Claimed { get; }
     }
 
-    public readonly struct BumpMainQuestProgressCommand : ICommand
+    public readonly struct BumpMainQuestProgressCommand : ISelfHandlingCommand
     {
-        public BumpMainQuestProgressCommand(int delta)
+        private readonly QuestSessionState _state;
+
+        public BumpMainQuestProgressCommand(QuestSessionState state, int delta)
         {
+            _state = state;
             Delta = delta;
         }
 
         public int Delta { get; }
+
+        /// ISelfHandlingCommand.Execute() — 无参；QuestSessionState 由 readonly 字段携带（构造注入），保持 0GC。
+        public void Execute() => _state.BumpMainProgress(Delta);
     }
 
     public readonly struct AdvanceMainQuestStepCommand : ICommand

@@ -23,7 +23,7 @@ namespace GameScript.Composition
                 var wallet = c.Resolve<QuestRewardWallet>();
 
                 bootstrap.RegisterQuery(new GetQuestPanelQueryHandler(state, wallet));
-                bootstrap.RegisterCommand(new BumpMainQuestProgressHandler(state));
+                // BumpMainQuestProgressCommand 已是 ISelfHandlingCommand，无需注册 Class handler。
                 bootstrap.RegisterCommand(new AdvanceMainQuestStepHandler(state, wallet));
                 bootstrap.RegisterCommand(new BumpSideQuestProgressHandler(state));
                 bootstrap.RegisterCommand(new ClaimSideQuestRewardHandler(state, wallet));
