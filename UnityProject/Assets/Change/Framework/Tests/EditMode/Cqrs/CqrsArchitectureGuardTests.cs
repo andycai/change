@@ -7,20 +7,18 @@ using NUnit.Framework;
 
 namespace Change.Framework.Tests
 {
+    /// <summary>
+    /// Architectural guard tests ensuring CQRS dispatch surface dependencies are not
+    /// injected into handlers incorrectly.
+    /// Note: Only event handlers remain — Command/Query handlers have been removed
+    /// as all commands/queries are now self-handling structs.
+    /// </summary>
     public class CqrsArchitectureGuardTests
     {
         private static readonly Type[] ForbiddenDispatchDependencies =
         {
             typeof(ICqrsRuntime),
             typeof(ICqrsBus)
-        };
-
-        private static readonly Type[] ForbiddenQueryHandlerDependencies =
-        {
-            typeof(ICqrsRuntime),
-            typeof(ICqrsBus),
-            typeof(ICqrsBootstrap),
-            typeof(ICqrsRegistry)
         };
 
         [Test]
@@ -55,54 +53,11 @@ namespace Change.Framework.Tests
                 + string.Join("\n", violations));
         }
 
-        [Test]
-        public void QueryHandlers_MustNotInjectWriteSideOrDispatchSurface()
-        {
-            var violations = new List<string>();
-
-            foreach (var assembly in GetQueryHandlerAssemblies())
-            {
-                foreach (var handlerType in GetConcreteQueryHandlerTypes(assembly))
-                {
-                    foreach (var constructor in handlerType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-                    {
-                        foreach (var parameter in constructor.GetParameters())
-                        {
-                            if (!IsForbiddenQueryHandlerDependency(parameter.ParameterType))
-                            {
-                                continue;
-                            }
-
-                            violations.Add(
-                                $"{handlerType.FullName} injects {parameter.ParameterType.FullName} via {FormatConstructor(constructor)}");
-                        }
-                    }
-                }
-            }
-
-            Assert.That(
-                violations,
-                Is.Empty,
-                "Query handlers must stay read-side only and cannot inject write-side CQRS surfaces.\n"
-                + string.Join("\n", violations));
-        }
-
         private static IEnumerable<Assembly> GetDomainEventHandlerAssemblies()
         {
             foreach (var assembly in GetChangeAssemblies())
             {
                 if (ContainsConcreteDomainEventHandler(assembly))
-                {
-                    yield return assembly;
-                }
-            }
-        }
-
-        private static IEnumerable<Assembly> GetQueryHandlerAssemblies()
-        {
-            foreach (var assembly in GetChangeAssemblies())
-            {
-                if (ContainsConcreteQueryHandler(assembly))
                 {
                     yield return assembly;
                 }
@@ -141,24 +96,6 @@ namespace Change.Framework.Tests
             return false;
         }
 
-        private static bool ContainsConcreteQueryHandler(Assembly assembly)
-        {
-            foreach (var type in GetTypesSafely(assembly))
-            {
-                if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
-                {
-                    continue;
-                }
-
-                if (ImplementsQueryHandler(type))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static IEnumerable<Type> GetConcreteDomainEventHandlerTypes(Assembly assembly)
         {
             foreach (var type in GetTypesSafely(assembly))
@@ -169,24 +106,6 @@ namespace Change.Framework.Tests
                 }
 
                 if (!ImplementsDomainEventHandler(type))
-                {
-                    continue;
-                }
-
-                yield return type;
-            }
-        }
-
-        private static IEnumerable<Type> GetConcreteQueryHandlerTypes(Assembly assembly)
-        {
-            foreach (var type in GetTypesSafely(assembly))
-            {
-                if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
-                {
-                    continue;
-                }
-
-                if (!ImplementsQueryHandler(type))
                 {
                     continue;
                 }
@@ -225,24 +144,6 @@ namespace Change.Framework.Tests
             return false;
         }
 
-        private static bool ImplementsQueryHandler(Type type)
-        {
-            foreach (var @interface in type.GetInterfaces())
-            {
-                if (!@interface.IsGenericType)
-                {
-                    continue;
-                }
-
-                if (@interface.GetGenericTypeDefinition() == typeof(IQueryHandler<,>))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static bool IsForbiddenDispatchDependency(Type dependencyType)
         {
             foreach (var forbiddenType in ForbiddenDispatchDependencies)
@@ -251,25 +152,6 @@ namespace Change.Framework.Tests
                 {
                     return true;
                 }
-            }
-
-            return false;
-        }
-
-        private static bool IsForbiddenQueryHandlerDependency(Type dependencyType)
-        {
-            foreach (var forbiddenType in ForbiddenQueryHandlerDependencies)
-            {
-                if (forbiddenType.IsAssignableFrom(dependencyType))
-                {
-                    return true;
-                }
-            }
-
-            if (dependencyType.IsGenericType
-                && dependencyType.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
-            {
-                return true;
             }
 
             return false;

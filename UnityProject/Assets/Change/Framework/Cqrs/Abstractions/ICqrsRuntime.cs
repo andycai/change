@@ -1,30 +1,27 @@
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Immutable CQRS dispatch surface returned by <see cref="ICqrsBootstrap.Build"/>.
-    /// Implementations must not expose handler registration APIs.
+    /// Immutable CQRS dispatch surface. All commands and queries are self-handling structs
+    /// — dispatch invokes their intrinsic <c>Execute()</c> or <c>Query()</c> directly with
+    /// no external handler lookup.
     /// </summary>
     public interface ICqrsRuntime
     {
         void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand;
 
-        /// <summary>
-        /// Executes a query and returns its result.
-        /// Ask is the runtime-facing alias for the legacy bus-level Query semantics.
-        /// </summary>
         TResult Ask<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>;
 
         void Publish<TEvent>(in TEvent @event)
             where TEvent : struct, IEvent;
 
-        Task SendAsync<TCommand>(TCommand command)
-            where TCommand : struct, ICommand;
+        UniTask SendAsync<TCommand>(TCommand command)
+            where TCommand : struct, IAsyncCommand;
 
-        Task<TResult> AskAsync<TQuery, TResult>(TQuery query)
-            where TQuery : struct, IQuery<TResult>;
+        UniTask<TResult> AskAsync<TQuery, TResult>(TQuery query)
+            where TQuery : struct, IAsyncQuery<TResult>;
     }
 }

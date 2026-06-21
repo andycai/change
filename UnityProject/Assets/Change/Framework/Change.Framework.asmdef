@@ -1,7 +1,9 @@
 {
     "name": "Change.Framework",
     "rootNamespace": "Change.Framework",
-    "references": [],
+    "references": [
+        "UniTask"
+    ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
     "excludePlatforms": []
