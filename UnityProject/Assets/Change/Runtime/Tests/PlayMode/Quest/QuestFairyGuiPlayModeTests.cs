@@ -8,26 +8,13 @@ using UnityEngine.TestTools;
 
 namespace Change.Runtime.Tests.PlayMode.Quest
 {
-    /// <summary>
-    /// PlayMode: FairyGUI display objects expect a live Stage (EditMode 不稳定).
-    /// </summary>
     public sealed class QuestFairyGuiPlayModeTests
     {
         private static ICqrsBus CreateBus(out QuestSessionState state, out QuestRewardWallet wallet)
         {
-            var bus = new CqrsBus();
-            var bootstrap = new CqrsBootstrap(bus);
             state = new QuestSessionState();
             wallet = new QuestRewardWallet();
-            bootstrap.RegisterQuery(new GetQuestPanelQueryHandler(state, wallet));
-            bootstrap.RegisterCommand(new BumpMainQuestProgressHandler(state));
-            bootstrap.RegisterCommand(new AdvanceMainQuestStepHandler(state, wallet));
-            bootstrap.RegisterCommand(new BumpSideQuestProgressHandler(state));
-            bootstrap.RegisterCommand(new ClaimSideQuestRewardHandler(state, wallet));
-            bootstrap.RegisterCommand(new BumpDailyQuestProgressHandler(state));
-            bootstrap.RegisterCommand(new ClaimDailyQuestRewardHandler(state, wallet));
-            bootstrap.Build();
-            return bus;
+            return new CqrsBus();
         }
 
         [UnityTest]
@@ -37,8 +24,8 @@ namespace Change.Runtime.Tests.PlayMode.Quest
             {
                 await UniTask.Yield(PlayerLoopTiming.Update);
 
-                var bus = CreateBus(out _, out _);
-                var useCase = new OpenQuestPanelUseCase(bus);
+                var bus = CreateBus(out var state, out var wallet);
+                var useCase = new OpenQuestPanelUseCase(bus, state, wallet);
                 var root = QuestUiRootBuilder.BuildRoot();
                 var view = new QuestFairyGuiView(root);
                 var presenter = new QuestWindowPresenter(view, useCase);
@@ -47,8 +34,8 @@ namespace Change.Runtime.Tests.PlayMode.Quest
 
                 Assert.AreEqual("0", root.GetChild("txtWallet").asTextField.text);
 
-                bus.Send(new BumpSideQuestProgressCommand(1, 3));
-                bus.Send(new ClaimSideQuestRewardCommand(1));
+                bus.Send(new BumpSideQuestProgressCommand(state, 1, 3));
+                bus.Send(new ClaimSideQuestRewardCommand(state, wallet, 1));
                 presenter.OnOpen();
 
                 Assert.AreEqual("10", root.GetChild("txtWallet").asTextField.text);
