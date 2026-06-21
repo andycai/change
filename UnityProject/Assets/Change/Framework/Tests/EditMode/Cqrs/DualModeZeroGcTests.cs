@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Change.Framework.Cqrs;
+using Change.Framework.Pooling;
 using NUnit.Framework;
 
 namespace Change.Framework.Tests
@@ -22,6 +24,55 @@ namespace Change.Framework.Tests
         public void AssertZeroGc_PassesNoOpAction()
         {
             AssertZeroGc(() => { });
+        }
+
+        // —— 任务 2: Class 池化路径 0GC ——
+        private readonly struct PoolableClassCommand : ICommand { }
+
+        private sealed class PoolableClassCommandHandler
+            : ICommandHandler<PoolableClassCommand>, IPoolable
+        {
+            public int Count;
+            public void Handle(in PoolableClassCommand command) { Count++; }
+            public void Reset() { }
+        }
+
+        [Test]
+        public void Send_ClassPooledHandler_HotPath_AllocatesZeroBytes()
+        {
+            var handler = new PoolableClassCommandHandler();
+            var bus = new CqrsBus();
+            bus.RegisterCommand(handler);
+            var command = new PoolableClassCommand();
+
+            AssertZeroGc(() => bus.Send(in command));
+
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, handler.Count);
+        }
+
+        // —— 任务 3: Struct 自处理路径 0GC ——
+        private sealed class SelfHandlingSink
+        {
+            public int Value;
+        }
+
+        private readonly struct SelfHandlingStructCommand : ISelfHandlingCommand
+        {
+            private readonly SelfHandlingSink _sink;
+            public SelfHandlingStructCommand(SelfHandlingSink sink) { _sink = sink; }
+            public void Execute() { _sink.Value++; }
+        }
+
+        [Test]
+        public void Send_SelfHandlingStruct_HotPath_AllocatesZeroBytes()
+        {
+            var sink = new SelfHandlingSink();
+            var bus = new CqrsBus();
+            var command = new SelfHandlingStructCommand(sink);
+
+            AssertZeroGc(() => bus.Send(in command));
+
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, sink.Value);
         }
     }
 }
