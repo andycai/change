@@ -11,52 +11,25 @@ namespace Change.Framework.Tests
     {
         private readonly struct TestCommand : ICommand
         {
+            private readonly Counter _counter;
+            public TestCommand(Counter counter) { _counter = counter; }
+            public void Execute() { _counter.Value++; }
         }
 
         private readonly struct TestQuery : IQuery<int>
         {
+            public int Query() => 42;
         }
 
-        private readonly struct TestDomainEvent : IDomainEvent
+        private readonly struct TestEvent : IEvent
         {
         }
 
-        private sealed class TestCommandHandler : ICommandHandler<TestCommand>
-        {
-            private readonly Counter _counter;
-
-            public TestCommandHandler(Counter counter)
-            {
-                _counter = counter;
-            }
-
-            public void Handle(in TestCommand command)
-            {
-                _counter.Value++;
-            }
-        }
-
-        private sealed class TestQueryHandler : IQueryHandler<TestQuery, int>
-        {
-            public int Handle(in TestQuery query)
-            {
-                return 42;
-            }
-        }
-
-        private sealed class TestDomainEventHandler : IDomainEventHandler<TestDomainEvent>
+        private sealed class TestEventHandler : IEventHandler<TestEvent>
         {
             private readonly Counter _counter;
-
-            public TestDomainEventHandler(Counter counter)
-            {
-                _counter = counter;
-            }
-
-            public void Handle(in TestDomainEvent domainEvent)
-            {
-                _counter.Value++;
-            }
+            public TestEventHandler(Counter counter) { _counter = counter; }
+            public void Handle(in TestEvent _) { _counter.Value++; }
         }
 
         private sealed class Counter
@@ -67,36 +40,26 @@ namespace Change.Framework.Tests
         [Test]
         public void Build_ReturnsRuntime_ThatCanDispatchCommand()
         {
-            var bootstrap = new CqrsBootstrap();
-            var counter = new Counter();
-            bootstrap.RegisterCommand(new TestCommandHandler(counter));
+            var bus = new CqrsBus();
+            var runtime = new CqrsBootstrap(bus).Build();
 
-            var runtime = bootstrap.Build();
-            runtime.Send(new TestCommand());
+            var counter = new Counter();
+            runtime.Send(new TestCommand(counter));
 
             Assert.AreEqual(1, counter.Value);
         }
 
         [Test]
-        public void RegisterCommand_AfterBuild_ThrowsRegistryFrozenException()
-        {
-            var bootstrap = new CqrsBootstrap();
-            bootstrap.Build();
-
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.RegisterCommand(new TestCommandHandler(new Counter())));
-        }
-
-        [Test]
         public void Runtime_SupportsQueryAndPublish_HappyPath()
         {
-            var bootstrap = new CqrsBootstrap();
+            var bus = new CqrsBus();
             var counter = new Counter();
-            bootstrap.RegisterQuery(new TestQueryHandler());
-            bootstrap.Subscribe(new TestDomainEventHandler(counter));
+            var bootstrap = new CqrsBootstrap(bus);
+            bootstrap.Subscribe(new TestEventHandler(counter));
 
             var runtime = bootstrap.Build();
             var result = runtime.Ask<TestQuery, int>(new TestQuery());
-            runtime.Publish(new TestDomainEvent());
+            runtime.Publish(new TestEvent());
 
             Assert.AreEqual(42, result);
             Assert.AreEqual(1, counter.Value);
@@ -124,16 +87,6 @@ namespace Change.Framework.Tests
         }
 
         [Test]
-        public void RegisterQueryAndSubscribe_AfterBuild_ThrowRegistryFrozenException()
-        {
-            var bootstrap = new CqrsBootstrap();
-            bootstrap.Build();
-
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.RegisterQuery(new TestQueryHandler()));
-            Assert.Throws<RegistryFrozenException>(() => bootstrap.Subscribe(new TestDomainEventHandler(new Counter())));
-        }
-
-        [Test]
         public void Bootstrap_DoesNotExposePublicFreezeMethod()
         {
             var freezeMethod = typeof(CqrsBootstrap).GetMethod(
@@ -141,12 +94,6 @@ namespace Change.Framework.Tests
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
             Assert.IsNull(freezeMethod);
-        }
-
-        [Test]
-        public void Runtime_Constructor_WithNullBus_ThrowsArgumentNullException()
-        {
-            Assert.Throws<ArgumentNullException>(() => new CqrsRuntime(null));
         }
 
         [Test]

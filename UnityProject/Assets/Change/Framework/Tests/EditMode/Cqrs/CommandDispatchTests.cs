@@ -8,12 +8,19 @@ namespace Change.Framework.Tests
     {
         private readonly struct IncrementCounterCommand : ICommand
         {
-            public IncrementCounterCommand(int amount)
+            private readonly CounterState _state;
+            private readonly int _amount;
+
+            public IncrementCounterCommand(CounterState state, int amount)
             {
-                Amount = amount;
+                _state = state;
+                _amount = amount;
             }
 
-            public int Amount { get; }
+            public void Execute()
+            {
+                _state.Value += _amount;
+            }
         }
 
         private sealed class CounterState
@@ -21,104 +28,40 @@ namespace Change.Framework.Tests
             public int Value;
         }
 
-        private sealed class IncrementCounterHandler : ICommandHandler<IncrementCounterCommand>
-        {
-            private readonly CounterState _state;
-
-            public IncrementCounterHandler(CounterState state)
-            {
-                _state = state;
-            }
-
-            public void Handle(in IncrementCounterCommand command)
-            {
-                _state.Value += command.Amount;
-            }
-        }
-
-        private readonly struct StructIncrementCounterHandler : ICommandHandler<IncrementCounterCommand>
-        {
-            public void Handle(in IncrementCounterCommand command)
-            {
-            }
-        }
-
         [Test]
-        public void Send_DispatchesRegisteredHandler()
+        public void Send_ExecutesSelfHandlingCommand()
         {
             var state = new CounterState();
             var bus = new CqrsBus();
 
-            bus.RegisterCommand(new IncrementCounterHandler(state));
-            bus.Freeze();
-            bus.Send(new IncrementCounterCommand(3));
+            bus.Send(new IncrementCounterCommand(state, 3));
 
             Assert.AreEqual(3, state.Value);
         }
 
         [Test]
-        public void Send_WithoutRegistration_ThrowsHandlerNotRegisteredException()
+        public void SelfHandling_HotPath_AllocatesZeroBytesAfterWarmup()
         {
+            var counter = new CounterState();
             var bus = new CqrsBus();
-            bus.Freeze();
+            var command = new IncrementCounterCommand(counter, 1);
 
-            Assert.Throws<HandlerNotRegisteredException>(() => bus.Send(new IncrementCounterCommand(1)));
+            for (var i = 0; i < 1000; i++) bus.Send(command);
+
+            ForceFullGc();
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 100000; i++) bus.Send(command);
+            var after = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.AreEqual(before, after);
+            Assert.AreEqual(101000, counter.Value);
         }
 
-        [Test]
-        public void RegisterCommand_DuplicateRegistration_ThrowsDuplicateRegistrationException()
+        private static void ForceFullGc()
         {
-            var state = new CounterState();
-            var bus = new CqrsBus();
-
-            bus.RegisterCommand(new IncrementCounterHandler(state));
-
-            Assert.Throws<DuplicateRegistrationException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
-        }
-
-        [Test]
-        public void RegisterCommand_AfterFreeze_ThrowsRegistryFrozenException()
-        {
-            var state = new CounterState();
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.RegisterCommand(new IncrementCounterHandler(state)));
-        }
-
-        [Test]
-        public void RegisterCommand_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
-        {
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.RegisterCommand<IncrementCounterCommand>(null));
-        }
-
-        [Test]
-        public void Send_BeforeFreeze_ThrowsInvalidOperationException()
-        {
-            var state = new CounterState();
-            var bus = new CqrsBus();
-            bus.RegisterCommand(new IncrementCounterHandler(state));
-
-            Assert.Throws<InvalidOperationException>(() => bus.Send(new IncrementCounterCommand(1)));
-        }
-
-        [Test]
-        public void RegisterCommand_NullHandler_ThrowsArgumentNullException()
-        {
-            var bus = new CqrsBus();
-
-            Assert.Throws<ArgumentNullException>(() => bus.RegisterCommand<IncrementCounterCommand>(null));
-        }
-
-        [Test]
-        public void RegisterCommand_StructHandler_ThrowsInvalidOperationException()
-        {
-            var bus = new CqrsBus();
-
-            Assert.Throws<InvalidOperationException>(() => bus.RegisterCommand(new StructIncrementCounterHandler()));
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
     }
 }

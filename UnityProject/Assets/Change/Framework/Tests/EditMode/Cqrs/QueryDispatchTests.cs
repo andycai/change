@@ -8,10 +8,11 @@ namespace Change.Framework.Tests
     {
         private readonly struct GetScoreQuery : IQuery<int>
         {
-        }
+            private readonly ScoreState _state;
 
-        private readonly struct GetMultiResultQuery : IQuery<int>, IQuery<string>
-        {
+            public GetScoreQuery(ScoreState state) { _state = state; }
+
+            public int Query() => _state.Value;
         }
 
         private sealed class ScoreState
@@ -19,140 +20,41 @@ namespace Change.Framework.Tests
             public int Value;
         }
 
-        private sealed class GetScoreQueryHandler : IQueryHandler<GetScoreQuery, int>
-        {
-            private readonly ScoreState _state;
-
-            public GetScoreQueryHandler(ScoreState state)
-            {
-                _state = state;
-            }
-
-            public int Handle(in GetScoreQuery query)
-            {
-                return _state.Value;
-            }
-        }
-
-        private readonly struct StructGetScoreQueryHandler : IQueryHandler<GetScoreQuery, int>
-        {
-            public int Handle(in GetScoreQuery query)
-            {
-                return 0;
-            }
-        }
-
-        private sealed class GetMultiResultIntHandler : IQueryHandler<GetMultiResultQuery, int>
-        {
-            public int Handle(in GetMultiResultQuery query) => 1;
-        }
-
-        private sealed class GetMultiResultStringHandler : IQueryHandler<GetMultiResultQuery, string>
-        {
-            public string Handle(in GetMultiResultQuery query) => "x";
-        }
-
         [Test]
-        public void Query_ReturnsResultFromRegisteredHandler()
+        public void Ask_ReturnsFromSelfHandlingQuery()
         {
             var state = new ScoreState { Value = 27 };
             var bus = new CqrsBus();
 
-            bus.RegisterQuery(new GetScoreQueryHandler(state));
-            bus.Freeze();
-
-            var result = bus.Query<GetScoreQuery, int>(new GetScoreQuery());
+            var result = bus.Ask<GetScoreQuery, int>(new GetScoreQuery(state));
 
             Assert.AreEqual(27, result);
         }
 
         [Test]
-        public void Ask_ReturnsResultFromRegisteredHandler()
+        public void SelfHandling_HotPath_AllocatesZeroBytesAfterWarmup()
         {
-            var state = new ScoreState { Value = 27 };
+            var state = new ScoreState { Value = 3 };
             var bus = new CqrsBus();
+            var query = new GetScoreQuery(state);
 
-            bus.RegisterQuery(new GetScoreQueryHandler(state));
-            bus.Freeze();
+            for (var i = 0; i < 1000; i++) bus.Ask<GetScoreQuery, int>(query);
 
-            var result = bus.Ask<GetScoreQuery, int>(new GetScoreQuery());
+            ForceFullGc();
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var sum = 0;
+            for (var i = 0; i < 100000; i++) sum += bus.Ask<GetScoreQuery, int>(query);
+            var after = GC.GetAllocatedBytesForCurrentThread();
 
-            Assert.AreEqual(27, result);
+            Assert.AreEqual(before, after);
+            Assert.AreEqual(3 * 100000, sum);
         }
 
-        [Test]
-        public void Query_WithoutRegistration_ThrowsHandlerNotRegisteredException()
+        private static void ForceFullGc()
         {
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<HandlerNotRegisteredException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
-        }
-
-        [Test]
-        public void RegisterQuery_DuplicateRegistration_ThrowsDuplicateRegistrationException()
-        {
-            var state = new ScoreState();
-            var bus = new CqrsBus();
-
-            bus.RegisterQuery(new GetScoreQueryHandler(state));
-
-            Assert.Throws<DuplicateRegistrationException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
-        }
-
-        [Test]
-        public void RegisterQuery_AfterFreeze_ThrowsRegistryFrozenException()
-        {
-            var state = new ScoreState();
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery(new GetScoreQueryHandler(state)));
-        }
-
-        [Test]
-        public void RegisterQuery_AfterFreeze_WithNullHandler_ThrowsRegistryFrozenException()
-        {
-            var bus = new CqrsBus();
-            bus.Freeze();
-
-            Assert.Throws<RegistryFrozenException>(() => bus.RegisterQuery<GetScoreQuery, int>(null));
-        }
-
-        [Test]
-        public void Query_BeforeFreeze_ThrowsInvalidOperationException()
-        {
-            var state = new ScoreState();
-            var bus = new CqrsBus();
-            bus.RegisterQuery(new GetScoreQueryHandler(state));
-
-            Assert.Throws<InvalidOperationException>(() => bus.Query<GetScoreQuery, int>(new GetScoreQuery()));
-        }
-
-        [Test]
-        public void RegisterQuery_NullHandler_ThrowsArgumentNullException()
-        {
-            var bus = new CqrsBus();
-
-            Assert.Throws<ArgumentNullException>(() => bus.RegisterQuery<GetScoreQuery, int>(null));
-        }
-
-        [Test]
-        public void RegisterQuery_StructHandler_ThrowsInvalidOperationException()
-        {
-            var bus = new CqrsBus();
-
-            Assert.Throws<InvalidOperationException>(() => bus.RegisterQuery(new StructGetScoreQueryHandler()));
-        }
-
-        [Test]
-        public void RegisterQuery_SameQueryType_DifferentResultType_ThrowsDuplicateRegistrationException()
-        {
-            var bus = new CqrsBus();
-            bus.RegisterQuery(new GetMultiResultIntHandler());
-
-            Assert.Throws<DuplicateRegistrationException>(
-                () => bus.RegisterQuery(new GetMultiResultStringHandler()));
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
     }
 }

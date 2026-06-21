@@ -11,94 +11,56 @@ namespace Change.Framework.Tests
 
         private readonly struct TickCommand : ICommand
         {
-            public TickCommand(int delta)
+            private readonly TickState _state;
+            private readonly int _delta;
+
+            public TickCommand(TickState state, int delta)
             {
-                Delta = delta;
+                _state = state;
+                _delta = delta;
             }
 
-            public int Delta { get; }
+            public void Execute() { _state.Value += _delta; }
         }
 
         private readonly struct GetTickQuery : IQuery<int>
         {
+            private readonly TickState _state;
+
+            public GetTickQuery(TickState state) { _state = state; }
+
+            public int Query() => _state.Value;
         }
 
-        private readonly struct TickDomainEvent : IDomainEvent
+        private readonly struct TickDomainEvent : IEvent
         {
-            public TickDomainEvent(int delta)
-            {
-                Delta = delta;
-            }
-
             public int Delta { get; }
+            public TickDomainEvent(int delta) { Delta = delta; }
         }
 
-        private sealed class TickState
-        {
-            public int Value;
-        }
+        private sealed class TickState { public int Value; }
 
-        private sealed class TickCommandHandler : ICommandHandler<TickCommand>
-        {
-            private readonly TickState _state;
-
-            public TickCommandHandler(TickState state)
-            {
-                _state = state;
-            }
-
-            public void Handle(in TickCommand command)
-            {
-                _state.Value += command.Delta;
-            }
-        }
-
-        private sealed class TickQueryHandler : IQueryHandler<GetTickQuery, int>
-        {
-            private readonly TickState _state;
-
-            public TickQueryHandler(TickState state)
-            {
-                _state = state;
-            }
-
-            public int Handle(in GetTickQuery query)
-            {
-                return _state.Value;
-            }
-        }
-
-        private sealed class TickDomainEventHandler : IDomainEventHandler<TickDomainEvent>
+        private sealed class TickDomainEventHandler : IEventHandler<TickDomainEvent>
         {
             public int Count;
-
-            public void Handle(in TickDomainEvent domainEvent)
-            {
-                Count += domainEvent.Delta;
-            }
+            public void Handle(in TickDomainEvent e) { Count += e.Delta; }
         }
+
+        private static int _sStaticTickCount;
+        private static void StaticTickHandler(TickDomainEvent e) { _sStaticTickCount += e.Delta; }
 
         [Test]
         public void Send_HotPath_AllocatesZeroBytesAfterWarmup()
         {
             var state = new TickState();
-            var bootstrap = new CqrsBootstrap();
-            bootstrap.RegisterCommand(new TickCommandHandler(state));
-            ICqrsRuntime runtime = bootstrap.Build();
+            var bus = new CqrsBus();
+            var command = new TickCommand(state, 1);
 
-            var command = new TickCommand(1);
-            for (var i = 0; i < WarmupIterations; i++)
-            {
-                runtime.Send(in command);
-            }
-
+            for (var i = 0; i < WarmupIterations; i++) bus.Send(command);
             ForceFullGc();
 
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < MeasuredIterations; i++)
-            {
-                runtime.Send(in command);
-            }
+            for (var i = 0; i < MeasuredIterations; i++) bus.Send(command);
             var after = GC.GetAllocatedBytesForCurrentThread();
 
             Assert.AreEqual(before, after);
@@ -109,24 +71,15 @@ namespace Change.Framework.Tests
         public void Query_HotPath_AllocatesZeroBytesAfterWarmup()
         {
             var state = new TickState { Value = 7 };
-            var bootstrap = new CqrsBootstrap();
-            bootstrap.RegisterQuery(new TickQueryHandler(state));
-            ICqrsRuntime runtime = bootstrap.Build();
+            var bus = new CqrsBus();
+            var query = new GetTickQuery(state);
 
-            var query = new GetTickQuery();
-            for (var i = 0; i < WarmupIterations; i++)
-            {
-                runtime.Ask<GetTickQuery, int>(in query);
-            }
-
+            for (var i = 0; i < WarmupIterations; i++) bus.Ask<GetTickQuery, int>(query);
             ForceFullGc();
 
             var before = GC.GetAllocatedBytesForCurrentThread();
             var sum = 0;
-            for (var i = 0; i < MeasuredIterations; i++)
-            {
-                sum += runtime.Ask<GetTickQuery, int>(in query);
-            }
+            for (var i = 0; i < MeasuredIterations; i++) sum += bus.Ask<GetTickQuery, int>(query);
             var after = GC.GetAllocatedBytesForCurrentThread();
 
             Assert.AreEqual(before, after);
@@ -137,27 +90,39 @@ namespace Change.Framework.Tests
         public void Publish_HotPath_AllocatesZeroBytesAfterWarmup()
         {
             var handler = new TickDomainEventHandler();
-            var bootstrap = new CqrsBootstrap();
-            bootstrap.Subscribe(handler);
-            ICqrsRuntime runtime = bootstrap.Build();
+            var bus = new CqrsBus();
+            bus.Subscribe(handler);
 
             var domainEvent = new TickDomainEvent(1);
-            for (var i = 0; i < WarmupIterations; i++)
-            {
-                runtime.Publish(in domainEvent);
-            }
-
+            for (var i = 0; i < WarmupIterations; i++) bus.Publish(domainEvent);
             ForceFullGc();
 
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < MeasuredIterations; i++)
-            {
-                runtime.Publish(in domainEvent);
-            }
+            for (var i = 0; i < MeasuredIterations; i++) bus.Publish(domainEvent);
             var after = GC.GetAllocatedBytesForCurrentThread();
 
             Assert.AreEqual(before, after);
             Assert.AreEqual(WarmupIterations + MeasuredIterations, handler.Count);
+        }
+
+        [Test]
+        public void Publish_DelegateHotPath_AllocatesZeroBytesAfterWarmup()
+        {
+            _sStaticTickCount = 0;
+            var bus = new CqrsBus();
+
+            bus.Subscribe<TickDomainEvent>(StaticTickHandler);
+
+            var domainEvent = new TickDomainEvent(1);
+            for (var i = 0; i < WarmupIterations; i++) bus.Publish(domainEvent);
+            ForceFullGc();
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < MeasuredIterations; i++) bus.Publish(domainEvent);
+            var after = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.AreEqual(before, after, "delegate publish hot path must not allocate");
+            Assert.AreEqual(WarmupIterations + MeasuredIterations, _sStaticTickCount);
         }
 
         private static void ForceFullGc()
