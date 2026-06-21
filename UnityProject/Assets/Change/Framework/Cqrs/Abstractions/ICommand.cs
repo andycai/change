@@ -1,10 +1,12 @@
 namespace Change.Framework.Cqrs
 {
     /// <summary>
-    /// Marker interface for command messages. Commands represent write-side intent.
-    /// Implement as <c>readonly struct</c> for zero-allocation dispatch.
+    /// Command message that executes itself. Implement as <c>readonly struct</c>
+    /// for zero-allocation dispatch. Provides <see cref="Execute"/> as the
+    /// single execution entry point, invoked by <c>CqrsBus.Send&lt;T&gt;</c>.
     /// </summary>
     public interface ICommand
     {
+        void Execute();
     }
 }
