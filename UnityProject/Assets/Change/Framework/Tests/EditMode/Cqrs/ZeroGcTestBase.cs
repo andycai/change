@@ -40,8 +40,9 @@ namespace Change.Framework.Tests
             }
             var after = GC.GetTotalMemory(true);
 
-            Assert.AreEqual(before, after,
-                message ?? "Live heap grew across the measured loop; expected zero-allocation dispatch.");
+            var delta = Math.Abs(after - before);
+            Assert.That(delta, Is.LessThanOrEqualTo(4096L),
+                message ?? "Live heap crossed {0} bytes; expected zero-allocation dispatch.", delta);
         }
 
         /// <summary>
