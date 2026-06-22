@@ -15,7 +15,8 @@ namespace Change.Framework.Cqrs
     /// <summary>
     /// In-process CQRS bus implementing dispatch, registration, and runtime surfaces.
     /// Command/Query handlers are not needed — all commands and queries are
-    /// self-handling structs with intrinsic <c>Execute()</c>/<c>Query()</c> methods.
+    /// self-handling (struct or pooled class) with intrinsic
+    /// <c>Execute()</c>/<c>ExecuteAsync()</c>/<c>Query()</c> methods.
     /// Only events require registration (<see cref="Subscribe{TEvent}"/>).
     /// </summary>
     /// <remarks>
