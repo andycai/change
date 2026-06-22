@@ -242,6 +242,22 @@ namespace Change.Framework.Cqrs
             await command.ExecuteAsync();
         }
 
+        public async UniTask SendAsync<TCommand>(Action<TCommand> configure)
+            where TCommand : class, IPooledAsyncCommand, new()
+        {
+            var command = Pool<TCommand>.Get();
+            try
+            {
+                configure(command);
+                await command.ExecuteAsync();
+            }
+            finally
+            {
+                // await 完成后才 Release，避免异步竞态；Release 内部调用 Reset()
+                Pool<TCommand>.Release(command);
+            }
+        }
+
         public async UniTask<TResult> AskAsync<TQuery, TResult>(TQuery query)
             where TQuery : struct, IAsyncQuery<TResult>
         {

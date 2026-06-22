@@ -1,4 +1,5 @@
 using System;
+using Change.Framework.Pooling;
 using Cysharp.Threading.Tasks;
 
 namespace Change.Framework.Cqrs
@@ -19,6 +20,9 @@ namespace Change.Framework.Cqrs
 
         UniTask SendAsync<TCommand>(TCommand command)
             where TCommand : struct, IAsyncCommand;
+
+        UniTask SendAsync<TCommand>(Action<TCommand> configure)
+            where TCommand : class, IPooledAsyncCommand, new();
 
         UniTask<TResult> AskAsync<TQuery, TResult>(TQuery query)
             where TQuery : struct, IAsyncQuery<TResult>;
