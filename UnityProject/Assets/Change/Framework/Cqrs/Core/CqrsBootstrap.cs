@@ -6,14 +6,14 @@ namespace Change.Framework.Cqrs
     /// Default CQRS bootstrap that owns event subscription and exposes the bus as a runtime.
     /// <para>
     /// After the first <see cref="Build"/>, subsequent calls return the same
-    /// <see cref="ICqrsRuntime"/> instance (the underlying CqrsBus directly).
+    /// <see cref="ICqrsBus"/> instance (the underlying CqrsBus directly).
     /// </para>
     /// </summary>
     public sealed class CqrsBootstrap : ICqrsBootstrap
     {
         private readonly CqrsBus _bus;
         private readonly object _buildGate = new();
-        private volatile ICqrsRuntime _runtime;
+        private volatile ICqrsBus _runtime;
 
         public CqrsBootstrap()
             : this(new CqrsBus())
@@ -37,7 +37,7 @@ namespace Change.Framework.Cqrs
             _bus.Subscribe(handler);
         }
 
-        public ICqrsRuntime Build()
+        public ICqrsBus Build()
         {
             var runtime = _runtime;
             if (runtime != null)

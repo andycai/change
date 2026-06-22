@@ -102,7 +102,7 @@ namespace Change.Framework.Tests
             const int callerCount = 32;
             var bootstrap = new CqrsBootstrap();
             var barrier = new Barrier(callerCount);
-            var results = new ICqrsRuntime[callerCount];
+            var results = new ICqrsBus[callerCount];
             var tasks = new Task[callerCount];
 
             for (var i = 0; i < callerCount; i++)

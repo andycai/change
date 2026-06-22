@@ -21,9 +21,9 @@ namespace Change.Framework.Cqrs
 
         /// <summary>
         /// Returns the runtime dispatch surface. Implementations must return the same
-        /// <see cref="ICqrsRuntime"/> instance on every subsequent call and must be safe
+        /// <see cref="ICqrsBus"/> instance on every subsequent call and must be safe
         /// to invoke concurrently.
         /// </summary>
-        ICqrsRuntime Build();
+        ICqrsBus Build();
     }
 }

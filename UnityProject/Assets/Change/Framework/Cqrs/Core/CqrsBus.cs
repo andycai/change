@@ -4,6 +4,10 @@ using Change.Framework.Collections;
 using Change.Framework.Logging;
 using Cysharp.Threading.Tasks;
 using System.Runtime.CompilerServices;
+#if ENABLE_CQRS_MONITORING
+using System.Diagnostics;
+using Change.Framework.Cqrs.Monitoring;
+#endif
 
 namespace Change.Framework.Cqrs
 {
@@ -13,7 +17,17 @@ namespace Change.Framework.Cqrs
     /// self-handling structs with intrinsic <c>Execute()</c>/<c>Query()</c> methods.
     /// Only events require registration (<see cref="Subscribe{TEvent}"/>).
     /// </summary>
-    public sealed class CqrsBus : ICqrsBus, ICqrsRegistry, ICqrsRuntime
+    /// <remarks>
+    /// <b>Threading:</b> single-threaded (main thread) only. <see cref="Publish{TEvent}"/>
+    /// iterates the live handler lists without locking or snapshotting (a snapshot would
+    /// allocate and break the 0-GC dispatch path), so concurrent
+    /// <see cref="Subscribe{TEvent}"/>/<see cref="Unsubscribe{TEvent}"/> — including from
+    /// <c>SendAsync</c>/<c>AskAsync</c> continuations landing on a worker thread — can
+    /// corrupt iteration. (Un)subscribing during dispatch of the same event type is also
+    /// unsupported: a handler that mutates its own subscription list mid-publish will skip
+    /// or double-invoke handlers and may throw. Register/unsubscribe outside of dispatch.
+    /// </remarks>
+    public sealed class CqrsBus : ICqrsBus, ICqrsRegistry
     {
         private interface IEventHandlerList { }
 
@@ -26,6 +40,18 @@ namespace Change.Framework.Cqrs
 
         private readonly FastDictionary<Type, IEventHandlerList> _eventHandlers = new();
         private readonly ILogger _logger;
+
+#if ENABLE_CQRS_MONITORING
+        private static CqrsPerformanceMonitor _activeMonitor;
+
+        /// <summary>
+        /// Installs a process-wide monitor that records dispatch metrics from
+        /// Send/Ask/Publish. Pass null to disable. Recording is opt-in via the
+        /// ENABLE_CQRS_MONITORING compile symbol; when undefined the bus pays zero
+        /// monitoring overhead and this member does not exist.
+        /// </summary>
+        public static void SetActiveMonitor(CqrsPerformanceMonitor monitor) => _activeMonitor = monitor;
+#endif
 
         public CqrsBus()
             : this(NullLogger.Instance)
@@ -46,6 +72,25 @@ namespace Change.Framework.Cqrs
             // Stack copy avoids boxing when calling interface method on in-param value type.
             // The JIT emits a constrained callvirt on the local copy — zero allocation.
             var cmd = command;
+#if ENABLE_CQRS_MONITORING
+            var monitor = _activeMonitor;
+            if (monitor != null)
+            {
+                var gcBefore = GC.GetAllocatedBytesForCurrentThread();
+                var ticksBefore = Stopwatch.GetTimestamp();
+                try
+                {
+                    cmd.Execute();
+                }
+                finally
+                {
+                    monitor.RecordExecution(typeof(TCommand),
+                        Stopwatch.GetTimestamp() - ticksBefore,
+                        GC.GetAllocatedBytesForCurrentThread() - gcBefore);
+                }
+                return;
+            }
+#endif
             cmd.Execute();
         }
 
@@ -56,6 +101,24 @@ namespace Change.Framework.Cqrs
             where TQuery : struct, IQuery<TResult>
         {
             var q = query;
+#if ENABLE_CQRS_MONITORING
+            var monitor = _activeMonitor;
+            if (monitor != null)
+            {
+                var gcBefore = GC.GetAllocatedBytesForCurrentThread();
+                var ticksBefore = Stopwatch.GetTimestamp();
+                try
+                {
+                    return q.Query();
+                }
+                finally
+                {
+                    monitor.RecordExecution(typeof(TQuery),
+                        Stopwatch.GetTimestamp() - ticksBefore,
+                        GC.GetAllocatedBytesForCurrentThread() - gcBefore);
+                }
+            }
+#endif
             return q.Query();
         }
 
@@ -81,6 +144,12 @@ namespace Change.Framework.Cqrs
             {
                 return;
             }
+
+#if ENABLE_CQRS_MONITORING
+            var monitor = _activeMonitor;
+            var gcBefore = monitor != null ? GC.GetAllocatedBytesForCurrentThread() : 0L;
+            var ticksBefore = monitor != null ? Stopwatch.GetTimestamp() : 0L;
+#endif
 
             List<Exception> exceptions = null;
 
@@ -110,6 +179,17 @@ namespace Change.Framework.Cqrs
                 }
             }
 
+#if ENABLE_CQRS_MONITORING
+            if (monitor != null)
+            {
+                // Recorded before the aggregate throw so a publish that fails handlers
+                // still leaves a measurement. Per-handler try/catch guarantees we reach here.
+                monitor.RecordExecution(typeof(TEvent),
+                    Stopwatch.GetTimestamp() - ticksBefore,
+                    GC.GetAllocatedBytesForCurrentThread() - gcBefore);
+            }
+#endif
+
             if (exceptions != null)
             {
                 throw new AggregateException(exceptions);
@@ -121,12 +201,49 @@ namespace Change.Framework.Cqrs
         public async UniTask SendAsync<TCommand>(TCommand command)
             where TCommand : struct, IAsyncCommand
         {
+#if ENABLE_CQRS_MONITORING
+            var monitor = _activeMonitor;
+            if (monitor != null)
+            {
+                var gcBefore = GC.GetAllocatedBytesForCurrentThread();
+                var ticksBefore = Stopwatch.GetTimestamp();
+                try
+                {
+                    await command.ExecuteAsync();
+                }
+                finally
+                {
+                    monitor.RecordExecution(typeof(TCommand),
+                        Stopwatch.GetTimestamp() - ticksBefore,
+                        GC.GetAllocatedBytesForCurrentThread() - gcBefore);
+                }
+                return;
+            }
+#endif
             await command.ExecuteAsync();
         }
 
         public async UniTask<TResult> AskAsync<TQuery, TResult>(TQuery query)
             where TQuery : struct, IAsyncQuery<TResult>
         {
+#if ENABLE_CQRS_MONITORING
+            var monitor = _activeMonitor;
+            if (monitor != null)
+            {
+                var gcBefore = GC.GetAllocatedBytesForCurrentThread();
+                var ticksBefore = Stopwatch.GetTimestamp();
+                try
+                {
+                    return await query.QueryAsync();
+                }
+                finally
+                {
+                    monitor.RecordExecution(typeof(TQuery),
+                        Stopwatch.GetTimestamp() - ticksBefore,
+                        GC.GetAllocatedBytesForCurrentThread() - gcBefore);
+                }
+            }
+#endif
             return await query.QueryAsync();
         }
 
@@ -142,6 +259,9 @@ namespace Change.Framework.Cqrs
             if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
             {
                 handlerList = new EventHandlerList<TEvent>();
+                // Single-threaded (see class remarks): TryGetValue just proved the key absent,
+                // so TryAdd always wins here. FastDictionary exposes no indexer setter, and the
+                // result cannot be false without a concurrent writer — hence intentionally unused.
                 _eventHandlers.TryAdd(eventType, handlerList);
             }
 
@@ -170,6 +290,9 @@ namespace Change.Framework.Cqrs
             if (!_eventHandlers.TryGetValue(eventType, out var handlerList))
             {
                 handlerList = new EventHandlerList<TEvent>();
+                // Single-threaded (see class remarks): TryGetValue just proved the key absent,
+                // so TryAdd always wins here. FastDictionary exposes no indexer setter, and the
+                // result cannot be false without a concurrent writer — hence intentionally unused.
                 _eventHandlers.TryAdd(eventType, handlerList);
             }
 

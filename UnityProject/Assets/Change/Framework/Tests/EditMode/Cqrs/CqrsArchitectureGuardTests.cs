@@ -17,7 +17,6 @@ namespace Change.Framework.Tests
     {
         private static readonly Type[] ForbiddenDispatchDependencies =
         {
-            typeof(ICqrsRuntime),
             typeof(ICqrsBus)
         };
 
