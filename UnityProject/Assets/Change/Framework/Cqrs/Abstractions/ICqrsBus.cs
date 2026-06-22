@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 
 namespace Change.Framework.Cqrs
@@ -6,6 +7,9 @@ namespace Change.Framework.Cqrs
     {
         void Send<TCommand>(in TCommand command)
             where TCommand : struct, ICommand;
+
+        void Send<TCommand>(Action<TCommand> configure)
+            where TCommand : class, IPooledCommand, new();
 
         TResult Ask<TQuery, TResult>(in TQuery query)
             where TQuery : struct, IQuery<TResult>;

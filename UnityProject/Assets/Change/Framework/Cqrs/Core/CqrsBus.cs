@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Change.Framework.Collections;
 using Change.Framework.Logging;
+using Change.Framework.Pooling;
 using Cysharp.Threading.Tasks;
 using System.Runtime.CompilerServices;
 #if ENABLE_CQRS_MONITORING
@@ -92,6 +93,24 @@ namespace Change.Framework.Cqrs
             }
 #endif
             cmd.Execute();
+        }
+
+        // ===== Pooled Class Command Dispatch (self-handling, pooled) =====
+
+        public void Send<TCommand>(Action<TCommand> configure)
+            where TCommand : class, IPooledCommand, new()
+        {
+            var command = Pool<TCommand>.Get();
+            try
+            {
+                configure(command);
+                command.Execute();
+            }
+            finally
+            {
+                // PoolEngine.Release 内部会调用 command.Reset()
+                Pool<TCommand>.Release(command);
+            }
         }
 
         // ===== Query Dispatch (self-handling) =====
