@@ -1,9 +1,9 @@
 {
   "scan_paths": [
-    "Packages/",
-    "Assets/Change/",
-    "Assets/GameScript/",
-    "Assets/ThirdParty/"
+    "UnityProject/Packages/",
+    "UnityProject/Assets/Change/",
+    "UnityProject/Assets/GameScript/",
+    "UnityProject/Assets/ThirdParty/"
   ],
   "exclude_patterns": [
     "**/node_modules",
