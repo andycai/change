@@ -1,0 +1,25 @@
+{
+  "scan_paths": [
+    "Packages/",
+    "Assets/Change/",
+    "Assets/GameScript/",
+    "Assets/ThirdParty/"
+  ],
+  "exclude_patterns": [
+    "**/node_modules",
+    "**/.git",
+    "**/dist",
+    "**/.mozi",
+    "**/bin",
+    "**/obj"
+  ],
+  "spec_filename": "SPEC.md",
+  "output_path": ".mozi/knowledge/context-map.json",
+  "type_inference_rules": [
+    { "pattern": "Framework/**", "type": "Framework", "confidence": 0.8 },
+    { "pattern": "Runtime/**", "type": "Library", "confidence": 0.8 },
+    { "pattern": "Editor/**", "type": "Library", "confidence": 0.8 },
+    { "pattern": "Packages/**", "type": "Library", "confidence": 0.8 },
+    { "pattern": "scripts/**", "type": "Tool", "confidence": 0.9 }
+  ]
+}
