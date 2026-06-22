@@ -31,17 +31,18 @@ namespace Change.Framework.Cqrs.Monitoring
     /// </summary>
     public readonly struct PerformanceAlert
     {
-        public PerformanceAlert(Type messageType, long gcBytes, long threshold, long ticks)
+        public PerformanceAlert(Type messageType, long gcBytes, long threshold, long durationTicks)
         {
             MessageType = messageType;
             GcBytes = gcBytes;
             Threshold = threshold;
-            TimestampTicks = ticks;
+            DurationTicks = durationTicks;
         }
 
         public Type MessageType { get; }
         public long GcBytes { get; }
         public long Threshold { get; }
-        public long TimestampTicks { get; }
+        /// <summary>Duration of the triggering execution, in <see cref="System.Diagnostics.Stopwatch"/> ticks.</summary>
+        public long DurationTicks { get; }
     }
 }
