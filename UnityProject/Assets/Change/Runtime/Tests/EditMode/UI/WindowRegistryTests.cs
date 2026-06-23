@@ -1,14 +1,14 @@
 using Change.Framework.UI;
-using Change.Runtime.UI;
 using NUnit.Framework;
 
-namespace Change.Runtime.Tests.UI
+namespace Change.Runtime.UI.Tests
 {
     [TestFixture]
     public class WindowRegistryTests
     {
-        // Stub implementation for testing the IWindowRegistry contract
-        private sealed class StubWindowRegistry : IWindowRegistry
+        // Stub implementation for testing the IWindowRegistry contract.
+        // Full implementation tests will be added when WindowRegistry is created in task 3.
+        private sealed class StubWindowRegistry : Abstractions.IWindowRegistry
         {
             public void Register(WindowId id, string packageName, string componentName, string group, WindowLayer layer) { }
             public bool TryGetMetadata(WindowId id, out WindowMetadata metadata)

@@ -1,6 +1,6 @@
 using Change.Framework.UI;
 
-namespace Change.Runtime.UI
+namespace Change.Runtime.UI.Abstractions
 {
     public interface IWindowRegistry
     {
