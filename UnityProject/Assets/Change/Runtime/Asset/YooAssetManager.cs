@@ -113,9 +113,12 @@ namespace Change.Runtime.Asset
         /// <typeparam name="T">要加载的资源类型，必须是 UnityEngine.Object 的子类</typeparam>
         /// <param name="package">YooAsset 资源包</param>
         /// <param name="location">资源地址</param>
-        /// <param name="progress">可选的进度报告器</param>
+        /// <param name="progress">可选的进度报告器（当前版本暂未实现进度轮询）</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>资源的租约句柄</returns>
+        /// <exception cref="ArgumentException">当 location 为 null 或空白时抛出</exception>
+        /// <exception cref="InvalidOperationException">当加载失败、资源为 null 或 YooAsset 操作失败时抛出</exception>
+        /// <exception cref="OperationCanceledException">当操作被取消时抛出</exception>
         private async UniTask<AssetLease<T>> LoadAsyncInternal<T>(
             ResourcePackage package,
             string location,
@@ -123,7 +126,96 @@ namespace Change.Runtime.Asset
             CancellationToken cancellationToken)
             where T : UnityEngine.Object
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(location))
+            {
+                throw new ArgumentException("Asset location is required.", nameof(location));
+            }
+
+            AssetHandle handle;
+            try
+            {
+                handle = package.LoadAssetAsync<T>(location);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to start async load. location='{location}', type={typeof(T).Name}",
+                    exception);
+            }
+
+            if (handle == null)
+            {
+                throw new InvalidOperationException(
+                    $"YooAsset returned null handle. location='{location}', type={typeof(T).Name}");
+            }
+
+            try
+            {
+                await handle.Task
+                    .AsUniTask()
+                    .AttachExternalCancellation(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                ReleaseHandleNoThrow(handle);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                ReleaseHandleNoThrow(handle);
+                throw new InvalidOperationException(
+                    $"Async load task failed. location='{location}', type={typeof(T).Name}",
+                    exception);
+            }
+
+            if (handle.Status != EOperationStatus.Succeed)
+            {
+                var lastError = string.IsNullOrEmpty(handle.LastError) ? "unknown" : handle.LastError;
+                ReleaseHandleNoThrow(handle);
+                throw new InvalidOperationException(
+                    $"YooAsset load failed. location='{location}', type={typeof(T).Name}, error='{lastError}'");
+            }
+
+            T asset;
+            try
+            {
+                asset = handle.GetAssetObject<T>();
+            }
+            catch (OperationCanceledException)
+            {
+                ReleaseHandleNoThrow(handle);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                ReleaseHandleNoThrow(handle);
+                throw new InvalidOperationException(
+                    $"Failed to get asset object from handle. location='{location}', type={typeof(T).Name}",
+                    exception);
+            }
+
+            if (asset == null)
+            {
+                ReleaseHandleNoThrow(handle);
+                throw new InvalidOperationException(
+                    $"Loaded asset is null. location='{location}', type={typeof(T).Name}");
+            }
+
+            var released = false;
+            return new AssetLease<T>(asset, () =>
+            {
+                if (released)
+                {
+                    return;
+                }
+
+                released = true;
+                ReleaseHandleNoThrow(handle);
+            });
         }
 
         /// <summary>
