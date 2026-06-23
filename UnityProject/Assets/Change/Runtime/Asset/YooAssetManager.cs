@@ -265,6 +265,13 @@ namespace Change.Runtime.Asset
                     exception);
             }
 
+            if (instance == null)
+            {
+                lease.Dispose();
+                throw new InvalidOperationException(
+                    $"Instantiate returned null. location='{location}'");
+            }
+
             var released = false;
             return new GameObjectLease(instance, () =>
             {
