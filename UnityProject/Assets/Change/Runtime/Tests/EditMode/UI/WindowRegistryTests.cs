@@ -1,4 +1,5 @@
 using Change.Framework.UI;
+using Change.Runtime.UI.Core;
 using NUnit.Framework;
 
 namespace Change.Runtime.UI.Tests
