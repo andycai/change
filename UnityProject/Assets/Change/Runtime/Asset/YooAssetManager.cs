@@ -226,18 +226,69 @@ namespace Change.Runtime.Asset
         /// <summary>
         /// 异步加载并实例化 GameObject 的核心实现
         /// </summary>
+        /// <remarks>
+        /// <para>首先通过 <see cref="LoadAsyncInternal{T}"/> 加载预制体资源，然后调用 <see cref="UnityEngine.Object.Instantiate(UnityEngine.Object)"/> 实例化。</para>
+        /// <para>实例化失败时自动释放已加载的资源租约。</para>
+        /// <para>返回的 <see cref="GameObjectLease"/> 释放时会销毁实例并释放底层资源。</para>
+        /// </remarks>
         /// <param name="package">YooAsset 资源包</param>
         /// <param name="location">预制体资源地址</param>
         /// <param name="progress">可选的进度报告器</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>GameObject 实例的租约句柄</returns>
+        /// <exception cref="ArgumentException">当 location 为 null 或空白时抛出</exception>
+        /// <exception cref="InvalidOperationException">当加载或实例化失败时抛出</exception>
+        /// <exception cref="OperationCanceledException">当操作被取消时抛出</exception>
         private async UniTask<GameObjectLease> LoadAndInstantiateAsyncInternal(
             ResourcePackage package,
             string location,
             IProgress<float> progress,
             CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var lease = await LoadAsyncInternal<GameObject>(package, location, progress, cancellationToken);
+
+            GameObject instance;
+            try
+            {
+                instance = UnityEngine.Object.Instantiate(lease.Asset);
+            }
+            catch (OperationCanceledException)
+            {
+                lease.Dispose();
+                throw;
+            }
+            catch (Exception exception)
+            {
+                lease.Dispose();
+                throw new InvalidOperationException(
+                    $"Failed to instantiate GameObject. location='{location}'",
+                    exception);
+            }
+
+            var released = false;
+            return new GameObjectLease(instance, () =>
+            {
+                if (released)
+                {
+                    return;
+                }
+
+                released = true;
+
+                if (instance != null)
+                {
+                    if (Application.isPlaying)
+                    {
+                        UnityEngine.Object.Destroy(instance);
+                    }
+                    else
+                    {
+                        UnityEngine.Object.DestroyImmediate(instance);
+                    }
+                }
+
+                lease.Dispose();
+            });
         }
 
         #endregion
