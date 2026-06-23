@@ -113,7 +113,7 @@ namespace Change.Runtime.Asset
         /// <typeparam name="T">要加载的资源类型，必须是 UnityEngine.Object 的子类</typeparam>
         /// <param name="package">YooAsset 资源包</param>
         /// <param name="location">资源地址</param>
-        /// <param name="progress">可选的进度报告器（当前版本暂未实现进度轮询）</param>
+        /// <param name="progress">可选的进度报告器，范围 0.0 到 1.0</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>资源的租约句柄</returns>
         /// <exception cref="ArgumentException">当 location 为 null 或空白时抛出</exception>
@@ -151,6 +151,11 @@ namespace Change.Runtime.Asset
             {
                 throw new InvalidOperationException(
                     $"YooAsset returned null handle. location='{location}', type={typeof(T).Name}");
+            }
+
+            if (progress != null)
+            {
+                ReportProgressAsync(handle, progress, cancellationToken).Forget();
             }
 
             try
@@ -257,6 +262,42 @@ namespace Change.Runtime.Asset
             catch
             {
                 // 吞掉释放异常，防止掩盖原始错误
+            }
+        }
+
+        /// <summary>
+        /// 后台轮询 handle 进度并报告给调用方
+        /// </summary>
+        /// <remarks>
+        /// <para>本方法通过 <c>.Forget()</c> 启动为 fire-and-forget 的 UniTaskVoid。</para>
+        /// <para>循环检测 <paramref name="handle"/>.IsDone 和 <paramref name="cancellationToken"/>.IsCancellationRequested。</para>
+        /// <para>每次循环报告当前进度并通过 <see cref="UniTask.Yield()"/> 让出主线程。</para>
+        /// <para>完成时（未被取消）报告 1.0f 以填充最后的进度增量。</para>
+        /// </remarks>
+        /// <param name="handle">YooAsset 的 AssetHandle，用于读取进度</param>
+        /// <param name="progress">进度报告器</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        private static async UniTaskVoid ReportProgressAsync(
+            AssetHandle handle,
+            IProgress<float> progress,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                while (!handle.IsDone && !cancellationToken.IsCancellationRequested)
+                {
+                    progress.Report(handle.Progress);
+                    await UniTask.Yield();
+                }
+
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    progress.Report(1.0f);
+                }
+            }
+            catch
+            {
+                // 进度报告失败不应影响加载流程，静默忽略
             }
         }
 
