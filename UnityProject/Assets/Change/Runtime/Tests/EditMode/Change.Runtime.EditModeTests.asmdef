@@ -6,7 +6,8 @@
         "Change.Framework",
         "GameScript",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "YooAsset"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",
