@@ -34,6 +34,12 @@ namespace Change.Runtime.UI
             if (!Id.Equals(other.Id))
                 return false;
 
+            // AllowMultipleInstances must match — single/multi-instance
+            // requests cannot be equal. This preserves Equals symmetry and
+            // keeps Equals/GetHashCode consistent.
+            if (Options.AllowMultipleInstances != other.Options.AllowMultipleInstances)
+                return false;
+
             // Single-instance: Id alone is sufficient
             if (!Options.AllowMultipleInstances)
                 return true;
