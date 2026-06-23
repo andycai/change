@@ -1,0 +1,70 @@
+WindowRequest 扩展验证完成，所有测试通过
+=============================================
+验证时间: 2026-06-23
+验证内容: 任务5-7 WindowRequest 添加 Group/Context 字段、更新 Equals/GetHashCode
+
+完整 EditMode 测试套件结果:
+------------------------------
+Unity 版本: 2022.3.60f1
+测试平台: EditMode
+运行时间: 2026-06-23 15:25:11 UTC (13.6 秒)
+
+总览: 369 tests, 369 passed, 0 failed, 0 skipped, 0 inconclusive
+
+各测试集结果:
+--------------
+Change.Framework.EditModeTests.dll ...... 177 passed, 0 failed
+  - FSM: StateMachineExceptionTests, StateMachineQueueTests, StateMachineRegistrationTests,
+         StateMachineSelfTransitionTests, StateMachineStartTests, StateMachineTransitionTests (21 tests)
+  - CQRS: AbilityLifecycleTests, ApplicationContractsTests, AsyncCommandDispatchTests,
+           CommandDispatchTests, CqrsArchitectureGuardTests, CqrsBootstrapLifecycleTests,
+           CqrsLoggingIntegrationTests, DefaultAbilitySystemTests, EventDispatchTests,
+           MonitoringTests, NetworkContractsTests, PooledAsyncCommandDispatchTests,
+           PooledCommandDispatchTests, QueryDispatchTests, SelfHandlingZeroGcTests,
+           TargetResolverTests, TriggerCascadeTests, ZeroAllocationDispatchTests (many tests)
+  - Collections: FastCollectionsAllocationTests, CollectionCoreTests, FastDictionaryTests,
+                 FastHashSetTests, FastListTests, FastPriorityQueueTests, RingBufferTests
+  - Pooling: InstancePoolCoreTests, InstancePoolFactoryTests, InstancePoolIsolationTests,
+             InstancePoolStrictSafetyTests, PoolArchitectureTests, PoolCapacityAndStatsTests,
+             PoolCoreTests, PoolStrictSafetyTests
+  - Logging: LogRouterCoreTests, LogRouterResilienceTests
+
+Change.Runtime.EditModeTests.dll ......... 181+ passed, 0 failed
+  - UI/WindowRequestTests ..................... 8 passed (使用 Group/Context)
+  - UI/WindowManagerCoreTests ................. 7 passed (使用向后兼容构造函数)
+  - UI/WindowManagerPresenterHostTests ........ 1 passed (使用向后兼容构造函数)
+  - UI/WindowRegistryTests .................... passed
+  - UI/YooUiAssetLoaderTests .................. passed
+  - UI/GameScriptSampleContractTests .......... passed
+  - UI/NoReflectionBindingGuardTests .......... passed
+  - GAS (Gameplay Ability System) ............. AbilitySystemTests, AttributeSetTests,
+                                             GameplayAbilityTests, GameplayEffectTests,
+                                             GameplayTagSetTests, IntegrationTests,
+                                             ModifierTests, TargetResolverTests,
+                                             TriggerEngineTests, TriggerTests 等
+  - Network: MockDataLayerTests, MockEndToEndTests, MockRegistryGuardTests,
+             MockSampleQualityTests, NetClientRoutingTests
+  - ContentStreaming: CatalogSyncAndCacheCleanerTests, ContentDownloadEventHubTests,
+                      ContentDownloadOrchestratorTests, ContentDownloadPolicyEngineTests,
+                      ContentStreamingContractsTests, DownloadTaskSchedulerTests
+  - Logging: FileLogSinkTests, UnityLogSinkTests
+  - Composition: AppEventBusTests, DualChannelRegistrationTests, GameRootScopeTests
+  - FrameBudget: FrameBudgetPolicyTests, FramePerfRecorderTests, FrameWorkSchedulerTests
+  - GameFlow: BattleFlowHostStateTests, BattleFlowStateMachineTests,
+              GameFlowDemoDriverTests, GameFlowOrchestratorTests,
+              MainGameFlowStateMachineTests
+
+GameScript.EditModeTests.dll .............. passed, 0 failed
+  - Quest: QuestMigrationTests, QuestSessionStateTests, QuestUiRootBuilderTests
+
+向后兼容性确认:
+----------------
+所有 11 个现有 WindowRequest 调用点使用向后兼容的 2 参数构造函数:
+  - WindowManagerCoreTests.cs: 10 个调用点
+  - WindowManagerPresenterHostTests.cs: 1 个调用点
+  - GameFlowDemoDriver.cs: 1 个调用点 (通过 WindowIds.Quest)
+所有调用点编译通过，测试全部通过。
+
+测试输出文件:
+--------------
+  - TestResults-639178539252460140.xml (本次完整运行, 261KB)
