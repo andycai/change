@@ -73,16 +73,16 @@ namespace Change.Runtime.Asset
         #region IAssetManager — LoadAndInstantiateAsync
 
         /// <inheritdoc />
-        public async UniTask<GameObjectLease> LoadAndInstantiateAsync(
+        public UniTask<GameObjectLease> LoadAndInstantiateAsync(
             string location,
             IProgress<float> progress = null,
             CancellationToken cancellationToken = default)
         {
-            return await LoadAndInstantiateAsyncInternal(_defaultPackage, location, progress, cancellationToken);
+            return LoadAndInstantiateAsyncInternal(_defaultPackage, location, progress, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async UniTask<GameObjectLease> LoadAndInstantiateAsync(
+        public UniTask<GameObjectLease> LoadAndInstantiateAsync(
             string packageName,
             string location,
             IProgress<float> progress = null,
@@ -100,7 +100,7 @@ namespace Change.Runtime.Asset
                     $"YooAsset package not found: '{packageName}'. Ensure the package is initialized before loading assets.");
             }
 
-            return await LoadAndInstantiateAsyncInternal(package, location, progress, cancellationToken);
+            return LoadAndInstantiateAsyncInternal(package, location, progress, cancellationToken);
         }
 
         #endregion
