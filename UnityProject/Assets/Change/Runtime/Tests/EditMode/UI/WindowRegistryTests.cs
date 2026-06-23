@@ -1,44 +1,64 @@
+using System;
 using Change.Framework.UI;
 using Change.Runtime.UI.Core;
 using NUnit.Framework;
 
 namespace Change.Runtime.UI.Tests
 {
-    [TestFixture]
     public class WindowRegistryTests
     {
-        // Stub implementation for testing the IWindowRegistry contract.
-        // Full implementation tests will be added when WindowRegistry is created in task 3.
-        private sealed class StubWindowRegistry : Abstractions.IWindowRegistry
+        [Test]
+        public void Register_AndTryGetMetadata_ReturnsTrue()
         {
-            public void Register(WindowId id, string packageName, string componentName, string group, WindowLayer layer) { }
-            public bool TryGetMetadata(WindowId id, out WindowMetadata metadata)
-            {
-                metadata = default;
-                return false;
-            }
+            var registry = new WindowRegistry();
+            var id = new WindowId("TestWindow");
+
+            registry.Register(id, "TestPackage", "TestComponent", "TestGroup", WindowLayer.Normal);
+
+            bool found = registry.TryGetMetadata(id, out var metadata);
+
+            Assert.IsTrue(found);
+            Assert.AreEqual("TestPackage", metadata.PackageName);
+            Assert.AreEqual("TestComponent", metadata.ComponentName);
+            Assert.AreEqual("TestGroup", metadata.Group);
+            Assert.AreEqual(WindowLayer.Normal, metadata.Layer);
         }
 
         [Test]
-        public void Register_AcceptsValidParameters()
+        public void TryGetMetadata_NotRegistered_ReturnsFalse()
         {
-            var registry = new StubWindowRegistry();
-            var id = new WindowId("test_window");
+            var registry = new WindowRegistry();
+            var id = new WindowId("NonExistent");
 
-            Assert.DoesNotThrow(() =>
-                registry.Register(id, "TestPackage", "TestComponent", "Default", WindowLayer.Normal));
-        }
-
-        [Test]
-        public void TryGetMetadata_ReturnsFalse_ForUnregisteredWindow()
-        {
-            var registry = new StubWindowRegistry();
-            var id = new WindowId("unknown_window");
-
-            var found = registry.TryGetMetadata(id, out var metadata);
+            bool found = registry.TryGetMetadata(id, out var metadata);
 
             Assert.IsFalse(found);
-            Assert.AreEqual(default(WindowMetadata), metadata);
+        }
+
+        [Test]
+        public void Register_DuplicateId_ThrowsException()
+        {
+            var registry = new WindowRegistry();
+            var id = new WindowId("TestWindow");
+
+            registry.Register(id, "Pkg1", "Comp1", "Group1", WindowLayer.Normal);
+
+            Assert.Throws<InvalidOperationException>(() =>
+                registry.Register(id, "Pkg2", "Comp2", "Group2", WindowLayer.Popup));
+        }
+
+        [Test]
+        public void Register_NullGroup_StoresNull()
+        {
+            var registry = new WindowRegistry();
+            var id = new WindowId("OverlayWindow");
+
+            registry.Register(id, "Pkg", "Comp", null, WindowLayer.Top);
+
+            bool found = registry.TryGetMetadata(id, out var metadata);
+
+            Assert.IsTrue(found);
+            Assert.IsNull(metadata.Group);
         }
     }
 }
