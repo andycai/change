@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Change.Runtime.UI
 {
-    public class CachedWindowEntry : IDisposable
+    public sealed class CachedWindowEntry : IDisposable
     {
         private bool _disposed;
 
@@ -23,6 +23,7 @@ namespace Change.Runtime.UI
 
             ReleaseCts.Cancel();
             ReleaseCts.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
