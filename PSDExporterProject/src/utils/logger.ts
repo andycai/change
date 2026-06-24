@@ -57,7 +57,14 @@ export class Logger {
   }
 
   private format(entry: LogEntry): string {
-    const contextStr = entry.context ? ` ${JSON.stringify(entry.context)}` : '';
+    let contextStr = '';
+    if (entry.context) {
+      try {
+        contextStr = ` ${JSON.stringify(entry.context)}`;
+      } catch {
+        contextStr = ' [unserializable context]';
+      }
+    }
     return `[${entry.timestamp}] [${entry.level}] ${entry.message}${contextStr}`;
   }
 }

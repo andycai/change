@@ -4,5 +4,5 @@
   "enableAI": true,
   "debug": false,
   "_comment": "Replace with your actual Claude API key or set CLAUDE_API_KEY environment variable",
-  "claudeApiKey": "sk-ant-..."
+  "claudeApiKey": "YOUR_CLAUDE_API_KEY_HERE"
 }

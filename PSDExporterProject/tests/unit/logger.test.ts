@@ -101,4 +101,29 @@ describe('Logger', () => {
 
     consoleSpy.mockRestore();
   });
+
+  test('should handle circular references in context gracefully', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const circular: any = { name: 'test' };
+    circular.self = circular;
+
+    // Should not throw
+    expect(() => logger.info('circular ref', circular)).not.toThrow();
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+
+    consoleSpy.mockRestore();
+  });
+
+  test('should handle context with functions gracefully', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const context = {
+      name: 'test',
+      callback: () => {},
+    };
+
+    expect(() => logger.info('function in context', context)).not.toThrow();
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+
+    consoleSpy.mockRestore();
+  });
 });
