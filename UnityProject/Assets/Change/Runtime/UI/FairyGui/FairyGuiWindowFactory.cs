@@ -1,5 +1,7 @@
 using System;
 using System.Threading;
+using Change.Runtime.UI.Abstractions;
+using Change.Runtime.UI.Core;
 using Cysharp.Threading.Tasks;
 using FairyGUI;
 
@@ -9,15 +11,18 @@ namespace Change.Runtime.UI
     {
         private readonly IUiAssetLoader _loader;
         private readonly IWindowLocationResolver _resolver;
+        private readonly IWindowRegistry _registry;
         private readonly WindowLayerSortingOrderManager _sortingOrderManager;
 
         public FairyGuiWindowFactory(
             IUiAssetLoader loader,
             IWindowLocationResolver resolver,
+            IWindowRegistry registry = null,
             WindowLayerSortingOrderManager sortingOrderManager = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+            _registry = registry;
             _sortingOrderManager = sortingOrderManager;
         }
 
@@ -28,6 +33,14 @@ namespace Change.Runtime.UI
 
         private async UniTask<IWindowView> CreateAsyncInternal(WindowRequest request, CancellationToken cancellationToken)
         {
+            string packageName = null;
+            string componentName = null;
+            if (_registry != null && _registry.TryGetMetadata(request.Id, out var metadata))
+            {
+                packageName = metadata.PackageName;
+                componentName = metadata.ComponentName;
+            }
+
             var location = _resolver.ResolvePrefabLocation(request.Id);
             var lease = await _loader.LoadPrefabAsync(request.Id, location, cancellationToken);
 
