@@ -377,7 +377,8 @@ namespace Change.Runtime.UI.Tests
                     "All 11 windows were created from scratch.");
 
                 // Verify a cached window (index 1) can be reopened without factory call.
-                var reopened = (FakeWindowView)await manager.OpenAsync(in requests[1], CancellationToken.None);
+                var req1 = requests[1];
+                var reopened = (FakeWindowView)await manager.OpenAsync(in req1, CancellationToken.None);
                 Assert.AreSame(views[1], reopened,
                     "Cached view should be reused without a new CreateAsync call.");
                 Assert.AreEqual(11, factory.CreateCount,
