@@ -218,7 +218,6 @@ namespace Change.Runtime.UI.Tests
     internal sealed class FakeTrackableAssetLoader : IUiAssetLoader
     {
         private readonly Exception _throwFromLoadPackage;
-        private readonly List<string> _loadedPackages = new();
 
         public FakeTrackableAssetLoader(Exception throwFromLoadPackage = null)
         {
@@ -227,13 +226,11 @@ namespace Change.Runtime.UI.Tests
 
         public int LoadPackageCallCount { get; private set; }
         public string LastLoadedPackage { get; private set; }
-        public IReadOnlyList<string> LoadedPackages => _loadedPackages;
 
         public UniTask LoadPackageAsync(string packageName, CancellationToken cancellationToken)
         {
             LoadPackageCallCount++;
             LastLoadedPackage = packageName;
-            _loadedPackages.Add(packageName);
 
             if (_throwFromLoadPackage != null)
             {
