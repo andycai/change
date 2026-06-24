@@ -18,12 +18,32 @@ namespace Change.Editor.PSD2UI
             }
 
             var rootGO = new GameObject(root.Name);
-            rootGO.AddComponent<RectTransform>();
+            var rootRT = rootGO.AddComponent<RectTransform>();
 
-            CreateNode(root, rootGO.transform);
+            // Apply root node's own RectTransform properties
+            if (root.Rect != null)
+            {
+                rootRT.anchoredPosition = new Vector2(root.Rect.X, root.Rect.Y);
+                rootRT.sizeDelta = new Vector2(root.Rect.Width, root.Rect.Height);
+            }
 
-            PrefabUtility.SaveAsPrefabAsset(rootGO, savePath);
-            Object.DestroyImmediate(rootGO);
+            // Recursively create child nodes only (not root itself)
+            if (root.Children != null)
+            {
+                foreach (var child in root.Children)
+                {
+                    CreateNode(child, rootRT);
+                }
+            }
+
+            try
+            {
+                PrefabUtility.SaveAsPrefabAsset(rootGO, savePath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(rootGO);
+            }
 
             return AssetDatabase.LoadAssetAtPath<GameObject>(savePath);
         }

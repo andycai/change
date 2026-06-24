@@ -10,6 +10,18 @@ namespace Change.Editor.PSD2UI
 
         public string ImportSprites(string sourcePath, string targetFileName)
         {
+            if (string.IsNullOrEmpty(targetFileName))
+            {
+                throw new System.ArgumentException("targetFileName must not be null or empty.", nameof(targetFileName));
+            }
+
+            if (targetFileName.Contains(".."))
+            {
+                throw new System.ArgumentException(
+                    $"targetFileName must not contain path traversal: '{targetFileName}'",
+                    nameof(targetFileName));
+            }
+
             if (!File.Exists(sourcePath))
             {
                 throw new FileNotFoundException($"Source sprite not found: {sourcePath}", sourcePath);
@@ -24,7 +36,15 @@ namespace Change.Editor.PSD2UI
             }
 
             string destPath = Path.Combine(fullTargetDir, targetFileName);
-            File.Copy(sourcePath, destPath, true);
+            try
+            {
+                File.Copy(sourcePath, destPath, true);
+            }
+            catch (IOException ex)
+            {
+                throw new IOException(
+                    $"Failed to copy sprite from '{sourcePath}' to '{destPath}': {ex.Message}", ex);
+            }
 
             AssetDatabase.Refresh();
 
@@ -36,6 +56,12 @@ namespace Change.Editor.PSD2UI
 
         public void ApplySliceSettings(string spritePath, SliceData slice)
         {
+            if (string.IsNullOrEmpty(spritePath))
+            {
+                Debug.LogWarning("[PSD2UI] ApplySliceSettings: spritePath is null or empty, skipping.");
+                return;
+            }
+
             if (slice == null)
             {
                 Debug.LogWarning("[PSD2UI] ApplySliceSettings: slice is null, skipping.");
