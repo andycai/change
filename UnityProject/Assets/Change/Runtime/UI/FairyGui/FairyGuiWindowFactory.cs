@@ -33,13 +33,9 @@ namespace Change.Runtime.UI
 
         private async UniTask<IWindowView> CreateAsyncInternal(WindowRequest request, CancellationToken cancellationToken)
         {
-            string packageName = null;
-            string componentName = null;
-            if (_registry != null && _registry.TryGetMetadata(request.Id, out var metadata))
-            {
-                packageName = metadata.PackageName;
-                componentName = metadata.ComponentName;
-            }
+            // Task 15: look up registry metadata so Task 24 can use PackageName / ComponentName for UIPackage loading.
+            WindowMetadata metadata = default;
+            var hasMetadata = _registry != null && _registry.TryGetMetadata(request.Id, out metadata);
 
             var location = _resolver.ResolvePrefabLocation(request.Id);
             var lease = await _loader.LoadPrefabAsync(request.Id, location, cancellationToken);
