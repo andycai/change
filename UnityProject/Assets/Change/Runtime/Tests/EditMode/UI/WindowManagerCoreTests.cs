@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
 using Change.Framework.UI;
+using Change.Runtime.UI.Core;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 
@@ -383,6 +385,77 @@ namespace Change.Runtime.UI.Tests
                     "Cached view should be reused without a new CreateAsync call.");
                 Assert.AreEqual(11, factory.CreateCount,
                     "No new CreateAsync call on cache-hit reopen.");
+            });
+        }
+
+        private static string GetCurrentActiveGroup(WindowManager manager)
+        {
+            var field = typeof(WindowManager).GetField("_currentActiveGroup",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            return (string)field.GetValue(manager);
+        }
+
+        [UnityTest]
+        public IEnumerator Close_LastWindowInGroup_ClearsCurrentActiveGroup()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var registry = new WindowRegistry();
+                var windowId = new WindowId("WinA");
+                registry.Register(windowId, "Pkg", "Comp", "GroupA", WindowLayer.Normal);
+
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory, NullWindowPresenterHost.Instance, registry);
+                var request = new WindowRequest(windowId, WindowOpenOptions.Default, "GroupA", null);
+
+                // Open — _currentActiveGroup should become "GroupA"
+                var view = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                Assert.AreEqual("GroupA", GetCurrentActiveGroup(manager),
+                    "Active group should be set on open.");
+
+                // Close the only window in the group — should clear active group
+                var closed = manager.Close(in request);
+                Assert.IsTrue(closed, "Close should succeed.");
+                Assert.IsNull(GetCurrentActiveGroup(manager),
+                    "Active group should be null after last window in group is closed.");
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator CloseWindowsInGroup_ClearsCurrentActiveGroup()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var registry = new WindowRegistry();
+                var windowIdA = new WindowId("WinA");
+                var windowIdB = new WindowId("WinB");
+                registry.Register(windowIdA, "PkgA", "CompA", "GroupA", WindowLayer.Normal);
+                registry.Register(windowIdB, "PkgB", "CompB", "GroupB", WindowLayer.Normal);
+
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory, NullWindowPresenterHost.Instance, registry);
+                var requestA = new WindowRequest(windowIdA, WindowOpenOptions.Default, "GroupA", null);
+                var requestB = new WindowRequest(windowIdB, WindowOpenOptions.Default, "GroupB", null);
+
+                // Open GroupA window — becomes active group
+                var viewA = (FakeWindowView)await manager.OpenAsync(in requestA, CancellationToken.None);
+                Assert.AreEqual("GroupA", GetCurrentActiveGroup(manager));
+
+                // Open GroupB window — triggers CloseWindowsInGroup("GroupA"),
+                // then sets active group to "GroupB"
+                var viewB = (FakeWindowView)await manager.OpenAsync(in requestB, CancellationToken.None);
+                Assert.AreEqual("GroupB", GetCurrentActiveGroup(manager),
+                    "Active group should switch to GroupB after mutual exclusion.");
+
+                // viewA was force-closed by CloseWindowsInGroup (via DisposeOpenedEntryWithHost)
+                Assert.AreEqual(1, viewA.DisposeCount,
+                    "GroupA window should be disposed by mutual exclusion.");
+
+                // Close GroupB window — should clear active group
+                var closed = manager.Close(in requestB);
+                Assert.IsTrue(closed);
+                Assert.IsNull(GetCurrentActiveGroup(manager),
+                    "Active group should be null after last window of new group is closed.");
             });
         }
     }

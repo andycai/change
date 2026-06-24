@@ -209,6 +209,25 @@ namespace Change.Runtime.UI
                 }
 
                 _opened.Remove(request);
+
+                // Clear active group when the last window of the group is closed
+                if (request.Group != null && request.Group == _currentActiveGroup)
+                {
+                    var groupStillActive = false;
+                    foreach (var kvp in _opened)
+                    {
+                        if (kvp.Key.Group == request.Group)
+                        {
+                            groupStillActive = true;
+                            break;
+                        }
+                    }
+
+                    if (!groupStillActive)
+                    {
+                        _currentActiveGroup = null;
+                    }
+                }
             }
 
             entry.Presenter?.OnClose();
@@ -250,6 +269,12 @@ namespace Change.Runtime.UI
                 foreach (var item in toClose)
                 {
                     _opened.Remove(item.request);
+                }
+
+                // Clear _currentActiveGroup when this group's windows are forcibly closed
+                if (_currentActiveGroup == group)
+                {
+                    _currentActiveGroup = null;
                 }
             }
 
