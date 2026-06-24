@@ -2,7 +2,9 @@
     "name": "Change.Editor.PSD2UI.EditModeTests",
     "rootNamespace": "Change.Editor.PSD2UI.Tests",
     "references": [
-        "Change.Editor.PSD2UI"
+        "Change.Editor.PSD2UI",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",
