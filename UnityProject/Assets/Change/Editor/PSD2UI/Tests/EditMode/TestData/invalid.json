@@ -1,0 +1,21 @@
+{
+  "Type": "Panel",
+  "Rect": {
+    "X": 0.0,
+    "Y": 0.0,
+    "Width": 1920.0,
+    "Height": 1080.0
+  },
+  "Children": [
+    {
+      "Type": "Image",
+      "Rect": {
+        "X": 0.0,
+        "Y": 0.0,
+        "Width": 800.0,
+        "Height": 600.0
+      },
+      "Children": []
+    }
+  ]
+}

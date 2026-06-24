@@ -1,0 +1,15 @@
+{
+    "name": "Change.Editor.PSD2UI",
+    "rootNamespace": "Change.Editor.PSD2UI",
+    "references": [
+        "Newtonsoft.Json",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Change.Runtime"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}
