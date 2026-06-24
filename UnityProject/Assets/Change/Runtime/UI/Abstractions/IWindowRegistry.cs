@@ -1,0 +1,11 @@
+using Change.Framework.UI;
+using Change.Runtime.UI.Core;
+
+namespace Change.Runtime.UI.Abstractions
+{
+    public interface IWindowRegistry
+    {
+        void Register(WindowId id, string packageName, string componentName, string group, WindowLayer layer);
+        bool TryGetMetadata(WindowId id, out WindowMetadata metadata);
+    }
+}

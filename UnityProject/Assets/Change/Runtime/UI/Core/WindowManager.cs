@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Change.Framework.Application;
 using Change.Framework.UI;
+using Change.Runtime.UI.Abstractions;
+using Change.Runtime.UI.Core;
 using Cysharp.Threading.Tasks;
 
 namespace Change.Runtime.UI
@@ -26,9 +28,14 @@ namespace Change.Runtime.UI
 
         private readonly IWindowFactory _factory;
         private readonly IWindowPresenterHost _host;
+        private readonly IWindowRegistry _registry;
         private readonly object _gate = new();
         private readonly Dictionary<WindowRequest, OpenedWindowEntry> _opened = new();
         private readonly Dictionary<WindowRequest, InflightEntry> _inflight = new();
+        private readonly Dictionary<WindowRequest, CachedWindowEntry> _cache = new();
+        private readonly LinkedList<WindowRequest> _cacheAccessOrder = new();
+        private const int MaxCacheSize = 10;
+        private string _currentActiveGroup;
 
         public WindowManager(IWindowFactory factory)
             : this(factory, NullWindowPresenterHost.Instance)
@@ -36,9 +43,15 @@ namespace Change.Runtime.UI
         }
 
         public WindowManager(IWindowFactory factory, IWindowPresenterHost host)
+            : this(factory, host, null)
+        {
+        }
+
+        public WindowManager(IWindowFactory factory, IWindowPresenterHost host, IWindowRegistry registry)
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _host = host ?? throw new ArgumentNullException(nameof(host));
+            _registry = registry; // null is allowed for backward compatibility
         }
 
         public bool TryGet(in WindowRequest request, out IWindowView view)
@@ -66,6 +79,7 @@ namespace Change.Runtime.UI
         {
             InflightEntry entry = null;
             IWindowView existing = null;
+            CachedWindowEntry cachedEntry = null;
             OpenedWindowEntry toDisposeEntry = null;
             var shouldStartCreate = false;
 
@@ -74,6 +88,22 @@ namespace Change.Runtime.UI
                 if (request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out var reuseEntry))
                 {
                     existing = reuseEntry.View;
+                }
+                else if (_cache.TryGetValue(request, out cachedEntry))
+                {
+                    _cache.Remove(request);
+
+                    var node = _cacheAccessOrder.First;
+                    while (node != null)
+                    {
+                        if (node.Value.Equals(request))
+                        {
+                            _cacheAccessOrder.Remove(node);
+                            break;
+                        }
+
+                        node = node.Next;
+                    }
                 }
                 else if (_inflight.TryGetValue(request, out entry))
                 {
@@ -89,7 +119,7 @@ namespace Change.Runtime.UI
                     }
                 }
 
-                if (entry == null && existing == null)
+                if (entry == null && existing == null && cachedEntry == null)
                 {
                     if (!request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out toDisposeEntry))
                     {
@@ -112,6 +142,23 @@ namespace Change.Runtime.UI
                 return existing;
             }
 
+            if (cachedEntry != null)
+            {
+                cachedEntry.Dispose();
+
+                _host.OnOpened(in request, cachedEntry.View, out var windowScope, out var presenter);
+                presenter?.OnOpen();
+
+                lock (_gate)
+                {
+                    _opened[request] = new OpenedWindowEntry(cachedEntry.View, presenter, windowScope);
+                }
+
+                cachedEntry.View.SetVisible(true);
+                cachedEntry.View.BringToFront();
+                return cachedEntry.View;
+            }
+
             if (toDisposeEntry != null)
             {
                 DisposeOpenedEntryWithHost(in request, toDisposeEntry);
@@ -119,6 +166,32 @@ namespace Change.Runtime.UI
 
             if (shouldStartCreate)
             {
+                // Group mutual exclusion check (outside lock since CloseWindowsInGroup acquires lock internally)
+                if (request.Group != null)
+                {
+                    if (_registry != null && _registry.TryGetMetadata(request.Id, out var metadata))
+                    {
+                        if (!IsOverlayGroup(metadata.Layer))
+                        {
+                            string groupToClose = null;
+                            lock (_gate)
+                            {
+                                if (_currentActiveGroup != null && _currentActiveGroup != request.Group)
+                                {
+                                    groupToClose = _currentActiveGroup;
+                                }
+
+                                _currentActiveGroup = request.Group;
+                            }
+
+                            if (groupToClose != null)
+                            {
+                                CloseWindowsInGroup(groupToClose);
+                            }
+                        }
+                    }
+                }
+
                 CreateAndCacheAsync(request, entry).Forget();
             }
 
@@ -136,13 +209,32 @@ namespace Change.Runtime.UI
                 }
 
                 _opened.Remove(request);
+
+                // Clear active group when the last window of the group is closed
+                if (request.Group != null && request.Group == _currentActiveGroup)
+                {
+                    var groupStillActive = false;
+                    foreach (var kvp in _opened)
+                    {
+                        if (kvp.Key.Group == request.Group)
+                        {
+                            groupStillActive = true;
+                            break;
+                        }
+                    }
+
+                    if (!groupStillActive)
+                    {
+                        _currentActiveGroup = null;
+                    }
+                }
             }
 
             entry.Presenter?.OnClose();
             entry.WindowScope?.Dispose();
             _host.OnClosing(in request, entry.View, entry.Presenter, entry.WindowScope);
             entry.View.SetState(WindowState.Closing);
-            entry.View.Dispose();
+            AddToCache(request, entry.View);
             return true;
         }
 
@@ -153,6 +245,45 @@ namespace Change.Runtime.UI
             _host.OnClosing(in request, entry.View, entry.Presenter, entry.WindowScope);
             entry.View.SetState(WindowState.Closing);
             entry.View.Dispose();
+        }
+
+        private static bool IsOverlayGroup(WindowLayer layer)
+        {
+            return layer == WindowLayer.Popup || layer == WindowLayer.Top;
+        }
+
+        private void CloseWindowsInGroup(string group)
+        {
+            // Collect entries to close under the lock
+            var toClose = new List<(WindowRequest request, OpenedWindowEntry entry)>();
+            lock (_gate)
+            {
+                foreach (var kvp in _opened)
+                {
+                    if (kvp.Key.Group == group)
+                    {
+                        toClose.Add((kvp.Key, kvp.Value));
+                    }
+                }
+
+                foreach (var item in toClose)
+                {
+                    _opened.Remove(item.request);
+                }
+
+                // Clear _currentActiveGroup when this group's windows are forcibly closed
+                if (_currentActiveGroup == group)
+                {
+                    _currentActiveGroup = null;
+                }
+            }
+
+            // Dispose outside the lock
+            foreach (var (request, entry) in toClose)
+            {
+                var req = request;
+                DisposeOpenedEntryWithHost(in req, entry);
+            }
         }
 
         private async UniTaskVoid CreateAndCacheAsync(WindowRequest request, InflightEntry entry)
@@ -274,6 +405,90 @@ namespace Change.Runtime.UI
                     _inflight.Remove(request);
                 }
             }
+        }
+
+        /// <summary>
+        /// Called outside the lock. Acquires the lock internally for cache manipulation,
+        /// then disposes evicted entries outside the lock.
+        /// </summary>
+        private void AddToCache(WindowRequest request, IWindowView view)
+        {
+            CachedWindowEntry evictedEntry = null;
+            CachedWindowEntry newEntry;
+
+            lock (_gate)
+            {
+                if (_cache.Count >= MaxCacheSize)
+                {
+                    evictedEntry = EvictLeastRecentlyUsed();
+                }
+
+                newEntry = new CachedWindowEntry(view, new CancellationTokenSource());
+                _cache[request] = newEntry;
+                _cacheAccessOrder.AddFirst(request);
+            }
+
+            ScheduleDelayedRelease(request, newEntry.ReleaseCts.Token).Forget();
+            if (evictedEntry != null)
+            {
+                evictedEntry.View.Dispose();
+                evictedEntry.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Must be called inside _gate lock.
+        /// Returns the evicted entry so the caller can dispose it outside the lock.
+        /// </summary>
+        private CachedWindowEntry EvictLeastRecentlyUsed()
+        {
+            var lastNode = _cacheAccessOrder.Last;
+            if (lastNode == null) return null;
+
+            var lruRequest = lastNode.Value;
+            _cacheAccessOrder.RemoveLast();
+            _cache.Remove(lruRequest, out var evictedEntry);
+            return evictedEntry;
+        }
+
+        private async UniTaskVoid ScheduleDelayedRelease(WindowRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await UniTask.Delay(30000, cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception)
+            {
+                // Delayed release failed; entry remains in cache until next eviction.
+                return;
+            }
+
+            CachedWindowEntry entry;
+            lock (_gate)
+            {
+                if (!_cache.TryGetValue(request, out entry))
+                    return;
+                _cache.Remove(request);
+
+                var node = _cacheAccessOrder.First;
+                while (node != null)
+                {
+                    if (node.Value.Equals(request))
+                    {
+                        _cacheAccessOrder.Remove(node);
+                        break;
+                    }
+
+                    node = node.Next;
+                }
+            }
+
+            entry.View.Dispose();
+            entry.Dispose();
         }
     }
 }

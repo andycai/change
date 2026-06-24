@@ -7,7 +7,8 @@
         "GameScript",
         "UniTask",
         "VContainer",
-        "YooAsset"
+        "YooAsset",
+        "FairyGUI"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
 using Change.Framework.UI;
+using Change.Runtime.UI.Core;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 
@@ -231,7 +233,7 @@ namespace Change.Runtime.UI.Tests
         }
 
         [UnityTest]
-        public IEnumerator Close_RemovesCachedWindow_AndTryGetReturnsFalse()
+        public IEnumerator Close_RemovesFromOpened_AndCachesView_NotDisposed()
         {
             return UniTask.ToCoroutine(async () =>
             {
@@ -244,7 +246,216 @@ namespace Change.Runtime.UI.Tests
 
                 Assert.IsTrue(closed);
                 Assert.IsFalse(manager.TryGet(in request, out _));
-                Assert.AreEqual(1, view.DisposeCount);
+                Assert.AreEqual(0, view.DisposeCount);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator OpenAsync_ReturnsCachedView_WithoutFactoryCall()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var first = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+
+                var second = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+
+                Assert.AreSame(first, second);
+                Assert.AreEqual(1, factory.CreateCount);
+                Assert.IsTrue(manager.TryGet(in request, out var cached));
+                Assert.AreSame(first, cached);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator OpenAsync_CacheHit_SetsVisibleAndBringsToFront()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var view = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                var bringBeforeClose = view.BringToFrontCount;
+                var visibleBeforeClose = view.SetVisibleCount;
+                manager.Close(in request);
+
+                var reopened = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+
+                Assert.AreSame(view, reopened);
+                Assert.AreEqual(bringBeforeClose + 1, view.BringToFrontCount);
+                Assert.AreEqual(visibleBeforeClose + 1, view.SetVisibleCount);
+                Assert.AreEqual(WindowState.Open, view.State);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator Close_Open_Close_Open_ReusesSameView_NoDispose()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var first = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+                var second = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+                var third = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+
+                Assert.AreSame(first, second);
+                Assert.AreSame(first, third);
+                Assert.AreEqual(1, factory.CreateCount);
+                Assert.AreEqual(0, first.DisposeCount);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator OpenAsync_CacheHit_DoesNotInterfereWithInflightMerge()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                // Verify that after a cache hit, the window is properly in _opened,
+                // so a subsequent OpenAsync with ReuseIfLoaded=true hits _opened (not cache again).
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var first = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+                var second = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                // Second should be cache hit
+                Assert.AreSame(first, second);
+
+                // Third with ReuseIfLoaded should hit _opened (reuse existing)
+                var third = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                Assert.AreSame(first, third);
+                Assert.AreEqual(1, factory.CreateCount);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator CacheFull_LruEviction_DisposesEvictedView_KeepsOthersCached()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                // WindowManager.MaxCacheSize = 10 (private const).
+                // Open and close 11 distinct windows — the 11th close triggers LRU
+                // eviction and the evicted view must be disposed.
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+
+                // Track views in insertion order to identify the LRU victim.
+                var views = new List<FakeWindowView>();
+                var requests = new List<WindowRequest>();
+
+                for (int i = 0; i < 11; i++)
+                {
+                    var request = new WindowRequest(new WindowId($"W{i}"), WindowOpenOptions.Default);
+                    requests.Add(request);
+                    var view = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                    views.Add(view);
+                    manager.Close(in request);
+                }
+
+                Assert.AreEqual(1, views[0].DisposeCount,
+                    "View 0 (first closed, LRU) should be disposed on cache-full eviction.");
+                Assert.AreEqual(WindowState.Closed, views[0].State);
+
+                // Remaining 10 views should still be cached (not disposed).
+                for (int i = 1; i < 11; i++)
+                {
+                    Assert.AreEqual(0, views[i].DisposeCount,
+                        $"View {i} should remain cached and not disposed.");
+                }
+
+                Assert.AreEqual(11, factory.CreateCount,
+                    "All 11 windows were created from scratch.");
+
+                // Verify a cached window (index 1) can be reopened without factory call.
+                var req1 = requests[1];
+                var reopened = (FakeWindowView)await manager.OpenAsync(in req1, CancellationToken.None);
+                Assert.AreSame(views[1], reopened,
+                    "Cached view should be reused without a new CreateAsync call.");
+                Assert.AreEqual(11, factory.CreateCount,
+                    "No new CreateAsync call on cache-hit reopen.");
+            });
+        }
+
+        private static string GetCurrentActiveGroup(WindowManager manager)
+        {
+            var field = typeof(WindowManager).GetField("_currentActiveGroup",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            return (string)field.GetValue(manager);
+        }
+
+        [UnityTest]
+        public IEnumerator Close_LastWindowInGroup_ClearsCurrentActiveGroup()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var registry = new WindowRegistry();
+                var windowId = new WindowId("WinA");
+                registry.Register(windowId, "Pkg", "Comp", "GroupA", WindowLayer.Normal);
+
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory, NullWindowPresenterHost.Instance, registry);
+                var request = new WindowRequest(windowId, WindowOpenOptions.Default, "GroupA", null);
+
+                // Open — _currentActiveGroup should become "GroupA"
+                var view = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                Assert.AreEqual("GroupA", GetCurrentActiveGroup(manager),
+                    "Active group should be set on open.");
+
+                // Close the only window in the group — should clear active group
+                var closed = manager.Close(in request);
+                Assert.IsTrue(closed, "Close should succeed.");
+                Assert.IsNull(GetCurrentActiveGroup(manager),
+                    "Active group should be null after last window in group is closed.");
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator CloseWindowsInGroup_ClearsCurrentActiveGroup()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var registry = new WindowRegistry();
+                var windowIdA = new WindowId("WinA");
+                var windowIdB = new WindowId("WinB");
+                registry.Register(windowIdA, "PkgA", "CompA", "GroupA", WindowLayer.Normal);
+                registry.Register(windowIdB, "PkgB", "CompB", "GroupB", WindowLayer.Normal);
+
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory, NullWindowPresenterHost.Instance, registry);
+                var requestA = new WindowRequest(windowIdA, WindowOpenOptions.Default, "GroupA", null);
+                var requestB = new WindowRequest(windowIdB, WindowOpenOptions.Default, "GroupB", null);
+
+                // Open GroupA window — becomes active group
+                var viewA = (FakeWindowView)await manager.OpenAsync(in requestA, CancellationToken.None);
+                Assert.AreEqual("GroupA", GetCurrentActiveGroup(manager));
+
+                // Open GroupB window — triggers CloseWindowsInGroup("GroupA"),
+                // then sets active group to "GroupB"
+                var viewB = (FakeWindowView)await manager.OpenAsync(in requestB, CancellationToken.None);
+                Assert.AreEqual("GroupB", GetCurrentActiveGroup(manager),
+                    "Active group should switch to GroupB after mutual exclusion.");
+
+                // viewA was force-closed by CloseWindowsInGroup (via DisposeOpenedEntryWithHost)
+                Assert.AreEqual(1, viewA.DisposeCount,
+                    "GroupA window should be disposed by mutual exclusion.");
+
+                // Close GroupB window — should clear active group
+                var closed = manager.Close(in requestB);
+                Assert.IsTrue(closed);
+                Assert.IsNull(GetCurrentActiveGroup(manager),
+                    "Active group should be null after last window of new group is closed.");
             });
         }
     }

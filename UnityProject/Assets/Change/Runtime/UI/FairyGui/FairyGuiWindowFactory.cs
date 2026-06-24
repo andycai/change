@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using Change.Runtime.UI.Abstractions;
+using Change.Runtime.UI.Core;
 using Cysharp.Threading.Tasks;
 using FairyGUI;
 
@@ -9,11 +12,20 @@ namespace Change.Runtime.UI
     {
         private readonly IUiAssetLoader _loader;
         private readonly IWindowLocationResolver _resolver;
+        private readonly IWindowRegistry _registry;
+        private readonly WindowLayerSortingOrderManager _sortingOrderManager;
+        private readonly HashSet<string> _loadedPackages = new();
 
-        public FairyGuiWindowFactory(IUiAssetLoader loader, IWindowLocationResolver resolver)
+        public FairyGuiWindowFactory(
+            IUiAssetLoader loader,
+            IWindowLocationResolver resolver,
+            IWindowRegistry registry = null,
+            WindowLayerSortingOrderManager sortingOrderManager = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+            _registry = registry;
+            _sortingOrderManager = sortingOrderManager;
         }
 
         public UniTask<IWindowView> CreateAsync(in WindowRequest request, CancellationToken cancellationToken)
@@ -23,6 +35,15 @@ namespace Change.Runtime.UI
 
         private async UniTask<IWindowView> CreateAsyncInternal(WindowRequest request, CancellationToken cancellationToken)
         {
+            if (_registry != null && _registry.TryGetMetadata(request.Id, out var metadata))
+            {
+                if (!_loadedPackages.Contains(metadata.PackageName))
+                {
+                    await _loader.LoadPackageAsync(metadata.PackageName, cancellationToken);
+                    _loadedPackages.Add(metadata.PackageName);
+                }
+            }
+
             var location = _resolver.ResolvePrefabLocation(request.Id);
             var lease = await _loader.LoadPrefabAsync(request.Id, location, cancellationToken);
 
@@ -46,7 +67,7 @@ namespace Change.Runtime.UI
                     $"No FairyGUI root on window prefab at: {location}. Add a {nameof(UIPanel)} with valid package/component, or implement {nameof(IFairyGuiWindowRootSource)} on the prefab root.");
             }
 
-            return new FairyGuiWindowView(request.Id, request.Options.Layer, root, lease);
+            return new FairyGuiWindowView(request.Id, request.Options.Layer, root, lease, _sortingOrderManager);
         }
 
         private static void DisposeLeaseNoThrow(UiAssetLease lease)

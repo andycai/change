@@ -8,14 +8,21 @@ namespace Change.Runtime.UI
     {
         private readonly GComponent _root;
         private readonly UiAssetLease _lease;
+        private readonly WindowLayerSortingOrderManager _sortingOrderManager;
         private bool _disposed;
 
-        public FairyGuiWindowView(WindowId id, WindowLayer layer, GComponent root, UiAssetLease lease)
+        public FairyGuiWindowView(
+            WindowId id,
+            WindowLayer layer,
+            GComponent root,
+            UiAssetLease lease,
+            WindowLayerSortingOrderManager sortingOrderManager = null)
         {
             Id = id;
             Layer = layer;
             _root = root ?? throw new ArgumentNullException(nameof(root));
             _lease = lease ?? throw new ArgumentNullException(nameof(lease));
+            _sortingOrderManager = sortingOrderManager;
             State = WindowState.Closed;
         }
 
@@ -31,9 +38,17 @@ namespace Change.Runtime.UI
 
         public virtual void BringToFront()
         {
-            // P1 Fix: 层级感知的排序。基础值为层级 * 1000，确保高层级永远在低层级之上。
-            // 这里的 1000 是预留给层内窗口排序的间距。
-            _root.sortingOrder = (int)Layer * 1000 + 1; 
+            if (_sortingOrderManager != null)
+            {
+                _sortingOrderManager.ResetLayerIfNeeded(Layer);
+                _root.sortingOrder = _sortingOrderManager.AllocateSortingOrder(Layer);
+            }
+            else
+            {
+                // P1 Fix: 层级感知的排序。基础值为层级 * 1000，确保高层级永远在低层级之上。
+                // 这里的 1000 是预留给层内窗口排序的间距。
+                _root.sortingOrder = (int)Layer * 1000 + 1;
+            }
         }
 
         public virtual void SetVisible(bool visible)
