@@ -38,7 +38,7 @@ export class AssetExporter {
   /**
    * Sanitize a filename by replacing special characters and limiting length.
    */
-  private sanitizeFileName(name: string): string {
+  public sanitizeFileName(name: string): string {
     return name
       .replace(/[<>:"/\\|?*]/g, '_') // Replace special characters
       .replace(/\s+/g, '_')           // Replace whitespace
