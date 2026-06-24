@@ -95,7 +95,7 @@ namespace Change.Editor.PSD2UI
 
             var components = ScanComponents(prefab);
             string moduleName = ExtractModuleName(prefabName);
-            string generatedCode = _template.Generate(prefabName, moduleName, components);
+            string generatedCode = _template.GenerateClass(prefabName, moduleName, components);
 
             string directory = Path.Combine("Assets", "HotUpdate", "GameLogic", moduleName, "Views", "Generated");
             string filePath = Path.Combine(directory, $"{prefabName}View.Generated.cs");
