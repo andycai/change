@@ -49,6 +49,7 @@ namespace Change.Editor.PSD2UI
                 case "Grid":
                     var gg = target.AddComponent<GridLayoutGroup>();
                     gg.spacing = new Vector2(node.Layout.Spacing, node.Layout.Spacing);
+                    gg.childAlignment = ParseAlignment(node.Layout.Alignment);
                     break;
 
                 default:
