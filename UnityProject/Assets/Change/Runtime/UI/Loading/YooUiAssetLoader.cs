@@ -339,7 +339,7 @@ namespace Change.Runtime.UI
                         releaseException);
                 }
 
-                UIPackage.LoadResource loadFunc = (name, extension, type, out DestroyMethod destroyMethod) =>
+                UIPackage.LoadResource loadFunc = (string name, string extension, Type type, out DestroyMethod destroyMethod) =>
                 {
                     destroyMethod = DestroyMethod.None;
                     var location = name + extension;

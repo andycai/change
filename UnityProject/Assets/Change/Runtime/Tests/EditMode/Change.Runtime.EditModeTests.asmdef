@@ -6,7 +6,8 @@
         "Change.Framework",
         "GameScript",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "FairyGUI"
     ],
     "optionalUnityReferences": [
         "UnityEngine.TestRunner",

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Change.Runtime.UI.Abstractions;
 using Change.Runtime.UI.Core;
@@ -13,6 +14,7 @@ namespace Change.Runtime.UI
         private readonly IWindowLocationResolver _resolver;
         private readonly IWindowRegistry _registry;
         private readonly WindowLayerSortingOrderManager _sortingOrderManager;
+        private readonly HashSet<string> _loadedPackages = new();
 
         public FairyGuiWindowFactory(
             IUiAssetLoader loader,
@@ -33,6 +35,15 @@ namespace Change.Runtime.UI
 
         private async UniTask<IWindowView> CreateAsyncInternal(WindowRequest request, CancellationToken cancellationToken)
         {
+            if (_registry != null && _registry.TryGetMetadata(request.Id, out var metadata))
+            {
+                if (!_loadedPackages.Contains(metadata.PackageName))
+                {
+                    await _loader.LoadPackageAsync(metadata.PackageName, cancellationToken);
+                    _loadedPackages.Add(metadata.PackageName);
+                }
+            }
+
             var location = _resolver.ResolvePrefabLocation(request.Id);
             var lease = await _loader.LoadPrefabAsync(request.Id, location, cancellationToken);
 

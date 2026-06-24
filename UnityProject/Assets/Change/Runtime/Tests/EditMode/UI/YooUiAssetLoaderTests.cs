@@ -373,7 +373,7 @@ namespace Change.Runtime.UI.Tests
 
                 await UniTask.WhenAll(task1, task2);
 
-                var pkg = UIPackage.GetById("concpkg");
+                var pkg = FairyGUI.UIPackage.GetById("concpkg");
                 Assert.NotNull(pkg, "Package should be loaded exactly once.");
                 Assert.AreEqual("ConcPkg", pkg.name);
 
@@ -405,7 +405,7 @@ namespace Change.Runtime.UI.Tests
                 await loader.LoadPackageAsync("retrypkg", CancellationToken.None);
 
                 Assert.AreEqual(2, package.RawAssetCallCount, "Second call should retry after TCS cleanup.");
-                Assert.NotNull(UIPackage.GetById("retrypkg"));
+                Assert.NotNull(FairyGUI.UIPackage.GetById("retrypkg"));
                 loader.UnloadPackage("retrypkg");
             });
         }
