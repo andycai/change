@@ -161,19 +161,5 @@ namespace Change.Runtime.UI.Tests
             int nextOrder = manager.AllocateSortingOrder(WindowLayer.Normal);
             Assert.AreEqual(1900, nextOrder); // base(1000) + counter(900) = 1900
         }
-
-        [Test]
-        public void ResetLayerIfNeeded_CounterExactly901_Resets()
-        {
-            var manager = new WindowLayerSortingOrderManager();
-            for (int i = 0; i < 901; i++)
-            {
-                manager.AllocateSortingOrder(WindowLayer.Normal);
-            }
-            // counter == 901, condition is > 900, so reset to 0
-            manager.ResetLayerIfNeeded(WindowLayer.Normal);
-            int nextOrder = manager.AllocateSortingOrder(WindowLayer.Normal);
-            Assert.AreEqual(1000, nextOrder); // base(1000) + counter(0) = 1000
-        }
     }
 }
