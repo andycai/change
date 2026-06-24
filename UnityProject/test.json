@@ -1,0 +1,66 @@
+{
+  "Name": "MainPanel",
+  "Type": "Panel",
+  "Rect": {
+    "X": 0.0,
+    "Y": 0.0,
+    "Width": 1920.0,
+    "Height": 1080.0
+  },
+  "SpritePath": "Assets/Textures/MainPanel.png",
+  "Slice": {
+    "Left": 10,
+    "Top": 10,
+    "Right": 10,
+    "Bottom": 10
+  },
+  "Layout": {
+    "Type": "Vertical",
+    "Spacing": 5.0,
+    "Alignment": "TopLeft"
+  },
+  "Children": [
+    {
+      "Name": "TitleBar",
+      "Type": "Image",
+      "Rect": {
+        "X": 0.0,
+        "Y": 0.0,
+        "Width": 1920.0,
+        "Height": 100.0
+      },
+      "SpritePath": "Assets/Textures/TitleBar.png",
+      "Slice": {
+        "Left": 0,
+        "Top": 0,
+        "Right": 0,
+        "Bottom": 0
+      },
+      "Layout": {
+        "Type": "Horizontal",
+        "Spacing": 0.0,
+        "Alignment": "MiddleCenter"
+      },
+      "Children": []
+    },
+    {
+      "Name": "CloseButton",
+      "Type": "Button",
+      "Rect": {
+        "X": 1820.0,
+        "Y": 10.0,
+        "Width": 80.0,
+        "Height": 80.0
+      },
+      "SpritePath": "Assets/Textures/CloseButton.png",
+      "Slice": {
+        "Left": 5,
+        "Top": 5,
+        "Right": 5,
+        "Bottom": 5
+      },
+      "Layout": null,
+      "Children": []
+    }
+  ]
+}

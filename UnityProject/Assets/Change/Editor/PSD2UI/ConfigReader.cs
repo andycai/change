@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace Change.Editor.PSD2UI
 {
@@ -6,8 +8,20 @@ namespace Change.Editor.PSD2UI
     {
         public UINodeData LoadFromJson(string jsonPath)
         {
-            // TODO: Implement
-            return null;
+            if (!File.Exists(jsonPath))
+            {
+                throw new FileNotFoundException($"JSON config not found: {jsonPath}");
+            }
+
+            string jsonContent = File.ReadAllText(jsonPath);
+            var nodeData = JsonConvert.DeserializeObject<UINodeData>(jsonContent);
+
+            if (nodeData == null)
+            {
+                throw new InvalidDataException($"Failed to deserialize JSON: {jsonPath}");
+            }
+
+            return nodeData;
         }
 
         public bool ValidateConfig(string jsonPath, out List<string> errors)
