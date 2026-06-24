@@ -1,0 +1,8 @@
+{
+  "aiThreshold": 0.7,
+  "cvConfidenceMin": 0.6,
+  "enableAI": true,
+  "debug": false,
+  "_comment": "Replace with your actual Claude API key or set CLAUDE_API_KEY environment variable",
+  "claudeApiKey": "YOUR_CLAUDE_API_KEY_HERE"
+}
