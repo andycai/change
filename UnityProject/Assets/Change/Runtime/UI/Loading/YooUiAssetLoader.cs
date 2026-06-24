@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Change.Framework.UI;
 using Cysharp.Threading.Tasks;
@@ -55,9 +56,16 @@ namespace Change.Runtime.UI
         UnityEngine.Object IYooAssetPackage.LoadRawAssetSync(string location, System.Type assetType)
         {
             var handle = _package.LoadAssetSync(location, assetType);
-            if (handle.Status != EOperationStatus.Succeed)
-                return null;
-            return handle.AssetObject;
+            try
+            {
+                if (handle.Status != EOperationStatus.Succeed)
+                    return null;
+                return handle.AssetObject;
+            }
+            finally
+            {
+                handle.Release();
+            }
         }
     }
 
@@ -96,6 +104,7 @@ namespace Change.Runtime.UI
     public sealed class YooUiAssetLoader : IUiAssetLoader
     {
         private readonly IYooAssetPackage _package;
+        private readonly Dictionary<string, UniTaskCompletionSource> _pendingLoads = new();
 
         internal YooUiAssetLoader(IYooAssetPackage package)
         {
@@ -231,98 +240,153 @@ namespace Change.Runtime.UI
                 return;
             }
 
-            IYooRawAssetHandle handle;
+            UniTaskCompletionSource existingTcs = null;
+            lock (_pendingLoads)
+            {
+                if (UIPackage.GetById(packageName) != null)
+                    return;
+                if (_pendingLoads.TryGetValue(packageName, out var pending))
+                {
+                    existingTcs = pending;
+                }
+                else
+                {
+                    _pendingLoads[packageName] = new UniTaskCompletionSource();
+                }
+            }
+
+            if (existingTcs != null)
+            {
+                await existingTcs.Task;
+                return;
+            }
+
             try
             {
-                var location = packageName + "_fui";
-                handle = _package.LoadRawAssetAsync(location);
+                IYooRawAssetHandle handle;
+                try
+                {
+                    var location = packageName + "_fui";
+                    handle = _package.LoadRawAssetAsync(location);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to load FairyGUI package descriptor. package={packageName}, reason=package threw while creating load handle",
+                        exception);
+                }
+
+                if (handle == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to load FairyGUI package descriptor. package={packageName}, reason=package returned null load handle");
+                }
+
+                try
+                {
+                    await handle.Task.AsUniTask()
+                        .AttachExternalCancellation(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    ReleaseRawNoThrow(handle);
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    var releaseException = TryReleaseRawForFailure(handle);
+                    throw new InvalidOperationException(
+                        $"Failed to load FairyGUI package descriptor. package={packageName}, reason=async load task failed",
+                        releaseException != null ? new AggregateException(exception, releaseException) : exception);
+                }
+
+                if (!handle.Succeeded)
+                {
+                    var lastError = string.IsNullOrEmpty(handle.LastError) ? "unknown" : handle.LastError;
+                    var releaseException = TryReleaseRawForFailure(handle);
+                    throw new InvalidOperationException(
+                        $"Failed to load FairyGUI package descriptor. package={packageName}, reason=YooAsset reported failure: {lastError}",
+                        releaseException);
+                }
+
+                TextAsset textAsset;
+                try
+                {
+                    textAsset = handle.AssetObject as TextAsset;
+                }
+                catch (OperationCanceledException)
+                {
+                    ReleaseRawNoThrow(handle);
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    var releaseException = TryReleaseRawForFailure(handle);
+                    throw new InvalidOperationException(
+                        $"Failed to resolve loaded package descriptor. package={packageName}",
+                        releaseException != null ? new AggregateException(exception, releaseException) : exception);
+                }
+
+                if (textAsset == null)
+                {
+                    var releaseException = TryReleaseRawForFailure(handle);
+                    throw new InvalidOperationException(
+                        $"Failed to load FairyGUI package descriptor. package={packageName}, reason=loaded asset is null or not a TextAsset",
+                        releaseException);
+                }
+
+                UIPackage.LoadResource loadFunc = (name, extension, type, out DestroyMethod destroyMethod) =>
+                {
+                    destroyMethod = DestroyMethod.None;
+                    var location = name + extension;
+                    return _package.LoadRawAssetSync(location, type);
+                };
+
+                try
+                {
+                    UIPackage.AddPackage(textAsset.bytes, packageName, loadFunc);
+                }
+                finally
+                {
+                    ReleaseRawNoThrow(handle);
+                }
+
+                lock (_pendingLoads)
+                {
+                    if (_pendingLoads.TryGetValue(packageName, out var tcs))
+                    {
+                        _pendingLoads.Remove(packageName);
+                        tcs.TrySetResult();
+                    }
+                }
             }
             catch (OperationCanceledException)
             {
+                lock (_pendingLoads)
+                {
+                    if (_pendingLoads.TryGetValue(packageName, out var tcs))
+                    {
+                        _pendingLoads.Remove(packageName);
+                        tcs.TrySetCanceled();
+                    }
+                }
                 throw;
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException(
-                    $"Failed to load FairyGUI package descriptor. package={packageName}, reason=package threw while creating load handle",
-                    exception);
-            }
-
-            if (handle == null)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to load FairyGUI package descriptor. package={packageName}, reason=package returned null load handle");
-            }
-
-            try
-            {
-                await handle.Task.AsUniTask()
-                    .AttachExternalCancellation(cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                ReleaseRawNoThrow(handle);
+                lock (_pendingLoads)
+                {
+                    if (_pendingLoads.TryGetValue(packageName, out var tcs))
+                    {
+                        _pendingLoads.Remove(packageName);
+                        tcs.TrySetException(ex);
+                    }
+                }
                 throw;
-            }
-            catch (Exception exception)
-            {
-                var releaseException = TryReleaseRawForFailure(handle);
-                throw new InvalidOperationException(
-                    $"Failed to load FairyGUI package descriptor. package={packageName}, reason=async load task failed",
-                    releaseException != null ? new AggregateException(exception, releaseException) : exception);
-            }
-
-            if (!handle.Succeeded)
-            {
-                var lastError = string.IsNullOrEmpty(handle.LastError) ? "unknown" : handle.LastError;
-                var releaseException = TryReleaseRawForFailure(handle);
-                throw new InvalidOperationException(
-                    $"Failed to load FairyGUI package descriptor. package={packageName}, reason=YooAsset reported failure: {lastError}",
-                    releaseException);
-            }
-
-            TextAsset textAsset;
-            try
-            {
-                textAsset = handle.AssetObject as TextAsset;
-            }
-            catch (OperationCanceledException)
-            {
-                ReleaseRawNoThrow(handle);
-                throw;
-            }
-            catch (Exception exception)
-            {
-                var releaseException = TryReleaseRawForFailure(handle);
-                throw new InvalidOperationException(
-                    $"Failed to resolve loaded package descriptor. package={packageName}",
-                    releaseException != null ? new AggregateException(exception, releaseException) : exception);
-            }
-
-            if (textAsset == null)
-            {
-                var releaseException = TryReleaseRawForFailure(handle);
-                throw new InvalidOperationException(
-                    $"Failed to load FairyGUI package descriptor. package={packageName}, reason=loaded asset is null or not a TextAsset",
-                    releaseException);
-            }
-
-            UIPackage.LoadResource loadFunc = (name, extension, type, out DestroyMethod destroyMethod) =>
-            {
-                destroyMethod = DestroyMethod.None;
-                var location = name + extension;
-                return _package.LoadRawAssetSync(location, type);
-            };
-
-            try
-            {
-                UIPackage.AddPackage(textAsset.bytes, packageName, loadFunc);
-            }
-            catch (Exception exception)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to add FairyGUI package. package={packageName}",
-                    exception);
             }
         }
 

@@ -337,6 +337,79 @@ namespace Change.Runtime.UI.Tests
             return null;
         }
 
+        [UnityTest]
+        public IEnumerator LoadPackageAsync_SuccessfulLoad_ReleasesFuiHandle()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var packageBinary = CreateMinimalPackageBinary("relpkg", "RelPkg");
+                var textAsset = CreateTextAsset(packageBinary);
+                var rawHandle = new FakeYooRawAssetHandle(true, textAsset, string.Empty, null);
+                var package = new FakeYooPackageWithRawHandle(rawHandle);
+                var loader = new YooUiAssetLoader(package);
+
+                await loader.LoadPackageAsync("relpkg", CancellationToken.None);
+
+                Assert.AreEqual(1, rawHandle.ReleaseCount, "FUI descriptor handle should be released after successful load.");
+                loader.UnloadPackage("relpkg");
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator LoadPackageAsync_ConcurrentCalls_DoNotThrowDuplicatePackage()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var packageBinary = CreateMinimalPackageBinary("concpkg", "ConcPkg");
+                var textAsset = CreateTextAsset(packageBinary);
+                var gateHandle = new GateYooRawAssetHandle(textAsset);
+                var package = new GateYooPackage(gateHandle, textAsset);
+                var loader = new YooUiAssetLoader(package);
+
+                var task1 = loader.LoadPackageAsync("concpkg", CancellationToken.None);
+                var task2 = loader.LoadPackageAsync("concpkg", CancellationToken.None);
+
+                gateHandle.Open();
+
+                await UniTask.WhenAll(task1, task2);
+
+                var pkg = UIPackage.GetById("concpkg");
+                Assert.NotNull(pkg, "Package should be loaded exactly once.");
+                Assert.AreEqual("ConcPkg", pkg.name);
+
+                loader.UnloadPackage("concpkg");
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator LoadPackageAsync_AfterFailure_PendingLoadsCleanedUp()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var packageBinary = CreateMinimalPackageBinary("retrypkg", "RetryPkg");
+                var textAsset = CreateTextAsset(packageBinary);
+                var package = new RetryYooPackage(textAsset);
+                var loader = new YooUiAssetLoader(package);
+
+                try
+                {
+                    await loader.LoadPackageAsync("retrypkg", CancellationToken.None);
+                    Assert.Fail("First load should fail.");
+                }
+                catch (InvalidOperationException)
+                {
+                }
+
+                Assert.AreEqual(1, package.RawAssetCallCount);
+
+                await loader.LoadPackageAsync("retrypkg", CancellationToken.None);
+
+                Assert.AreEqual(2, package.RawAssetCallCount, "Second call should retry after TCS cleanup.");
+                Assert.NotNull(UIPackage.GetById("retrypkg"));
+                loader.UnloadPackage("retrypkg");
+            });
+        }
+
         private static byte[] CreateMinimalPackageBinary(string packageId, string packageName)
         {
             byte[] idBytes = Encoding.UTF8.GetBytes(packageId);
@@ -484,6 +557,31 @@ namespace Change.Runtime.UI.Tests
         }
     }
 
+    internal sealed class FakeYooPackageWithRawHandle : IYooAssetPackage
+    {
+        private readonly IYooRawAssetHandle _rawHandle;
+
+        public FakeYooPackageWithRawHandle(IYooRawAssetHandle rawHandle)
+        {
+            _rawHandle = rawHandle ?? throw new ArgumentNullException(nameof(rawHandle));
+        }
+
+        public IYooAssetLoadHandle LoadGameObjectAsync(string location)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IYooRawAssetHandle LoadRawAssetAsync(string location)
+        {
+            return _rawHandle;
+        }
+
+        public UnityEngine.Object LoadRawAssetSync(string location, Type assetType)
+        {
+            return _rawHandle.AssetObject;
+        }
+    }
+
     internal sealed class FakeYooLoadHandle : IYooAssetLoadHandle
     {
         private readonly bool _succeeded;
@@ -538,8 +636,11 @@ namespace Change.Runtime.UI.Tests
         public string LastError => _lastError;
         public UnityEngine.Object AssetObject => _asset;
 
+        public int ReleaseCount { get; private set; }
+
         public void Release()
         {
+            ReleaseCount++;
             if (_releaseException != null)
             {
                 throw _releaseException;
@@ -549,6 +650,95 @@ namespace Change.Runtime.UI.Tests
             {
                 UnityEngine.Object.DestroyImmediate(go);
             }
+        }
+    }
+
+    internal sealed class GateYooRawAssetHandle : IYooRawAssetHandle
+    {
+        private readonly System.Threading.Tasks.TaskCompletionSource<bool> _tcs = new();
+        private readonly UnityEngine.Object _asset;
+
+        public GateYooRawAssetHandle(UnityEngine.Object asset)
+        {
+            _asset = asset;
+        }
+
+        public System.Threading.Tasks.Task Task => _tcs.Task;
+        public bool Succeeded => true;
+        public string LastError => string.Empty;
+        public UnityEngine.Object AssetObject => _asset;
+
+        public int ReleaseCount { get; private set; }
+
+        public void Release()
+        {
+            ReleaseCount++;
+        }
+
+        public void Open()
+        {
+            _tcs.TrySetResult(true);
+        }
+    }
+
+    internal sealed class GateYooPackage : IYooAssetPackage
+    {
+        private readonly GateYooRawAssetHandle _rawHandle;
+        private readonly UnityEngine.Object _syncAsset;
+
+        public GateYooPackage(GateYooRawAssetHandle rawHandle, UnityEngine.Object syncAsset)
+        {
+            _rawHandle = rawHandle ?? throw new ArgumentNullException(nameof(rawHandle));
+            _syncAsset = syncAsset;
+        }
+
+        public IYooAssetLoadHandle LoadGameObjectAsync(string location)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IYooRawAssetHandle LoadRawAssetAsync(string location)
+        {
+            return _rawHandle;
+        }
+
+        public UnityEngine.Object LoadRawAssetSync(string location, Type assetType)
+        {
+            return _syncAsset;
+        }
+    }
+
+    internal sealed class RetryYooPackage : IYooAssetPackage
+    {
+        private readonly UnityEngine.Object _successAsset;
+        private int _rawAssetCallCount;
+
+        public RetryYooPackage(UnityEngine.Object successAsset)
+        {
+            _successAsset = successAsset;
+        }
+
+        public int RawAssetCallCount => _rawAssetCallCount;
+
+        public IYooAssetLoadHandle LoadGameObjectAsync(string location)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IYooRawAssetHandle LoadRawAssetAsync(string location)
+        {
+            _rawAssetCallCount++;
+            if (_rawAssetCallCount <= 1)
+            {
+                return new FakeYooRawAssetHandle(false, null, "first-attempt-failed", null);
+            }
+
+            return new FakeYooRawAssetHandle(true, _successAsset, string.Empty, null);
+        }
+
+        public UnityEngine.Object LoadRawAssetSync(string location, Type assetType)
+        {
+            return _successAsset;
         }
     }
 
