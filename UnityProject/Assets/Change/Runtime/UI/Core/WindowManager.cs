@@ -355,6 +355,7 @@ namespace Change.Runtime.UI
         private void AddToCache(WindowRequest request, IWindowView view)
         {
             CachedWindowEntry evictedEntry = null;
+            CachedWindowEntry newEntry;
 
             lock (_gate)
             {
@@ -363,11 +364,12 @@ namespace Change.Runtime.UI
                     evictedEntry = EvictLeastRecentlyUsed();
                 }
 
-                var entry = new CachedWindowEntry(view, new CancellationTokenSource());
-                _cache[request] = entry;
+                newEntry = new CachedWindowEntry(view, new CancellationTokenSource());
+                _cache[request] = newEntry;
                 _cacheAccessOrder.AddFirst(request);
             }
 
+            ScheduleDelayedRelease(request, newEntry.ReleaseCts.Token).Forget();
             evictedEntry?.Dispose();
         }
 
@@ -384,6 +386,40 @@ namespace Change.Runtime.UI
             _cacheAccessOrder.RemoveLast();
             _cache.Remove(lruRequest, out var evictedEntry);
             return evictedEntry;
+        }
+
+        private async UniTaskVoid ScheduleDelayedRelease(WindowRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await UniTask.Delay(30000, cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            CachedWindowEntry entry;
+            lock (_gate)
+            {
+                if (!_cache.TryGetValue(request, out entry))
+                    return;
+                _cache.Remove(request);
+
+                var node = _cacheAccessOrder.First;
+                while (node != null)
+                {
+                    if (node.Value.Equals(request))
+                    {
+                        _cacheAccessOrder.Remove(node);
+                        break;
+                    }
+
+                    node = node.Next;
+                }
+            }
+
+            entry.View.Dispose();
         }
     }
 }
