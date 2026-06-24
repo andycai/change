@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Change.Framework.Application;
 using Change.Framework.UI;
+using Change.Runtime.UI.Abstractions;
+using Change.Runtime.UI.Core;
 using Cysharp.Threading.Tasks;
 
 namespace Change.Runtime.UI
@@ -26,9 +28,11 @@ namespace Change.Runtime.UI
 
         private readonly IWindowFactory _factory;
         private readonly IWindowPresenterHost _host;
+        private readonly IWindowRegistry _registry;
         private readonly object _gate = new();
         private readonly Dictionary<WindowRequest, OpenedWindowEntry> _opened = new();
         private readonly Dictionary<WindowRequest, InflightEntry> _inflight = new();
+        private string _currentActiveGroup;
 
         public WindowManager(IWindowFactory factory)
             : this(factory, NullWindowPresenterHost.Instance)
@@ -36,9 +40,15 @@ namespace Change.Runtime.UI
         }
 
         public WindowManager(IWindowFactory factory, IWindowPresenterHost host)
+            : this(factory, host, null)
+        {
+        }
+
+        public WindowManager(IWindowFactory factory, IWindowPresenterHost host, IWindowRegistry registry)
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _host = host ?? throw new ArgumentNullException(nameof(host));
+            _registry = registry; // null is allowed for backward compatibility
         }
 
         public bool TryGet(in WindowRequest request, out IWindowView view)
@@ -119,6 +129,32 @@ namespace Change.Runtime.UI
 
             if (shouldStartCreate)
             {
+                // Group mutual exclusion check (outside lock since CloseWindowsInGroup acquires lock internally)
+                if (request.Group != null)
+                {
+                    if (_registry != null && _registry.TryGetMetadata(request.Id, out var metadata))
+                    {
+                        if (!IsOverlayGroup(metadata.Layer))
+                        {
+                            string groupToClose = null;
+                            lock (_gate)
+                            {
+                                if (_currentActiveGroup != null && _currentActiveGroup != request.Group)
+                                {
+                                    groupToClose = _currentActiveGroup;
+                                }
+
+                                _currentActiveGroup = request.Group;
+                            }
+
+                            if (groupToClose != null)
+                            {
+                                CloseWindowsInGroup(groupToClose);
+                            }
+                        }
+                    }
+                }
+
                 CreateAndCacheAsync(request, entry).Forget();
             }
 
@@ -153,6 +189,39 @@ namespace Change.Runtime.UI
             _host.OnClosing(in request, entry.View, entry.Presenter, entry.WindowScope);
             entry.View.SetState(WindowState.Closing);
             entry.View.Dispose();
+        }
+
+        private static bool IsOverlayGroup(WindowLayer layer)
+        {
+            return layer == WindowLayer.Popup || layer == WindowLayer.Top;
+        }
+
+        private void CloseWindowsInGroup(string group)
+        {
+            // Collect entries to close under the lock
+            var toClose = new List<(WindowRequest request, OpenedWindowEntry entry)>();
+            lock (_gate)
+            {
+                foreach (var kvp in _opened)
+                {
+                    if (kvp.Key.Group == group)
+                    {
+                        toClose.Add((kvp.Key, kvp.Value));
+                    }
+                }
+
+                foreach (var item in toClose)
+                {
+                    _opened.Remove(item.request);
+                }
+            }
+
+            // Dispose outside the lock
+            foreach (var (request, entry) in toClose)
+            {
+                var req = request;
+                DisposeOpenedEntryWithHost(in req, entry);
+            }
         }
 
         private async UniTaskVoid CreateAndCacheAsync(WindowRequest request, InflightEntry entry)
