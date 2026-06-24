@@ -97,7 +97,7 @@ namespace Change.Editor.PSD2UI.Tests
                 assetImporter.ImportSprites(testImagePath, "../escape.png");
             });
 
-            Assert.That(ex.Message, Does.Contain("path traversal"));
+            Assert.That(ex.Message, Does.Contain("Invalid filename"));
         }
 
         [Test]
