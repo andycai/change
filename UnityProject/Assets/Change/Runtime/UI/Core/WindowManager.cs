@@ -349,8 +349,8 @@ namespace Change.Runtime.UI
         }
 
         /// <summary>
-        /// Called outside the lock (by ScheduleDelayedRelease in Task 19).
-        /// Acquires the lock internally for cache manipulation, then disposes evicted entries outside the lock.
+        /// Called outside the lock. Acquires the lock internally for cache manipulation,
+        /// then disposes evicted entries outside the lock.
         /// </summary>
         private void AddToCache(WindowRequest request, IWindowView view)
         {
@@ -370,7 +370,11 @@ namespace Change.Runtime.UI
             }
 
             ScheduleDelayedRelease(request, newEntry.ReleaseCts.Token).Forget();
-            evictedEntry?.Dispose();
+            if (evictedEntry != null)
+            {
+                evictedEntry.View.Dispose();
+                evictedEntry.Dispose();
+            }
         }
 
         /// <summary>
@@ -398,6 +402,11 @@ namespace Change.Runtime.UI
             {
                 return;
             }
+            catch (Exception)
+            {
+                // Delayed release failed; entry remains in cache until next eviction.
+                return;
+            }
 
             CachedWindowEntry entry;
             lock (_gate)
@@ -420,6 +429,7 @@ namespace Change.Runtime.UI
             }
 
             entry.View.Dispose();
+            entry.Dispose();
         }
     }
 }
