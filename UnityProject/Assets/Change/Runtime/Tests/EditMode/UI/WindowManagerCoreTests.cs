@@ -337,6 +337,53 @@ namespace Change.Runtime.UI.Tests
                 Assert.AreEqual(1, factory.CreateCount);
             });
         }
+
+        [UnityTest]
+        public IEnumerator CacheFull_LruEviction_DisposesEvictedView_KeepsOthersCached()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                // WindowManager.MaxCacheSize = 10 (private const).
+                // Open and close 11 distinct windows — the 11th close triggers LRU
+                // eviction and the evicted view must be disposed.
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+
+                // Track views in insertion order to identify the LRU victim.
+                var views = new List<FakeWindowView>();
+                var requests = new List<WindowRequest>();
+
+                for (int i = 0; i < 11; i++)
+                {
+                    var request = new WindowRequest(new WindowId($"W{i}"), WindowOpenOptions.Default);
+                    requests.Add(request);
+                    var view = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                    views.Add(view);
+                    manager.Close(in request);
+                }
+
+                Assert.AreEqual(1, views[0].DisposeCount,
+                    "View 0 (first closed, LRU) should be disposed on cache-full eviction.");
+                Assert.AreEqual(WindowState.Closed, views[0].State);
+
+                // Remaining 10 views should still be cached (not disposed).
+                for (int i = 1; i < 11; i++)
+                {
+                    Assert.AreEqual(0, views[i].DisposeCount,
+                        $"View {i} should remain cached and not disposed.");
+                }
+
+                Assert.AreEqual(11, factory.CreateCount,
+                    "All 11 windows were created from scratch.");
+
+                // Verify a cached window (index 1) can be reopened without factory call.
+                var reopened = (FakeWindowView)await manager.OpenAsync(in requests[1], CancellationToken.None);
+                Assert.AreSame(views[1], reopened,
+                    "Cached view should be reused without a new CreateAsync call.");
+                Assert.AreEqual(11, factory.CreateCount,
+                    "No new CreateAsync call on cache-hit reopen.");
+            });
+        }
     }
 
     internal sealed class FakeWindowFactory : IWindowFactory

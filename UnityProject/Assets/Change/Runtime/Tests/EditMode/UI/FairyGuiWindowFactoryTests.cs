@@ -170,6 +170,46 @@ namespace Change.Runtime.UI.Tests
                 }
             });
         }
+
+        [UnityTest]
+        public IEnumerator CreateAsync_TwoWindowsShareSamePackage_LoadsPackageOnlyOnce()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var registry = new WindowRegistry();
+                var windowA = new WindowId("WindowA");
+                var windowB = new WindowId("WindowB");
+
+                // Both windows share the same UIPackage "SharedPkg".
+                registry.Register(windowA, "SharedPkg", "CompA", "Main", WindowLayer.Normal);
+                registry.Register(windowB, "SharedPkg", "CompB", "Main", WindowLayer.Normal);
+
+                // Use a dedup-aware loader that mimics YooUiAssetLoader's
+                // UIPackage.GetById check: once a package is loaded, subsequent
+                // LoadPackageAsync calls are no-ops.
+                var loader = new FakeDedupAssetLoader();
+                var resolver = new FakeLocationResolver();
+
+                var factory = new FairyGuiWindowFactory(loader, resolver, registry);
+
+                var viewA = await factory.CreateAsync(
+                    new WindowRequest(windowA, WindowOpenOptions.Default), CancellationToken.None);
+                Assert.NotNull(viewA);
+                Assert.AreEqual(1, loader.LoadPackageCallCount,
+                    "First window should trigger LoadPackageAsync.");
+                Assert.AreEqual("SharedPkg", loader.LastLoadedPackage);
+
+                viewA.Dispose();
+
+                var viewB = await factory.CreateAsync(
+                    new WindowRequest(windowB, WindowOpenOptions.Default), CancellationToken.None);
+                Assert.NotNull(viewB);
+                Assert.AreEqual(1, loader.LoadPackageCallCount,
+                    "Second window sharing the same package must NOT call LoadPackageAsync again.");
+
+                viewB.Dispose();
+            });
+        }
     }
 
     /// <summary>
@@ -250,6 +290,45 @@ namespace Change.Runtime.UI.Tests
         public string ResolvePrefabLocation(WindowId id)
         {
             return $"fake/location/{id.Value}.prefab";
+        }
+    }
+
+    /// <summary>
+    /// Dedup-aware fake loader that tracks loaded packages and skips LoadPackageAsync
+    /// when the package has already been loaded — mimicking YooUiAssetLoader's
+    /// UIPackage.GetById early-return behaviour.
+    /// </summary>
+    internal sealed class FakeDedupAssetLoader : IUiAssetLoader
+    {
+        private readonly HashSet<string> _loadedPackages = new();
+
+        public int LoadPackageCallCount { get; private set; }
+        public string LastLoadedPackage { get; private set; }
+
+        public UniTask LoadPackageAsync(string packageName, CancellationToken cancellationToken)
+        {
+            if (_loadedPackages.Contains(packageName))
+            {
+                return UniTask.CompletedTask;
+            }
+
+            LoadPackageCallCount++;
+            LastLoadedPackage = packageName;
+            _loadedPackages.Add(packageName);
+            return UniTask.CompletedTask;
+        }
+
+        public void UnloadPackage(string packageName)
+        {
+            _loadedPackages.Remove(packageName);
+        }
+
+        public UniTask<UiAssetLease> LoadPrefabAsync(WindowId windowId, string location, CancellationToken cancellationToken)
+        {
+            var go = new GameObject($"prefab:{windowId}");
+            go.AddComponent<FakeWindowRootSource>();
+            var lease = new UiAssetLease(go, () => { if (go != null) UnityEngine.Object.DestroyImmediate(go); });
+            return UniTask.FromResult(lease);
         }
     }
 }
