@@ -9,11 +9,16 @@ namespace Change.Runtime.UI
     {
         private readonly IUiAssetLoader _loader;
         private readonly IWindowLocationResolver _resolver;
+        private readonly WindowLayerSortingOrderManager _sortingOrderManager;
 
-        public FairyGuiWindowFactory(IUiAssetLoader loader, IWindowLocationResolver resolver)
+        public FairyGuiWindowFactory(
+            IUiAssetLoader loader,
+            IWindowLocationResolver resolver,
+            WindowLayerSortingOrderManager sortingOrderManager = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+            _sortingOrderManager = sortingOrderManager;
         }
 
         public UniTask<IWindowView> CreateAsync(in WindowRequest request, CancellationToken cancellationToken)
@@ -46,7 +51,7 @@ namespace Change.Runtime.UI
                     $"No FairyGUI root on window prefab at: {location}. Add a {nameof(UIPanel)} with valid package/component, or implement {nameof(IFairyGuiWindowRootSource)} on the prefab root.");
             }
 
-            return new FairyGuiWindowView(request.Id, request.Options.Layer, root, lease);
+            return new FairyGuiWindowView(request.Id, request.Options.Layer, root, lease, _sortingOrderManager);
         }
 
         private static void DisposeLeaseNoThrow(UiAssetLease lease)
