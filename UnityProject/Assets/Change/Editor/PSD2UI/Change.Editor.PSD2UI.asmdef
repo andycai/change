@@ -1,0 +1,13 @@
+{
+    "name": "Change.Editor.PSD2UI",
+    "rootNamespace": "Change.Editor.PSD2UI",
+    "references": [
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}
