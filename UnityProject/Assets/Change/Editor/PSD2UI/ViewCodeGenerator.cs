@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -12,7 +14,7 @@ namespace Change.Editor.PSD2UI
     /// </summary>
     public class ComponentInfo
     {
-        /// <summary>The GameObject name (used as field name in generated code).</summary>
+        /// <summary>The sanitized, unique name used as the field name in generated code.</summary>
         public string Name { get; set; }
 
         /// <summary>The Unity component type: Button, Toggle, Slider, InputField, ScrollRect.</summary>
@@ -30,12 +32,15 @@ namespace Change.Editor.PSD2UI
     {
         private readonly ViewCodeTemplate _template = new ViewCodeTemplate();
 
+        // ── Public API ──────────────────────────────────────────────
+
         /// <summary>
         /// Recursively scans a prefab for interactive components (Button, Toggle,
         /// Slider, InputField, ScrollRect) and returns them as a list of ComponentInfo.
+        /// Duplicate names are resolved by appending a numeric suffix (_1, _2, ...).
         /// </summary>
         /// <param name="prefab">The root GameObject of the prefab to scan.</param>
-        /// <returns>List of detected interactive components.</returns>
+        /// <returns>List of detected interactive components with unique, sanitized names.</returns>
         public List<ComponentInfo> ScanComponents(GameObject prefab)
         {
             if (prefab == null)
@@ -45,76 +50,10 @@ namespace Change.Editor.PSD2UI
             }
 
             var components = new List<ComponentInfo>();
-            ScanRecursive(prefab.transform, components);
+            // Use "" as initial prefix so root's children start with just their own name.
+            ScanRecursive(prefab.transform, components, "");
+            ResolveDuplicateNames(components);
             return components;
-        }
-
-        /// <summary>
-        /// Recursively walks the transform hierarchy and collects interactive components.
-        /// </summary>
-        private void ScanRecursive(Transform transform, List<ComponentInfo> components)
-        {
-            if (transform == null) return;
-
-            var button = transform.GetComponent<Button>();
-            if (button != null)
-            {
-                components.Add(new ComponentInfo
-                {
-                    Name = transform.name,
-                    Type = "Button",
-                    EventType = "onClick"
-                });
-            }
-
-            var toggle = transform.GetComponent<Toggle>();
-            if (toggle != null)
-            {
-                components.Add(new ComponentInfo
-                {
-                    Name = transform.name,
-                    Type = "Toggle",
-                    EventType = "onValueChanged"
-                });
-            }
-
-            var slider = transform.GetComponent<Slider>();
-            if (slider != null)
-            {
-                components.Add(new ComponentInfo
-                {
-                    Name = transform.name,
-                    Type = "Slider",
-                    EventType = "onValueChanged"
-                });
-            }
-
-            var inputField = transform.GetComponent<TMP_InputField>();
-            if (inputField != null)
-            {
-                components.Add(new ComponentInfo
-                {
-                    Name = transform.name,
-                    Type = "InputField",
-                    EventType = "onValueChanged"
-                });
-            }
-
-            var scrollRect = transform.GetComponent<ScrollRect>();
-            if (scrollRect != null)
-            {
-                components.Add(new ComponentInfo
-                {
-                    Name = transform.name,
-                    Type = "ScrollRect",
-                    EventType = "onValueChanged"
-                });
-            }
-
-            foreach (Transform child in transform)
-            {
-                ScanRecursive(child, components);
-            }
         }
 
         /// <summary>
@@ -136,6 +75,7 @@ namespace Change.Editor.PSD2UI
         /// Generates the view code file for the given prefab.
         /// Scans components, generates code via ViewCodeTemplate, and writes to
         /// <c>Assets/HotUpdate/GameLogic/{module}/Views/Generated/{name}View.Generated.cs</c>.
+        /// File I/O is wrapped in try-catch so exceptions are logged rather than thrown.
         /// </summary>
         /// <param name="prefab">The root GameObject of the prefab.</param>
         /// <param name="prefabName">The prefab file name (without extension).</param>
@@ -158,16 +98,169 @@ namespace Change.Editor.PSD2UI
             string generatedCode = _template.Generate(prefabName, moduleName, components);
 
             string directory = Path.Combine("Assets", "HotUpdate", "GameLogic", moduleName, "Views", "Generated");
-            if (!Directory.Exists(directory))
+            string filePath = Path.Combine(directory, $"{prefabName}View.Generated.cs");
+
+            try
             {
-                Directory.CreateDirectory(directory);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                File.WriteAllText(filePath, generatedCode);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[PSD2UI] Failed to write generated view code to '{filePath}': {ex.Message}");
+                return;
             }
 
-            string filePath = Path.Combine(directory, $"{prefabName}View.Generated.cs");
-            File.WriteAllText(filePath, generatedCode);
             AssetDatabase.Refresh();
-
             Debug.Log($"[PSD2UI] Generated view code: {filePath} ({components.Count} components scanned)");
+        }
+
+        /// <summary>
+        /// Converts a GameObject name into a valid C# identifier by replacing
+        /// illegal characters with underscores and handling leading digits.
+        /// </summary>
+        /// <param name="name">The raw GameObject name (may contain spaces, parens, etc.).</param>
+        /// <returns>A valid C# identifier suitable for use as a field or method name.</returns>
+        public static string SanitizeIdentifier(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return "Component";
+
+            var sb = new StringBuilder(name.Length + 2);
+
+            for (int i = 0; i < name.Length; i++)
+            {
+                char c = name[i];
+
+                if (i == 0 && char.IsDigit(c))
+                {
+                    sb.Append('_');
+                    sb.Append(c);
+                }
+                else if (char.IsLetterOrDigit(c) || c == '_')
+                {
+                    sb.Append(c);
+                }
+                else
+                {
+                    // Replace any illegal character with underscore
+                    sb.Append('_');
+                }
+            }
+
+            // Collapse consecutive underscores
+            string result = sb.ToString();
+            while (result.Contains("__"))
+            {
+                result = result.Replace("__", "_");
+            }
+
+            // Trim leading/trailing underscores
+            result = result.Trim('_');
+
+            // If the result is empty or just an underscore, use fallback
+            if (string.IsNullOrEmpty(result) || result == "_")
+                return "Component";
+
+            return result;
+        }
+
+        // ── Private helpers ──────────────────────────────────────────
+
+        /// <summary>
+        /// Recursively walks the transform hierarchy, building a hierarchy-based
+        /// name for each component to avoid name collisions between different
+        /// branches (e.g., Header/CloseButton vs Footer/CloseButton).
+        /// </summary>
+        /// <param name="transform">The current transform to inspect.</param>
+        /// <param name="components">The list to append detected components to.</param>
+        /// <param name="parentPath">
+        /// The sanitized path from the root to the parent, or "" for the root level.
+        /// Each level is separated by "_".
+        /// </param>
+        private void ScanRecursive(Transform transform, List<ComponentInfo> components, string parentPath)
+        {
+            if (transform == null) return;
+
+            // Build the full hierarchical name for this node
+            string rawName = transform.name;
+            string sanitized = SanitizeIdentifier(rawName);
+            string fullName = string.IsNullOrEmpty(parentPath)
+                ? sanitized
+                : $"{parentPath}_{sanitized}";
+
+            // Detect interactive components using the hierarchy-based name
+            AddComponentIfPresent<Button>(transform, components, fullName, "Button", "onClick");
+            AddComponentIfPresent<Toggle>(transform, components, fullName, "Toggle", "onValueChanged");
+            AddComponentIfPresent<Slider>(transform, components, fullName, "Slider", "onValueChanged");
+            AddComponentIfPresent<TMP_InputField>(transform, components, fullName, "InputField", "onValueChanged");
+            AddComponentIfPresent<ScrollRect>(transform, components, fullName, "ScrollRect", "onValueChanged");
+
+            // Recurse into children, passing this node's sanitized name as the next parent prefix
+            string childPrefix = string.IsNullOrEmpty(parentPath)
+                ? sanitized
+                : $"{parentPath}_{sanitized}";
+
+            foreach (Transform child in transform)
+            {
+                ScanRecursive(child, components, childPrefix);
+            }
+        }
+
+        /// <summary>
+        /// Helper that checks for a component on the transform and, if present,
+        /// adds a ComponentInfo entry with the given type and eventType.
+        /// </summary>
+        private static void AddComponentIfPresent<T>(Transform transform, List<ComponentInfo> components,
+            string name, string type, string eventType)
+            where T : Component
+        {
+            if (transform.GetComponent<T>() != null)
+            {
+                components.Add(new ComponentInfo
+                {
+                    Name = name,
+                    Type = type,
+                    EventType = eventType
+                });
+            }
+        }
+
+        /// <summary>
+        /// Detects duplicate component names in the list and resolves them by
+        /// appending a numeric suffix (_1, _2, ...) to each duplicate after the first.
+        /// </summary>
+        private static void ResolveDuplicateNames(List<ComponentInfo> components)
+        {
+            var nameCounts = new Dictionary<string, int>();
+
+            // First pass: count occurrences of each name
+            foreach (var comp in components)
+            {
+                if (nameCounts.ContainsKey(comp.Name))
+                    nameCounts[comp.Name]++;
+                else
+                    nameCounts[comp.Name] = 1;
+            }
+
+            // Second pass: rename duplicates
+            var renameCounters = new Dictionary<string, int>();
+            for (int i = 0; i < components.Count; i++)
+            {
+                string name = components[i].Name;
+                if (nameCounts[name] <= 1) continue;
+
+                if (!renameCounters.ContainsKey(name))
+                    renameCounters[name] = 1;
+                else
+                    renameCounters[name]++;
+
+                components[i].Name = $"{name}_{renameCounters[name]}";
+            }
         }
     }
 }
