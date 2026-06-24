@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="16" result="Passed" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.0523741">
+  <test-suite type="TestSuite" id="1510" name="UnityProject" fullname="UnityProject" runstate="Runnable" testcasecount="385" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.052374" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties />
+    <test-suite type="Assembly" id="1982" name="Change.Runtime.EditModeTests.dll" fullname="/Users/andy/Workspace/github/andycai/fun/.claude/worktrees/window-manager/UnityProject/Library/ScriptAssemblies/Change.Runtime.EditModeTests.dll" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.039008" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="29542" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1983" name="Change" fullname="Change" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.033492" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1984" name="Runtime" fullname="Change.Runtime" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.029673" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1985" name="UI" fullname="Change.Runtime.UI" runstate="Runnable" testcasecount="53" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.025262" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1986" name="Tests" fullname="Change.Runtime.UI.Tests" runstate="Runnable" testcasecount="53" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.020983" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1752" name="WindowLayerSortingOrderManagerTests" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.016547" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1766" name="AllocateSortingOrder_AfterReset_WrapsAround" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_AfterReset_WrapsAround" methodname="AllocateSortingOrder_AfterReset_WrapsAround" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="659438116" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.007530" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1762" name="AllocateSortingOrder_BottomLayer_UsesOwnBaseValue" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_BottomLayer_UsesOwnBaseValue" methodname="AllocateSortingOrder_BottomLayer_UsesOwnBaseValue" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1335110891" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000139" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1760" name="AllocateSortingOrder_DifferentLayers_HaveIndependentCounters" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_DifferentLayers_HaveIndependentCounters" methodname="AllocateSortingOrder_DifferentLayers_HaveIndependentCounters" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1595826407" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000069" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1757" name="AllocateSortingOrder_FirstCall_ReturnsBaseValue" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_FirstCall_ReturnsBaseValue" methodname="AllocateSortingOrder_FirstCall_ReturnsBaseValue" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="211629913" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000061" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1759" name="AllocateSortingOrder_MultipleCalls_IncrementsCounter" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_MultipleCalls_IncrementsCounter" methodname="AllocateSortingOrder_MultipleCalls_IncrementsCounter" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1356530604" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000055" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1761" name="AllocateSortingOrder_PopupLayer_UsesOwnBaseValue" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_PopupLayer_UsesOwnBaseValue" methodname="AllocateSortingOrder_PopupLayer_UsesOwnBaseValue" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="641019930" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000056" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1758" name="AllocateSortingOrder_SecondCall_ReturnsBaseValuePlusOne" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.AllocateSortingOrder_SecondCall_ReturnsBaseValuePlusOne" methodname="AllocateSortingOrder_SecondCall_ReturnsBaseValuePlusOne" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1864066574" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000051" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1753" name="GetBaseValue_Bottom_ReturnsZero" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.GetBaseValue_Bottom_ReturnsZero" methodname="GetBaseValue_Bottom_ReturnsZero" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1788343891" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000054" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1754" name="GetBaseValue_Normal_Returns1000" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.GetBaseValue_Normal_Returns1000" methodname="GetBaseValue_Normal_Returns1000" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="629487470" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000048" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1755" name="GetBaseValue_Popup_Returns2000" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.GetBaseValue_Popup_Returns2000" methodname="GetBaseValue_Popup_Returns2000" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1227422151" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000051" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1756" name="GetBaseValue_Top_Returns3000" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.GetBaseValue_Top_Returns3000" methodname="GetBaseValue_Top_Returns3000" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="969011140" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000047" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1767" name="ResetLayerIfNeeded_CounterOver900_ResetsToZero" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.ResetLayerIfNeeded_CounterOver900_ResetsToZero" methodname="ResetLayerIfNeeded_CounterOver900_ResetsToZero" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1320556550" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000068" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1768" name="ResetLayerIfNeeded_CounterUnder900_DoesNotReset" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.ResetLayerIfNeeded_CounterUnder900_DoesNotReset" methodname="ResetLayerIfNeeded_CounterUnder900_DoesNotReset" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1210346319" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000060" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1765" name="ResetLayerIfNeeded_DoesNotAffectOtherLayers" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.ResetLayerIfNeeded_DoesNotAffectOtherLayers" methodname="ResetLayerIfNeeded_DoesNotAffectOtherLayers" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1090469549" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000067" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1764" name="ResetLayerIfNeeded_WhenCounterExceeds900_ResetsToZero" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.ResetLayerIfNeeded_WhenCounterExceeds900_ResetsToZero" methodname="ResetLayerIfNeeded_WhenCounterExceeds900_ResetsToZero" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="8314057" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000063" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1763" name="ResetLayerIfNeeded_WhenCounterIsLow_DoesNotReset" fullname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests.ResetLayerIfNeeded_WhenCounterIsLow_DoesNotReset" methodname="ResetLayerIfNeeded_WhenCounterIsLow_DoesNotReset" classname="Change.Runtime.UI.Tests.WindowLayerSortingOrderManagerTests" runstate="Runnable" seed="1002263313" result="Passed" start-time="2026-06-24 02:21:28Z" end-time="2026-06-24 02:21:28Z" duration="0.000050" asserts="0">
+                  <properties />
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="8" result="Passed" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.0524452">
+  <test-suite type="TestSuite" id="1493" name="UnityProject" fullname="UnityProject" runstate="Runnable" testcasecount="369" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.052445" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties />
+    <test-suite type="Assembly" id="1948" name="Change.Runtime.EditModeTests.dll" fullname="/Users/andy/Workspace/github/andycai/fun/.claude/worktrees/window-manager/UnityProject/Library/ScriptAssemblies/Change.Runtime.EditModeTests.dll" runstate="Runnable" testcasecount="181" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.037177" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="19516" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1949" name="Change" fullname="Change" runstate="Runnable" testcasecount="181" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.034235" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1950" name="Runtime" fullname="Change.Runtime" runstate="Runnable" testcasecount="181" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.030214" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1951" name="UI" fullname="Change.Runtime.UI" runstate="Runnable" testcasecount="37" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.025738" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1952" name="Tests" fullname="Change.Runtime.UI.Tests" runstate="Runnable" testcasecount="37" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.021358" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1751" name="WindowRequestTests" fullname="Change.Runtime.UI.Tests.WindowRequestTests" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.015993" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1754" name="Equals_ContextNull_HandlesCorrectly" fullname="Change.Runtime.UI.Tests.WindowRequestTests.Equals_ContextNull_HandlesCorrectly" methodname="Equals_ContextNull_HandlesCorrectly" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="1038248682" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.008115" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1756" name="Equals_DisallowMultipleInstances_IgnoresContext" fullname="Change.Runtime.UI.Tests.WindowRequestTests.Equals_DisallowMultipleInstances_IgnoresContext" methodname="Equals_DisallowMultipleInstances_IgnoresContext" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="728096199" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000163" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1757" name="Equals_GroupDoesNotParticipate" fullname="Change.Runtime.UI.Tests.WindowRequestTests.Equals_GroupDoesNotParticipate" methodname="Equals_GroupDoesNotParticipate" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="1883603025" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000077" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1755" name="Equals_OneContextNullOneNot_ReturnsFalse" fullname="Change.Runtime.UI.Tests.WindowRequestTests.Equals_OneContextNullOneNot_ReturnsFalse" methodname="Equals_OneContextNullOneNot_ReturnsFalse" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="1694292392" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000140" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1752" name="Equals_SameIdAndContext_ReturnsTrue" fullname="Change.Runtime.UI.Tests.WindowRequestTests.Equals_SameIdAndContext_ReturnsTrue" methodname="Equals_SameIdAndContext_ReturnsTrue" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="1822199095" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000163" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1753" name="Equals_SameIdDifferentContext_ReturnsFalse" fullname="Change.Runtime.UI.Tests.WindowRequestTests.Equals_SameIdDifferentContext_ReturnsFalse" methodname="Equals_SameIdDifferentContext_ReturnsFalse" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="927197064" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000072" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1759" name="GetHashCode_StringContext_WorksCorrectly" fullname="Change.Runtime.UI.Tests.WindowRequestTests.GetHashCode_StringContext_WorksCorrectly" methodname="GetHashCode_StringContext_WorksCorrectly" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="1055815855" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000066" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1758" name="GetHashCode_ValueTypeContext_WorksCorrectly" fullname="Change.Runtime.UI.Tests.WindowRequestTests.GetHashCode_ValueTypeContext_WorksCorrectly" methodname="GetHashCode_ValueTypeContext_WorksCorrectly" classname="Change.Runtime.UI.Tests.WindowRequestTests" runstate="Runnable" seed="1759079351" result="Passed" start-time="2026-06-23 15:17:59Z" end-time="2026-06-23 15:17:59Z" duration="0.000070" asserts="0">
+                  <properties />
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

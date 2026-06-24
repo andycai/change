@@ -398,7 +398,7 @@ namespace Change.Runtime.UI
             {
                 await UniTask.Delay(30000, cancellationToken: cancellationToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
