@@ -149,39 +149,31 @@ namespace Change.Runtime.UI.Tests
         }
 
         [Test]
-        public void ResetLayerIfNeeded_CounterOver900_ResetsToZero()
+        public void ResetLayerIfNeeded_CounterExactly900_DoesNotReset()
         {
             var manager = new WindowLayerSortingOrderManager();
+            for (int i = 0; i < 900; i++)
+            {
+                manager.AllocateSortingOrder(WindowLayer.Normal);
+            }
+            // counter == 900, condition is > 900 (not >=), so no reset
+            manager.ResetLayerIfNeeded(WindowLayer.Normal);
+            int nextOrder = manager.AllocateSortingOrder(WindowLayer.Normal);
+            Assert.AreEqual(1900, nextOrder); // base(1000) + counter(900) = 1900
+        }
 
-            // 分配 901 次，触发计数器 > 900
+        [Test]
+        public void ResetLayerIfNeeded_CounterExactly901_Resets()
+        {
+            var manager = new WindowLayerSortingOrderManager();
             for (int i = 0; i < 901; i++)
             {
                 manager.AllocateSortingOrder(WindowLayer.Normal);
             }
-
+            // counter == 901, condition is > 900, so reset to 0
             manager.ResetLayerIfNeeded(WindowLayer.Normal);
-
-            // 下次分配应该从 1000 开始（重置后，counter=0 → base+0=1000）
             int nextOrder = manager.AllocateSortingOrder(WindowLayer.Normal);
-            Assert.AreEqual(1000, nextOrder);
-        }
-
-        [Test]
-        public void ResetLayerIfNeeded_CounterUnder900_DoesNotReset()
-        {
-            var manager = new WindowLayerSortingOrderManager();
-
-            // 分配 5 次（counter 变为 5）
-            for (int i = 0; i < 5; i++)
-            {
-                manager.AllocateSortingOrder(WindowLayer.Normal);
-            }
-
-            manager.ResetLayerIfNeeded(WindowLayer.Normal);
-
-            // 下次分配应该从 1005 开始（未重置，counter=5 → base+5=1005）
-            int nextOrder = manager.AllocateSortingOrder(WindowLayer.Normal);
-            Assert.AreEqual(1005, nextOrder);
+            Assert.AreEqual(1000, nextOrder); // base(1000) + counter(0) = 1000
         }
     }
 }
