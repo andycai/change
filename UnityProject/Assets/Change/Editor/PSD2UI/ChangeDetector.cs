@@ -161,7 +161,9 @@ namespace Change.Editor.PSD2UI
         }
 
         /// <summary>
-        /// Recursively adds a node and its entire subtree as "Added" changes.
+        /// Adds a node as "Added". Only the root of the subtree is recorded;
+        /// descendants are not added because CreateNodeHierarchy creates them
+        /// recursively. This prevents duplicate GameObject creation.
         /// </summary>
         private void AddTreeAsAdded(UINodeData node, string path, ChangeReport report)
         {
@@ -173,21 +175,12 @@ namespace Change.Editor.PSD2UI
                 ChangeType = ChangeType.Added,
                 NewNode = node
             });
-
-            if (node.Children != null)
-            {
-                foreach (var child in node.Children)
-                {
-                    string childPath = string.IsNullOrEmpty(path)
-                        ? child.Name
-                        : $"{path}/{child.Name}";
-                    AddTreeAsAdded(child, childPath, report);
-                }
-            }
         }
 
         /// <summary>
-        /// Recursively adds a node and its entire subtree as "Removed" changes.
+        /// Adds a node as "Removed". Only the root of the subtree is recorded;
+        /// descendants are not added because DestroyImmediate on the root
+        /// cascades to all children. This prevents duplicate removal attempts.
         /// </summary>
         private void AddTreeAsRemoved(UINodeData node, string path, ChangeReport report)
         {
@@ -199,17 +192,6 @@ namespace Change.Editor.PSD2UI
                 ChangeType = ChangeType.Removed,
                 OldNode = node
             });
-
-            if (node.Children != null)
-            {
-                foreach (var child in node.Children)
-                {
-                    string childPath = string.IsNullOrEmpty(path)
-                        ? child.Name
-                        : $"{path}/{child.Name}";
-                    AddTreeAsRemoved(child, childPath, report);
-                }
-            }
         }
 
         /// <summary>

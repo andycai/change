@@ -4,7 +4,8 @@
     "references": [
         "Newtonsoft.Json",
         "UnityEngine.UI",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Change.Runtime"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [

@@ -111,32 +111,45 @@ namespace Change.Editor.PSD2UI
         }
 
         /// <summary>
-        /// Imports a single sprite from the source directory if the node has a SpritePath.
+        /// Imports a sprite for a node and recursively imports sprites for all
+        /// children in its subtree. Called when a subtree root is added.
         /// </summary>
         private void ImportSpriteIfNeeded(UINodeData node, string spriteSourceDir)
         {
-            if (node == null || string.IsNullOrEmpty(node.SpritePath)) return;
+            if (node == null) return;
             if (string.IsNullOrEmpty(spriteSourceDir)) return;
 
-            string sourcePath = Path.Combine(spriteSourceDir, node.SpritePath);
-            string fileName = Path.GetFileName(node.SpritePath);
-
-            if (string.IsNullOrEmpty(fileName)) return;
-
-            if (File.Exists(sourcePath))
+            if (!string.IsNullOrEmpty(node.SpritePath))
             {
-                _assetImporter.ImportSprites(sourcePath, fileName);
+                string sourcePath = Path.Combine(spriteSourceDir, node.SpritePath);
+                string fileName = Path.GetFileName(node.SpritePath);
 
-                // Apply slice settings if present
-                string assetPath = Path.Combine("Assets/GameRes/UIPanelArt", fileName);
-                if (node.Slice != null)
+                if (!string.IsNullOrEmpty(fileName))
                 {
-                    _assetImporter.ApplySliceSettings(assetPath, node.Slice);
+                    if (File.Exists(sourcePath))
+                    {
+                        _assetImporter.ImportSprites(sourcePath, fileName);
+
+                        string assetPath = Path.Combine("Assets/GameRes/UIPanelArt", fileName);
+                        if (node.Slice != null)
+                        {
+                            _assetImporter.ApplySliceSettings(assetPath, node.Slice);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[PSD2UI] Source sprite not found: '{sourcePath}', skipping.");
+                    }
                 }
             }
-            else
+
+            // Recurse into children to import their sprites too
+            if (node.Children != null)
             {
-                Debug.LogWarning($"[PSD2UI] Source sprite not found: '{sourcePath}', skipping.");
+                foreach (var child in node.Children)
+                {
+                    ImportSpriteIfNeeded(child, spriteSourceDir);
+                }
             }
         }
 
@@ -309,13 +322,30 @@ namespace Change.Editor.PSD2UI
         }
 
         /// <summary>
-        /// Checks whether a GameObject is protected by a PSD2UILock component.
+        /// Checks whether a GameObject is protected by a PSD2UILock component,
+        /// either on itself or on any ancestor with LockChildren enabled.
         /// </summary>
         /// <param name="go">The GameObject to check.</param>
-        /// <returns>True if the GameObject has a PSD2UILock component.</returns>
+        /// <returns>True if the GameObject or any of its ancestors is locked.</returns>
         private static bool HasLock(GameObject go)
         {
-            return go != null && go.GetComponent<PSD2UILock>() != null;
+            if (go == null) return false;
+
+            // Check self
+            if (go.GetComponent<Change.Runtime.PSD2UI.PSD2UILock>() != null)
+                return true;
+
+            // Walk up ancestors to check for LockChildren
+            Transform parent = go.transform.parent;
+            while (parent != null)
+            {
+                var lockComp = parent.GetComponent<Change.Runtime.PSD2UI.PSD2UILock>();
+                if (lockComp != null && lockComp.LockChildren)
+                    return true;
+                parent = parent.parent;
+            }
+
+            return false;
         }
     }
 }
