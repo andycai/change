@@ -232,7 +232,8 @@ namespace Change.Editor.PSD2UI
 
         /// <summary>
         /// Detects duplicate component names in the list and resolves them by
-        /// appending a numeric suffix (_1, _2, ...) to each duplicate after the first.
+        /// appending a numeric suffix (_1, _2, ...) starting from the second occurrence.
+        /// The first occurrence keeps the original name.
         /// </summary>
         private static void ResolveDuplicateNames(List<ComponentInfo> components)
         {
@@ -255,11 +256,12 @@ namespace Change.Editor.PSD2UI
                 if (nameCounts[name] <= 1) continue;
 
                 if (!renameCounters.ContainsKey(name))
-                    renameCounters[name] = 1;
+                    renameCounters[name] = 0;  // first occurrence keeps original name
                 else
                     renameCounters[name]++;
 
-                components[i].Name = $"{name}_{renameCounters[name]}";
+                if (renameCounters[name] > 0)
+                    components[i].Name = $"{name}_{renameCounters[name]}";
             }
         }
     }
