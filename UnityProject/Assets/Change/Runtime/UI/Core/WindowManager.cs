@@ -32,6 +32,9 @@ namespace Change.Runtime.UI
         private readonly object _gate = new();
         private readonly Dictionary<WindowRequest, OpenedWindowEntry> _opened = new();
         private readonly Dictionary<WindowRequest, InflightEntry> _inflight = new();
+        private readonly Dictionary<WindowRequest, CachedWindowEntry> _cache = new();
+        private readonly LinkedList<WindowRequest> _cacheAccessOrder = new();
+        private const int MaxCacheSize = 10;
         private string _currentActiveGroup;
 
         public WindowManager(IWindowFactory factory)
@@ -343,6 +346,44 @@ namespace Change.Runtime.UI
                     _inflight.Remove(request);
                 }
             }
+        }
+
+        /// <summary>
+        /// Called outside the lock (by ScheduleDelayedRelease in Task 19).
+        /// Acquires the lock internally for cache manipulation, then disposes evicted entries outside the lock.
+        /// </summary>
+        private void AddToCache(WindowRequest request, IWindowView view)
+        {
+            CachedWindowEntry evictedEntry = null;
+
+            lock (_gate)
+            {
+                if (_cache.Count >= MaxCacheSize)
+                {
+                    evictedEntry = EvictLeastRecentlyUsed();
+                }
+
+                var entry = new CachedWindowEntry(view, new CancellationTokenSource());
+                _cache[request] = entry;
+                _cacheAccessOrder.AddFirst(request);
+            }
+
+            evictedEntry?.Dispose();
+        }
+
+        /// <summary>
+        /// Must be called inside _gate lock.
+        /// Returns the evicted entry so the caller can dispose it outside the lock.
+        /// </summary>
+        private CachedWindowEntry EvictLeastRecentlyUsed()
+        {
+            var lastNode = _cacheAccessOrder.Last;
+            if (lastNode == null) return null;
+
+            var lruRequest = lastNode.Value;
+            _cacheAccessOrder.RemoveLast();
+            _cache.Remove(lruRequest, out var evictedEntry);
+            return evictedEntry;
         }
     }
 }
