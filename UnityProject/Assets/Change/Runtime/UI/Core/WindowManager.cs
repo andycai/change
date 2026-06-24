@@ -79,6 +79,7 @@ namespace Change.Runtime.UI
         {
             InflightEntry entry = null;
             IWindowView existing = null;
+            CachedWindowEntry cachedEntry = null;
             OpenedWindowEntry toDisposeEntry = null;
             var shouldStartCreate = false;
 
@@ -87,6 +88,22 @@ namespace Change.Runtime.UI
                 if (request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out var reuseEntry))
                 {
                     existing = reuseEntry.View;
+                }
+                else if (_cache.TryGetValue(request, out cachedEntry))
+                {
+                    _cache.Remove(request);
+
+                    var node = _cacheAccessOrder.First;
+                    while (node != null)
+                    {
+                        if (node.Value.Equals(request))
+                        {
+                            _cacheAccessOrder.Remove(node);
+                            break;
+                        }
+
+                        node = node.Next;
+                    }
                 }
                 else if (_inflight.TryGetValue(request, out entry))
                 {
@@ -102,7 +119,7 @@ namespace Change.Runtime.UI
                     }
                 }
 
-                if (entry == null && existing == null)
+                if (entry == null && existing == null && cachedEntry == null)
                 {
                     if (!request.Options.ReuseIfLoaded && _opened.TryGetValue(request, out toDisposeEntry))
                     {
@@ -123,6 +140,23 @@ namespace Change.Runtime.UI
                 existing.BringToFront();
                 existing.SetVisible(true);
                 return existing;
+            }
+
+            if (cachedEntry != null)
+            {
+                cachedEntry.Dispose();
+
+                _host.OnOpened(in request, cachedEntry.View, out var windowScope, out var presenter);
+                presenter?.OnOpen();
+
+                lock (_gate)
+                {
+                    _opened[request] = new OpenedWindowEntry(cachedEntry.View, presenter, windowScope);
+                }
+
+                cachedEntry.View.SetVisible(true);
+                cachedEntry.View.BringToFront();
+                return cachedEntry.View;
             }
 
             if (toDisposeEntry != null)
@@ -181,7 +215,7 @@ namespace Change.Runtime.UI
             entry.WindowScope?.Dispose();
             _host.OnClosing(in request, entry.View, entry.Presenter, entry.WindowScope);
             entry.View.SetState(WindowState.Closing);
-            entry.View.Dispose();
+            AddToCache(request, entry.View);
             return true;
         }
 

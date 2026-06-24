@@ -231,7 +231,7 @@ namespace Change.Runtime.UI.Tests
         }
 
         [UnityTest]
-        public IEnumerator Close_RemovesCachedWindow_AndTryGetReturnsFalse()
+        public IEnumerator Close_RemovesFromOpened_AndCachesView_NotDisposed()
         {
             return UniTask.ToCoroutine(async () =>
             {
@@ -244,7 +244,97 @@ namespace Change.Runtime.UI.Tests
 
                 Assert.IsTrue(closed);
                 Assert.IsFalse(manager.TryGet(in request, out _));
-                Assert.AreEqual(1, view.DisposeCount);
+                Assert.AreEqual(0, view.DisposeCount);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator OpenAsync_ReturnsCachedView_WithoutFactoryCall()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var first = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+
+                var second = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+
+                Assert.AreSame(first, second);
+                Assert.AreEqual(1, factory.CreateCount);
+                Assert.IsTrue(manager.TryGet(in request, out var cached));
+                Assert.AreSame(first, cached);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator OpenAsync_CacheHit_SetsVisibleAndBringsToFront()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var view = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                var bringBeforeClose = view.BringToFrontCount;
+                var visibleBeforeClose = view.SetVisibleCount;
+                manager.Close(in request);
+
+                var reopened = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+
+                Assert.AreSame(view, reopened);
+                Assert.AreEqual(bringBeforeClose + 1, view.BringToFrontCount);
+                Assert.AreEqual(visibleBeforeClose + 1, view.SetVisibleCount);
+                Assert.AreEqual(WindowState.Open, view.State);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator Close_Open_Close_Open_ReusesSameView_NoDispose()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var first = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+                var second = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+                var third = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+
+                Assert.AreSame(first, second);
+                Assert.AreSame(first, third);
+                Assert.AreEqual(1, factory.CreateCount);
+                Assert.AreEqual(0, first.DisposeCount);
+            });
+        }
+
+        [UnityTest]
+        public IEnumerator OpenAsync_CacheHit_DoesNotInterfereWithInflightMerge()
+        {
+            return UniTask.ToCoroutine(async () =>
+            {
+                // Verify that after a cache hit, the window is properly in _opened,
+                // so a subsequent OpenAsync with ReuseIfLoaded=true hits _opened (not cache again).
+                var factory = new FakeWindowFactory();
+                var manager = new WindowManager(factory);
+                var request = new WindowRequest(new WindowId("Inventory"), WindowOpenOptions.Default);
+
+                var first = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                manager.Close(in request);
+                var second = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                // Second should be cache hit
+                Assert.AreSame(first, second);
+
+                // Third with ReuseIfLoaded should hit _opened (reuse existing)
+                var third = (FakeWindowView)await manager.OpenAsync(in request, CancellationToken.None);
+                Assert.AreSame(first, third);
+                Assert.AreEqual(1, factory.CreateCount);
             });
         }
     }
