@@ -22,9 +22,13 @@ export const LayerConfigSchema: z.ZodType<any> = z.lazy(() =>
 
 export const ComponentInfoSchema = z.object({
   type: z.enum([
-    'Button', 'Image', 'Text', 'ScrollView', 'InputField',
+    'Button', 'Image', 'RawImage', 'Text', 'ScrollView', 'InputField',
+    'Dropdown', 'Toggle', 'Slider', 'Mask', 'FillColor',
     'VerticalLayoutGroup', 'HorizontalLayoutGroup', 'GridLayoutGroup', 'Unknown',
   ]),
+  textBackend: z.enum(['tmp', 'ugui']).optional(),
+  imageType: z.enum(['simple', 'sliced', 'tiled', 'filled']).optional(),
+  role: z.string().optional(),
   confidence: z.number().min(0).max(1),
   source: z.enum(['tag', 'cv', 'ai']),
   needsReview: z.boolean(),

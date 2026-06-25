@@ -20,15 +20,15 @@ function mapMainTagToComponentType(tagId: string | undefined): ComponentType {
 
   const mapping: Record<string, ComponentType> = {
     img: 'Image',
-    rimg: 'Image',
+    rimg: 'RawImage',
     txt: 'Text',
-    msk: 'Image',
-    col: 'Image',
+    msk: 'Mask',
+    col: 'FillColor',
     bt: 'Button',
-    dpd: 'Button',
+    dpd: 'Dropdown',
     ipt: 'InputField',
-    tg: 'Button',
-    sld: 'Button',
+    tg: 'Toggle',
+    sld: 'Slider',
     sv: 'ScrollView',
     vbox: 'VerticalLayoutGroup',
     hbox: 'HorizontalLayoutGroup',
@@ -68,6 +68,9 @@ export class ComponentRecognizer {
       const componentType = mapMainTagToComponentType(tagResult.families.main);
       return {
         type: componentType,
+        textBackend: tagResult.families.textBackend as ComponentInfo['textBackend'],
+        imageType: tagResult.families.imageType as ComponentInfo['imageType'],
+        role: tagResult.families.role,
         confidence: 1.0,
         source: 'tag',
         needsReview: false,
