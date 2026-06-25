@@ -28,11 +28,17 @@ Layer name: ${layer.name}
 Bounds: ${JSON.stringify(layer.bounds)}
 
 Choose ONE of these component types:
-- Button: clickable UI element (buttons, tabs, toggles)
-- Image: static image or icon
+- Button: clickable UI element (buttons, tabs)
+- Image: static image or icon (simple images, sprites)
+- RawImage: raw image for texture-based rendering
 - Text: text label or paragraph
 - ScrollView: scrollable container with content
 - InputField: text input box
+- Dropdown: dropdown/popup list selector
+- Toggle: toggle switch, checkbox, or radio button
+- Slider: slider control with fill and handle
+- Mask: image mask for clipping/cropping
+- FillColor: solid color fill rectangle
 - VerticalLayoutGroup: vertically arranged group of elements
 - HorizontalLayoutGroup: horizontally arranged group of elements
 - GridLayoutGroup: grid-arranged group of elements
