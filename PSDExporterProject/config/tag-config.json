@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "canonicalOrder": ["main", "textBackend", "imageType", "role"],
+  "families": {
+    "main": [
+      {"id": "img", "label": "Image"},
+      {"id": "rimg", "label": "RawImage"},
+      {"id": "txt", "label": "Text"},
+      {"id": "msk", "label": "Mask"},
+      {"id": "col", "label": "FillColor"},
+      {"id": "bt", "label": "Button"},
+      {"id": "dpd", "label": "Dropdown"},
+      {"id": "ipt", "label": "InputField"},
+      {"id": "tg", "label": "Toggle"},
+      {"id": "sld", "label": "Slider"},
+      {"id": "sv", "label": "ScrollView"},
+      {"id": "vbox", "label": "VerticalLayoutGroup"},
+      {"id": "hbox", "label": "HorizontalLayoutGroup"},
+      {"id": "grid", "label": "GridLayoutGroup"}
+    ],
+    "textBackend": [
+      {"id": "tmp", "label": "TextMeshPro"},
+      {"id": "ugui", "label": "UGUI"}
+    ],
+    "imageType": [
+      {"id": "simple", "label": "Simple"},
+      {"id": "sliced", "label": "Sliced"},
+      {"id": "tiled", "label": "Tiled"},
+      {"id": "filled", "label": "Filled"}
+    ],
+    "role": [
+      {"id": "bg", "label": "Background"},
+      {"id": "onover", "label": "Button_Highlight"},
+      {"id": "press", "label": "Button_Press"},
+      {"id": "select", "label": "Button_Select"},
+      {"id": "disable", "label": "Button_Disable"},
+      {"id": "bttxt", "label": "Button_Text"},
+      {"id": "dpdlb", "label": "Dropdown_Label"},
+      {"id": "dpdicon", "label": "Dropdown_Arrow"},
+      {"id": "placeholder", "label": "InputField_Placeholder"},
+      {"id": "ipttxt", "label": "InputField_Text"},
+      {"id": "mark", "label": "Toggle_Checkmark"},
+      {"id": "tglb", "label": "Toggle_Label"},
+      {"id": "fill", "label": "Slider_Fill"},
+      {"id": "handle", "label": "Slider_Handle"},
+      {"id": "vpt", "label": "ScrollView_Viewport"},
+      {"id": "hbarbg", "label": "ScrollView_HorizontalBarBG"},
+      {"id": "hbar", "label": "ScrollView_HorizontalBar"},
+      {"id": "vbarbg", "label": "ScrollView_VerticalBarBG"},
+      {"id": "vbar", "label": "ScrollView_VerticalBar"},
+      {"id": "content", "label": "ScrollView_Content"},
+      {"id": "item", "label": "ScrollView_Item"},
+      {"id": "template", "label": "Dropdown_Template"}
+    ]
+  }
+}
