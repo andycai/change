@@ -31,13 +31,13 @@ describe('ComponentRecognizer', () => {
 
   describe('tag recognition (100% confidence)', () => {
     test('should recognize btn tag as Button with 100% confidence', async () => {
-      const layer = makeLayer({ name: 'btn_close' });
+      const layer = makeLayer({ name: 'close.bt' });
       const result = await recognizer.recognize(layer);
       expect(result).toEqual({ type: 'Button', confidence: 1.0, source: 'tag', needsReview: false });
     });
 
     test('should recognize txt tag as Text with 100% confidence', async () => {
-      const layer = makeLayer({ name: 'txt_title' });
+      const layer = makeLayer({ name: 'title.txt' });
       const result = await recognizer.recognize(layer);
       expect(result.type).toBe('Text');
       expect(result.confidence).toBe(1.0);
@@ -46,34 +46,34 @@ describe('ComponentRecognizer', () => {
     });
 
     test('should recognize img tag as Image with 100% confidence', async () => {
-      const result = await recognizer.recognize(makeLayer({ name: 'img_bg' }));
+      const result = await recognizer.recognize(makeLayer({ name: 'bg.img' }));
       expect(result.type).toBe('Image');
       expect(result.confidence).toBe(1.0);
       expect(result.source).toBe('tag');
     });
 
     test('should recognize sv tag as ScrollView', async () => {
-      expect((await recognizer.recognize(makeLayer({ name: 'sv_list' }))).type).toBe('ScrollView');
+      expect((await recognizer.recognize(makeLayer({ name: 'list.sv' }))).type).toBe('ScrollView');
     });
 
     test('should recognize ipt tag as InputField', async () => {
-      expect((await recognizer.recognize(makeLayer({ name: 'ipt_username' }))).type).toBe('InputField');
+      expect((await recognizer.recognize(makeLayer({ name: 'username.ipt' }))).type).toBe('InputField');
     });
 
     test('should recognize vbox tag as VerticalLayoutGroup', async () => {
-      expect((await recognizer.recognize(makeLayer({ name: 'vbox_menu' }))).type).toBe('VerticalLayoutGroup');
+      expect((await recognizer.recognize(makeLayer({ name: 'menu.vbox' }))).type).toBe('VerticalLayoutGroup');
     });
 
     test('should recognize hbox tag as HorizontalLayoutGroup', async () => {
-      expect((await recognizer.recognize(makeLayer({ name: 'hbox_toolbar' }))).type).toBe('HorizontalLayoutGroup');
+      expect((await recognizer.recognize(makeLayer({ name: 'toolbar.hbox' }))).type).toBe('HorizontalLayoutGroup');
     });
 
     test('should recognize grid tag as GridLayoutGroup', async () => {
-      expect((await recognizer.recognize(makeLayer({ name: 'grid_cards' }))).type).toBe('GridLayoutGroup');
+      expect((await recognizer.recognize(makeLayer({ name: 'cards.grid' }))).type).toBe('GridLayoutGroup');
     });
 
     test('should not call AI when tag is found', async () => {
-      await recognizer.recognize(makeLayer({ name: 'btn_ok' }));
+      await recognizer.recognize(makeLayer({ name: 'ok.bt' }));
       expect(mockAi.identify).not.toHaveBeenCalled();
     });
   });
@@ -154,8 +154,8 @@ describe('ComponentRecognizer', () => {
         bounds: { x: 0, y: 0, width: 1920, height: 1080 },
         visible: true, opacity: 1.0,
         children: [
-          makeLayer({ id: 'root_0', name: 'btn_close' }),
-          makeLayer({ id: 'root_1', name: 'txt_title' }),
+          makeLayer({ id: 'root_0', name: 'close.bt' }),
+          makeLayer({ id: 'root_1', name: 'title.txt' }),
         ],
       };
       const results = await recognizer.recognizeTree(root);
@@ -171,13 +171,13 @@ describe('ComponentRecognizer', () => {
         visible: true, opacity: 1.0,
         children: [
           {
-            ...makeLayer({ id: 'root_0', name: 'sv_list' }),
+            ...makeLayer({ id: 'root_0', name: 'list.sv' }),
             children: [
-              makeLayer({ id: 'root_0_0', name: 'btn_item1' }),
-              makeLayer({ id: 'root_0_1', name: 'btn_item2' }),
+              makeLayer({ id: 'root_0_0', name: 'item1.bt' }),
+              makeLayer({ id: 'root_0_1', name: 'item2.bt' }),
             ],
           },
-          makeLayer({ id: 'root_1', name: 'txt_footer' }),
+          makeLayer({ id: 'root_1', name: 'footer.txt' }),
         ],
       };
       const results = await recognizer.recognizeTree(root);
@@ -188,7 +188,7 @@ describe('ComponentRecognizer', () => {
     });
 
     test('should handle leaf layers gracefully', async () => {
-      const results = await recognizer.recognizeTree(makeLayer({ id: 'leaf', name: 'img_icon' }));
+      const results = await recognizer.recognizeTree(makeLayer({ id: 'leaf', name: 'icon.img' }));
       expect(results.size).toBe(1);
       expect(results.get('leaf')!.type).toBe('Image');
     });
@@ -196,8 +196,8 @@ describe('ComponentRecognizer', () => {
 
   describe('hasTag', () => {
     test('should return true for tagged layers', () => {
-      expect(recognizer.hasTag(makeLayer({ name: 'btn_ok' }))).toBe(true);
-      expect(recognizer.hasTag(makeLayer({ name: 'txt_title' }))).toBe(true);
+      expect(recognizer.hasTag(makeLayer({ name: 'ok.bt' }))).toBe(true);
+      expect(recognizer.hasTag(makeLayer({ name: 'title.txt' }))).toBe(true);
     });
 
     test('should return false for untagged layers', () => {

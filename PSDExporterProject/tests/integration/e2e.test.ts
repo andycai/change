@@ -1,39 +1,42 @@
 import { PsdParser } from '../../src/parser/psd-parser';
 import { ComponentRecognizer } from '../../src/recognizer/component-recognizer';
+import { TagParser } from '../../src/recognizer/tag-parser';
+import { TagConfigLoader } from '../../src/recognizer/tag-config-loader';
 import { JsonGenerator } from '../../src/generator/json-generator';
 import { JsonConfigSchema, JsonConfig, LayerComponentMapping } from '../../src/generator/json-schema';
 import { LayerTree, Layer } from '../../src/parser/layer-tree';
 import { ComponentInfo } from '../../src/recognizer/component-types';
+import * as path from 'path';
 
 jest.mock('ag-psd', () => {
   function createMockPsd() {
     return {
       width: 1920, height: 1080, name: 'main-menu.psd',
       children: [
-        { name: 'img_panel_bg', left: 0, top: 0, right: 1920, bottom: 1080, opacity: 255, hidden: false, imageData: {} },
-        { name: 'txt_title', left: 400, top: 50, right: 1520, bottom: 150, opacity: 255, text: {} },
-        { name: 'vbox_button_list', left: 600, top: 300, right: 1320, bottom: 800, opacity: 255,
+        { name: 'panel_bg.img', left: 0, top: 0, right: 1920, bottom: 1080, opacity: 255, hidden: false, imageData: {} },
+        { name: 'title.txt', left: 400, top: 50, right: 1520, bottom: 150, opacity: 255, text: {} },
+        { name: 'button_list.vbox', left: 600, top: 300, right: 1320, bottom: 800, opacity: 255,
           children: [
-            { name: 'btn_start', left: 600, top: 300, right: 1320, bottom: 400, opacity: 255, imageData: {} },
-            { name: 'btn_settings', left: 600, top: 420, right: 1320, bottom: 520, opacity: 255, imageData: {} },
-            { name: 'btn_quit', left: 600, top: 540, right: 1320, bottom: 640, opacity: 255, imageData: {} },
+            { name: 'start.bt', left: 600, top: 300, right: 1320, bottom: 400, opacity: 255, imageData: {} },
+            { name: 'settings.bt', left: 600, top: 420, right: 1320, bottom: 520, opacity: 255, imageData: {} },
+            { name: 'quit.bt', left: 600, top: 540, right: 1320, bottom: 640, opacity: 255, imageData: {} },
           ],
         },
-        { name: 'sv_shop_list', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 255,
+        { name: 'shop_list.sv', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 255,
           children: [
             { name: 'items_container', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 255,
               children: [
-                { name: 'img_item1', left: 50, top: 850, right: 250, bottom: 1050, opacity: 255, imageData: {} },
-                { name: 'img_item2', left: 270, top: 850, right: 470, bottom: 1050, opacity: 255, imageData: {} },
-                { name: 'img_item3', left: 490, top: 850, right: 690, bottom: 1050, opacity: 255, imageData: {} },
+                { name: 'item1.img', left: 50, top: 850, right: 250, bottom: 1050, opacity: 255, imageData: {} },
+                { name: 'item2.img', left: 270, top: 850, right: 470, bottom: 1050, opacity: 255, imageData: {} },
+                { name: 'item3.img', left: 490, top: 850, right: 690, bottom: 1050, opacity: 255, imageData: {} },
               ],
             },
           ],
         },
-        { name: 'ipt_search', left: 200, top: 200, right: 800, bottom: 260, opacity: 255, text: {} },
-        { name: 'hbox_debug_tools', left: 0, top: 0, right: 1920, bottom: 100, opacity: 128, hidden: true,
+        { name: 'search.ipt', left: 200, top: 200, right: 800, bottom: 260, opacity: 255, text: {} },
+        { name: 'debug_tools.hbox', left: 0, top: 0, right: 1920, bottom: 100, opacity: 128, hidden: true,
           children: [
-            { name: 'btn_debug1', left: 0, top: 0, right: 200, bottom: 100, opacity: 128, hidden: true, imageData: {} },
+            { name: 'debug1.bt', left: 0, top: 0, right: 200, bottom: 100, opacity: 128, hidden: true, imageData: {} },
           ],
         },
       ],
@@ -64,9 +67,16 @@ describe('End-to-End: parse -> recognize -> generate', () => {
     parser = new PsdParser();
     layerTree = await parser.parse('/test/main-menu.psd');
 
+    // Load real config to bypass the fs mock
+    const realFs = jest.requireActual('fs') as typeof import('fs');
+    const configPath = path.resolve(__dirname, '../../config/tag-config.json');
+    const configContent = realFs.readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    const tagParser = new TagParser(config);
+
     const recognizer = new ComponentRecognizer(null, {
       enableAI: false, aiThreshold: 0.7, cvConfidenceMin: 0.6,
-    });
+    }, tagParser);
     components = await recognizer.recognizeTree(layerTree.root);
 
     generator = new JsonGenerator();
@@ -86,26 +96,26 @@ describe('End-to-End: parse -> recognize -> generate', () => {
 
     test('should parse all top-level layers', () => {
       const names = layerTree.root.children!.map((c: Layer) => c.name);
-      expect(names).toContain('img_panel_bg');
-      expect(names).toContain('txt_title');
-      expect(names).toContain('vbox_button_list');
-      expect(names).toContain('sv_shop_list');
-      expect(names).toContain('ipt_search');
-      expect(names).toContain('hbox_debug_tools');
+      expect(names).toContain('panel_bg.img');
+      expect(names).toContain('title.txt');
+      expect(names).toContain('button_list.vbox');
+      expect(names).toContain('shop_list.sv');
+      expect(names).toContain('search.ipt');
+      expect(names).toContain('debug_tools.hbox');
     });
 
     test('should mark hidden layers as not visible', () => {
-      const dt = layerTree.root.children!.find((c: Layer) => c.name === 'hbox_debug_tools');
+      const dt = layerTree.root.children!.find((c: Layer) => c.name === 'debug_tools.hbox');
       expect(dt!.visible).toBe(false);
     });
 
     test('should calculate correct opacity', () => {
-      const dt = layerTree.root.children!.find((c: Layer) => c.name === 'hbox_debug_tools');
+      const dt = layerTree.root.children!.find((c: Layer) => c.name === 'debug_tools.hbox');
       expect(dt!.opacity).toBeCloseTo(0.5, 2);
     });
 
     test('should parse nested children recursively', () => {
-      const sl = layerTree.root.children!.find((c: Layer) => c.name === 'sv_shop_list');
+      const sl = layerTree.root.children!.find((c: Layer) => c.name === 'shop_list.sv');
       expect(sl!.children![0].name).toBe('items_container');
       expect(sl!.children![0].children!.length).toBe(3);
     });
