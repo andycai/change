@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import * as path from 'path';
+import * as fs from 'fs';
 import { PsdParser } from '../parser/psd-parser';
 import { ComponentRecognizer } from '../recognizer/component-recognizer';
 import { AiIdentifier } from '../recognizer/ai-identifier';
@@ -46,7 +48,7 @@ program
 
       logger.info('Parsing PSD file...');
       const parser = new PsdParser();
-      const layerTree: LayerTree = await parser.parse(psdPath);
+      const layerTree: LayerTree = await parser.parse(psdPath, options.assets);
       logger.info('PSD parsed successfully', { canvasSize: layerTree.metadata.canvasSize });
 
       let aiIdentifier: AiIdentifier | null = null;
@@ -82,8 +84,25 @@ program
       logger.info('Generating JSON output...');
       const generator = new JsonGenerator();
       const jsonConfig = generator.generate(layerTree, components);
-      await generator.save(jsonConfig, options.output);
-      logger.info(`JSON output saved to: ${options.output}`);
+
+      let outputPath = options.output;
+      const isExistingDir = fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory();
+      const looksLikeDir = !isExistingDir && !path.extname(outputPath);
+      if (isExistingDir || looksLikeDir) {
+        if (!fs.existsSync(outputPath)) {
+          fs.mkdirSync(outputPath, { recursive: true });
+        }
+        const baseName = path.basename(psdPath, path.extname(psdPath));
+        outputPath = path.join(outputPath, `${baseName}.json`);
+      } else {
+        const dir = path.dirname(outputPath);
+        if (dir && !fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+      }
+
+      await generator.save(jsonConfig, outputPath);
+      logger.info(`JSON output saved to: ${outputPath}`);
 
       logger.info('PSD export completed successfully!');
     } catch (error) {

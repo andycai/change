@@ -2,22 +2,15 @@
 import { mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import sharp from 'sharp';
 import { Layer } from './layer-tree';
 
 export class AssetExporter {
   /**
-   * Export a single layer as a PNG file.
-   *
-   * Only `image` and `shape` layer types are supported.
-   *
-   * @throws {Error} Always throws "Not implemented" -- pixel extraction
-   *   and sharp export will be added in task 4.
+   * Export a layer's canvas pixel data to a PNG file using sharp.
+   * The layer must have a `_canvas` property set by the PSD parser.
    */
-  async export(layer: Layer, outputDir: string): Promise<string> {
-    if (layer.type !== 'image' && layer.type !== 'shape') {
-      throw new Error(`Cannot export layer type: ${layer.type}`);
-    }
-
+  async export(layer: Layer & { _canvas?: unknown }, outputDir: string): Promise<string> {
     // Ensure output directory exists
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
@@ -28,11 +21,25 @@ export class AssetExporter {
     const fileName = `${sanitizedName}_${layer.id}.png`;
     const outputPath = join(outputDir, fileName);
 
-    throw new Error(
-      `Not implemented: pixel extraction and sharp export for layer "${layer.id}". ` +
-        `Intended output path: ${outputPath}. ` +
-        'This will be implemented in task 4.',
-    );
+    const canvas = layer._canvas as { toBuffer?: (format: string) => Buffer; width?: number; height?: number } | null | undefined;
+
+    if (!canvas || typeof canvas.toBuffer !== 'function') {
+      throw new Error(`Layer "${layer.id}" has no canvas data to export`);
+    }
+
+    const width = canvas.width ?? layer.bounds.width;
+    const height = canvas.height ?? layer.bounds.height;
+
+    if (!width || !height) {
+      throw new Error(`Layer "${layer.id}" has zero dimensions (${width}x${height})`);
+    }
+
+    // Get raw RGBA pixel data from the canvas
+    const pngBuffer = canvas.toBuffer('image/png');
+
+    await (sharp as unknown as (input: Buffer) => { toFile: (path: string) => Promise<unknown> })(pngBuffer).toFile(outputPath);
+
+    return outputPath;
   }
 
   /**

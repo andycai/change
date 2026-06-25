@@ -89,18 +89,73 @@ node dist/cli/index.js parse ./test.psd -c ./my-config.json
 
 ## PSD 图层命名规范（兼容 PSD2UGUI）
 
-在图层名称中使用标签前缀以实现自动组件类型识别：
+图层名称使用**点号后缀标签语法**：`layerName.tag1.tag2.tag3`，标签按右到左解析，同一分类下最右侧的标签生效。标签分为 4 个分类（family），均可在 `config/tag-config.json` 中配置：
+
+### main（组件类型，14 个）
 
 | 标签 | 组件类型 | 示例 |
 |-----|----------|------|
-| `btn_` | Button（按钮） | `btn_close`, `btn_submit` |
-| `txt_` | Text（文本） | `txt_title`, `txt_description` |
-| `img_` | Image（图片） | `img_logo`, `img_avatar` |
-| `sv_` | ScrollView（滚动视图） | `sv_content`, `sv_list` |
-| `ipt_` | InputField（输入框） | `ipt_username`, `ipt_password` |
-| `vbox_` | VerticalLayoutGroup（垂直布局组） | `vbox_menu`, `vbox_items` |
-| `hbox_` | HorizontalLayoutGroup（水平布局组） | `hbox_toolbar`, `hbox_buttons` |
-| `grid_` | GridLayoutGroup（网格布局组） | `grid_inventory`, `grid_icons` |
+| `img` | Image（图片） | `logo.img` |
+| `rimg` | RawImage（原始图片） | `photo.rimg` |
+| `txt` | Text（文本） | `title.txt` |
+| `msk` | Mask（遮罩） | `clip.msk` |
+| `col` | FillColor（填充色） | `overlay.col` |
+| `bt` | Button（按钮） | `close.bt` |
+| `dpd` | Dropdown（下拉框） | `lang.dpd` |
+| `ipt` | InputField（输入框） | `username.ipt` |
+| `tg` | Toggle（开关） | `sound.tg` |
+| `sld` | Slider（滑动条） | `volume.sld` |
+| `sv` | ScrollView（滚动视图） | `content.sv` |
+| `vbox` | VerticalLayoutGroup（垂直布局组） | `menu.vbox` |
+| `hbox` | HorizontalLayoutGroup（水平布局组） | `toolbar.hbox` |
+| `grid` | GridLayoutGroup（网格布局组） | `inventory.grid` |
+
+### textBackend（文本渲染后端，2 个）
+
+| 标签 | 说明 |
+|-----|------|
+| `tmp` | TextMeshPro |
+| `ugui` | 原生 UGUI Text |
+
+### imageType（图片类型，4 个）
+
+| 标签 | 说明 |
+|-----|------|
+| `simple` | Simple |
+| `sliced` | Sliced（九宫格） |
+| `tiled` | Tiled（平铺） |
+| `filled` | Filled（填充） |
+
+### role（语义角色，22 个）
+
+| 标签 | 说明 | 标签 | 说明 |
+|-----|------|-----|------|
+| `bg` | Background | `mark` | Toggle_Checkmark |
+| `onover` | Button_Highlight | `tglb` | Toggle_Label |
+| `press` | Button_Press | `fill` | Slider_Fill |
+| `select` | Button_Select | `handle` | Slider_Handle |
+| `disable` | Button_Disable | `vpt` | ScrollView_Viewport |
+| `bttxt` | Button_Text | `hbarbg` | ScrollView_HorizontalBarBG |
+| `dpdlb` | Dropdown_Label | `hbar` | ScrollView_HorizontalBar |
+| `dpdicon` | Dropdown_Arrow | `vbarbg` | ScrollView_VerticalBarBG |
+| `placeholder` | InputField_Placeholder | `vbar` | ScrollView_VerticalBar |
+| `ipttxt` | InputField_Text | `content` | ScrollView_Content |
+| | | `item` | ScrollView_Item |
+| | | `template` | Dropdown_Template |
+
+### 组合示例
+
+```
+close.bt              → Button
+close.bt.bg           → Button 的背景图层
+title.txt.tmp         → 使用 TextMeshPro 的 Text
+icon.img.sliced       → 使用九宫格的 Image
+ref icon.img          → 引用预制体（prefix='ref'，baseName='icon'）
+```
+
+**前缀支持：** `ref` / `refp` 前缀（用空格分隔在标签最前）用于引用预制体或脚本，如 `ref icon.img` → `prefix='ref'`, `baseName='icon'`。
+
+> 旧版 `btn_` / `txt_` / `img_` 等下划线前缀写法已被点号后缀语法取代。
 
 ## 输出格式
 
@@ -117,7 +172,23 @@ node dist/cli/index.js parse ./test.psd -c ./my-config.json
   "layers": [
     {
       "id": "root_0",
-      "name": "btn_close",
+      "name": "close.bt",
+      "type": "group",
+      "bounds": { "x": 100, "y": 50, "width": 80, "height": 80 },
+      "visible": true,
+      "opacity": 1.0,
+      "component": {
+        "type": "Button",
+        "confidence": 1.0,
+        "source": "tag",
+        "needsReview": false
+      }
+    }
+  ]
+}
+```
+
+## 开发
       "type": "group",
       "bounds": { "x": 100, "y": 50, "width": 80, "height": 80 },
       "visible": true,
@@ -198,7 +269,7 @@ PSD 文件 → 解析器 → 组件识别器 → JSON 生成器 → 输出
 
 - 所有模块的单元测试
 - 端到端工作流的集成测试
-- 总计：92 个测试通过
+- 总计：148 个测试通过
 
 ```bash
 npm test
@@ -245,6 +316,16 @@ MIT
 如有问题或功能请求，请在代码仓库中提交 Issue。
 
 ## 更新日志
+
+### v1.1.0 (2026-06-25)
+
+- 标签解析器升级为点号后缀语法：`layerName.tag1.tag2.tag3`
+- 标签按右到左解析，同一分类下最右侧标签生效
+- 标签分类扩展为 4 个 family：main / textBackend / imageType / role
+- 新增 `config/tag-config.json` 可配置标签表，通过 `TagConfigLoader` + Zod 校验加载
+- 新增组件类型：RawImage、Dropdown、Toggle、Slider、Mask、FillColor
+- `ref` / `refp` 前缀支持，用于引用预制体或脚本
+- 测试套件扩展至 148 个测试
 
 ### v1.0.0 (2026-06-24)
 

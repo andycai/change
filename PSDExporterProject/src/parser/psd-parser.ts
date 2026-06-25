@@ -1,7 +1,14 @@
 // src/parser/psd-parser.ts
-import { readPsd, Psd, Layer as PsdLayer } from 'ag-psd';
+import { readPsd, initializeCanvas, Psd, Layer as PsdLayer } from 'ag-psd';
+import { createCanvas } from 'canvas';
 import { readFile } from 'fs/promises';
 import { Layer, LayerTree, PsdMetadata, LayerType, Rect } from './layer-tree';
+import { AssetExporter } from './asset-exporter';
+
+// Initialize canvas for ag-psd to use when decoding image data.
+// ag-psd's initializeCanvas expects a (width, height) => HTMLCanvasElement-like factory;
+// the `canvas` package's createCanvas satisfies that shape at runtime in Node.
+initializeCanvas(createCanvas as unknown as Parameters<typeof initializeCanvas>[0]);
 
 /**
  * Internal shape that both ag-psd's `Psd` and `Layer` types satisfy.
@@ -9,6 +16,8 @@ import { Layer, LayerTree, PsdMetadata, LayerType, Rect } from './layer-tree';
  * `Psd` provides `width`/`height` (canvas bounds) but no `left`/`top`/…/`opacity`.
  * `Layer` provides `left`/`top`/`right`/`bottom`/`hidden`/`opacity` but no `width`/`height`.
  * Both extend `LayerAdditionalInfo` (name, text, imageData, children).
+ * ag-psd also attaches a `canvas` (node-canvas Canvas) with the rasterized
+ * pixel data for image/shape layers when `initializeCanvas` has been set up.
  */
 interface PsdNode {
   name?: string;
@@ -22,14 +31,22 @@ interface PsdNode {
   opacity?: number;
   text?: unknown;
   imageData?: unknown;
+  canvas?: unknown;
   children?: PsdNode[];
 }
 
 export class PsdParser {
+  private assetExporter = new AssetExporter();
+
   /**
    * Parse a PSD file and return a LayerTree.
+   *
+   * @param psdPath Path to the source .psd file.
+   * @param assetsDir Optional directory to export rasterized image/shape
+   *   layers to as PNG files. When provided, each exportable layer's
+   *   `assetPath` is populated with the written file path.
    */
-  async parse(psdPath: string): Promise<LayerTree> {
+  async parse(psdPath: string, assetsDir?: string): Promise<LayerTree> {
     const buffer = await readFile(psdPath);
 
     let psd: Psd;
@@ -57,7 +74,7 @@ export class PsdParser {
       timestamp: new Date().toISOString(),
     };
 
-    const root = this.convertLayer(psd as unknown as PsdNode, 'root');
+    const root = await this.convertLayer(psd as unknown as PsdNode, 'root', assetsDir);
 
     return {
       root,
@@ -71,7 +88,7 @@ export class PsdParser {
    * The Psd root has `width`/`height` but no `left`/`top`/`right`/`bottom`,
    * while child Layer nodes have `left`/`top`/`right`/`bottom`.
    */
-  private convertLayer(node: PsdNode, layerId: string): Layer {
+  private async convertLayer(node: PsdNode, layerId: string, assetsDir?: string): Promise<Layer> {
     const bounds: Rect = {
       x: node.left || 0,
       y: node.top || 0,
@@ -91,11 +108,25 @@ export class PsdParser {
         node.opacity !== undefined ? node.opacity / 255 : 1.0,
     };
 
+    // Export rasterized pixel data for image/shape layers when requested
+    if (assetsDir && (layer.type === 'image' || layer.type === 'shape') && node.canvas) {
+      try {
+        const exportable = layer as Layer & { _canvas?: unknown };
+        exportable._canvas = node.canvas;
+        layer.assetPath = await this.assetExporter.export(exportable, assetsDir);
+      } catch (err) {
+        // Leave assetPath unset if export fails (e.g. zero-size or no canvas)
+        console.error(`[AssetExport] failed for layer "${layer.id}" (${layer.name}): ${err}`);
+      }
+    }
+
     // Process child layers
     if (node.children && node.children.length > 0) {
-      layer.children = node.children.map(
-        (child, index) =>
-          this.convertLayer(child, `${layerId}_${index}`),
+      layer.children = await Promise.all(
+        node.children.map(
+          (child, index) =>
+            this.convertLayer(child, `${layerId}_${index}`, assetsDir),
+        ),
       );
     }
 

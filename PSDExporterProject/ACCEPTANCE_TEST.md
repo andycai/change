@@ -6,23 +6,23 @@
 
 ### 方式 1: 使用 Photoshop 创建测试文件
 
-创建一个简单的 UI 界面 PSD，包含以下图层（按 PSD2UGUI 命名规范）：
+创建一个简单的 UI 界面 PSD，包含以下图层（使用点号后缀标签语法，右到左解析）：
 
 ```
 test-ui.psd (1920x1080)
-├── btn_close (80x80)
-│   ├── bg (80x80, 红色矩形)
-│   └── icon (40x40, X 图标)
-├── txt_title (400x60, 文本: "Game Title")
-├── img_logo (200x200, Logo 图片)
-├── btn_start (300x80)
-│   ├── bg (300x80, 绿色矩形)
-│   └── txt_label (文本: "Start Game")
-├── hbox_menu (600x80)
-│   ├── btn_settings (80x80)
-│   ├── btn_help (80x80)
-│   └── btn_exit (80x80)
-└── sv_content (1600x800, 滚动区域背景)
+├── close.bt (80x80)
+│   ├── close.bt.bg (80x80, 红色矩形)
+│   └── close.bt.icon (40x40, X 图标)
+├── title.txt.tmp (400x60, 文本: "Game Title")
+├── logo.img (200x200, Logo 图片)
+├── start.bt (300x80)
+│   ├── start.bt.bg (300x80, 绿色矩形)
+│   └── start.bt.bttxt (文本: "Start Game")
+├── menu.hbox (600x80)
+│   ├── settings.bt (80x80)
+│   ├── help.bt (80x80)
+│   └── exit.bt (80x80)
+└── content.sv (1600x800, 滚动区域背景)
 ```
 
 ### 方式 2: 下载示例 PSD
@@ -101,14 +101,17 @@ node dist/cli/index.js parse /path/to/your/test-ui.psd -o ./output -d
 
 #### 4.3 标签识别验证
 
-对于使用 PSD2UGUI 标签命名的图层：
+对于使用点号后缀标签语法命名的图层（`layerName.tag1.tag2`）：
 
-- [ ] `btn_` 图层识别为 `Button`，confidence = 1.0，source = 'tag'
-- [ ] `txt_` 图层识别为 `Text`，confidence = 1.0，source = 'tag'
-- [ ] `img_` 图层识别为 `Image`，confidence = 1.0，source = 'tag'
-- [ ] `sv_` 图层识别为 `ScrollView`，confidence = 1.0，source = 'tag'
-- [ ] `hbox_`/`vbox_`/`grid_` 图层识别为对应的 LayoutGroup
-- [ ] 标签识别不区分大小写（`BTN_close` 也能识别）
+- [ ] `.bt` 图层识别为 `Button`，confidence = 1.0，source = 'tag'
+- [ ] `.txt` 图层识别为 `Text`，confidence = 1.0，source = 'tag'
+- [ ] `.img` 图层识别为 `Image`，confidence = 1.0，source = 'tag'
+- [ ] `.rimg` 图层识别为 `RawImage`，confidence = 1.0，source = 'tag'
+- [ ] `.sv` 图层识别为 `ScrollView`，confidence = 1.0，source = 'tag'
+- [ ] `.hbox`/`.vbox`/`.grid` 图层识别为对应的 LayoutGroup
+- [ ] 多标签组合：`close.bt.bg` → Button，附带 role=Background
+- [ ] textBackend 标签：`title.txt.tmp` → Text，附带 textBackend=TextMeshPro
+- [ ] imageType 标签：`icon.img.sliced` → Image，附带 imageType=Sliced
 
 #### 4.4 AI 识别验证（如果启用）
 
@@ -180,7 +183,7 @@ node dist/cli/index.js parse ./test.psd -d
   "layers": [
     {
       "id": "root_0",
-      "name": "btn_close",
+      "name": "close.bt",
       "type": "group",
       "bounds": {
         "x": 100,
@@ -199,7 +202,7 @@ node dist/cli/index.js parse ./test.psd -d
     },
     {
       "id": "root_1",
-      "name": "txt_title",
+      "name": "title.txt",
       "type": "text",
       "bounds": {
         "x": 760,
@@ -273,7 +276,7 @@ npm test
 
 所有以下条件必须满足：
 
-- ✅ 所有单元测试通过（92/92）
+- ✅ 所有单元测试通过（148/148）
 - ✅ 能够成功解析真实的 PSD 文件
 - ✅ 标签识别准确率 100%（对于正确命名的图层）
 - ✅ AI 识别准确率 > 70%（Phase 1 目标）
