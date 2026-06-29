@@ -22,7 +22,7 @@ namespace Change.Editor.PSD2UI.Tests
         /// <summary>
         /// Overrides the real font lookup with a configurable mock.
         /// </summary>
-        protected internal override TMP_FontAsset FindFont(string fontName)
+        protected override TMP_FontAsset FindFont(string fontName)
         {
             return MockFont;
         }

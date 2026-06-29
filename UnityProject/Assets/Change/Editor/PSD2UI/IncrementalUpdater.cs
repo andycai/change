@@ -317,4 +317,6 @@ namespace Change.Editor.PSD2UI
             int lastSlash = path.LastIndexOf('/');
             return lastSlash > 0 ? path.Substring(0, lastSlash) : "";
         }
+    }
 }
+

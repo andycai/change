@@ -117,7 +117,7 @@ namespace Change.Editor.PSD2UI
         /// </summary>
         private static TMP_FontAsset DefaultFontAsset =>
             TMP_Settings.instance != null
-                ? TMP_Settings.instance.defaultFontAsset
+                ? TMP_Settings.defaultFontAsset
                 : null;
 
         // ---- Public Methods ----
@@ -279,7 +279,7 @@ namespace Change.Editor.PSD2UI
                 return false;
             }
 
-            if (settings.defaultFontAsset == null)
+            if (TMP_Settings.defaultFontAsset == null)
             {
                 Debug.LogWarning(
                     $"{LogPrefix} TextStyleApplier.ValidateTMPSettings: " +
