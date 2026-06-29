@@ -17,11 +17,14 @@ describe('Performance - Large Text Parsing', () => {
     const startTime = Date.now();
 
     const result = await parser.parse(largePsdPath);
+    expect(result).toBeTruthy();
+    expect(result.root).toBeTruthy();
 
     const elapsed = Date.now() - startTime;
 
     // 统计文本图层数量
     const textLayerCount = countTextLayers(result.root);
+    expect(textLayerCount).toBeGreaterThan(0);
 
     console.log('Performance Test Results:');
     console.log(`- Text layers: ${textLayerCount}`);
@@ -36,15 +39,21 @@ describe('Performance - Large Text Parsing', () => {
     const largePsdPath = path.join(__dirname, '../fixtures/large-text-sample.psd');
 
     if (!fs.existsSync(largePsdPath)) {
+      console.warn('Large PSD not found, skipping per-layer overhead test');
       return;
     }
 
     const parser = new PsdParser();
     const startTime = Date.now();
     const result = await parser.parse(largePsdPath);
+    expect(result).toBeTruthy();
+    expect(result.root).toBeTruthy();
+
     const elapsed = Date.now() - startTime;
 
     const textLayerCount = countTextLayers(result.root);
+    expect(textLayerCount).toBeGreaterThan(0);
+
     const avgPerLayer = elapsed / textLayerCount;
 
     // 期望：每个文本图层处理时间 < 200ms
@@ -54,7 +63,7 @@ describe('Performance - Large Text Parsing', () => {
 
 function countTextLayers(layer: Layer): number {
   let count = 0;
-  if (layer.type === 'text' && layer.textStyles) {
+  if (layer.type === 'text') {
     count++;
   }
   if (layer.children) {
