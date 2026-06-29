@@ -248,7 +248,7 @@ namespace Change.Editor.PSD2UI
             // Create UI component if type is specified
             if (!string.IsNullOrEmpty(nodeData.Type) && nodeData.Type != "Container")
             {
-                _componentFactory.CreateComponent(nodeData.Type, go);
+                _componentFactory.CreateComponent(nodeData.Type, go, nodeData.textStyles);
             }
 
             // Attach layout group if configured

@@ -10,6 +10,7 @@ namespace Change.Editor.PSD2UI
         public string SpritePath { get; set; }
         public SliceData Slice { get; set; }
         public LayoutData Layout { get; set; }
+        public TextStylesData textStyles;
         public List<UINodeData> Children { get; set; } = new List<UINodeData>();
     }
 

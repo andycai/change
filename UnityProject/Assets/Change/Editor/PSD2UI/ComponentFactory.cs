@@ -11,13 +11,16 @@ namespace Change.Editor.PSD2UI
     /// </summary>
     public class ComponentFactory
     {
+        private readonly TextStyleApplier textStyleApplier = new TextStyleApplier();
+
         /// <summary>
         /// Creates a UI component of the specified type on the target GameObject.
         /// </summary>
         /// <param name="type">Component type: "Image", "Text", "Button", "ScrollRect", "InputField"</param>
         /// <param name="target">The GameObject to add the component to</param>
+        /// <param name="textStyles">Optional text style data from PSD parser; applied when type is "Text".</param>
         /// <returns>The created Component, or null if the type is unrecognized</returns>
-        public Component CreateComponent(string type, GameObject target)
+        public Component CreateComponent(string type, GameObject target, TextStylesData textStyles = null)
         {
             if (target == null)
             {
@@ -37,7 +40,14 @@ namespace Change.Editor.PSD2UI
                     return target.AddComponent<Image>();
 
                 case "Text":
-                    return target.AddComponent<TextMeshProUGUI>();
+                {
+                    var tmp = target.AddComponent<TextMeshProUGUI>();
+                    if (textStyles != null)
+                    {
+                        textStyleApplier.ApplyBasicProperties(tmp, textStyles, target.name);
+                    }
+                    return tmp;
+                }
 
                 case "Button":
                     var button = target.AddComponent<Button>();
