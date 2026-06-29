@@ -12,7 +12,7 @@ namespace Change.Editor.PSD2UI
     /// <summary>
     /// Represents a detected interactive UI component for code generation.
     /// </summary>
-    public class ComponentInfo
+    public class ViewComponentInfo
     {
         /// <summary>The sanitized, unique name used as the field name in generated code.</summary>
         public string Name { get; set; }
@@ -41,15 +41,15 @@ namespace Change.Editor.PSD2UI
         /// </summary>
         /// <param name="prefab">The root GameObject of the prefab to scan.</param>
         /// <returns>List of detected interactive components with unique, sanitized names.</returns>
-        public List<ComponentInfo> ScanComponents(GameObject prefab)
+        public List<ViewComponentInfo> ScanComponents(GameObject prefab)
         {
             if (prefab == null)
             {
                 Debug.LogWarning("[PSD2UI] ViewCodeGenerator.ScanComponents: prefab is null.");
-                return new List<ComponentInfo>();
+                return new List<ViewComponentInfo>();
             }
 
-            var components = new List<ComponentInfo>();
+            var components = new List<ViewComponentInfo>();
             // Use "" as initial prefix so root's children start with just their own name.
             ScanRecursive(prefab.transform, components, "");
             ResolveDuplicateNames(components);
@@ -182,7 +182,7 @@ namespace Change.Editor.PSD2UI
         /// The sanitized path from the root to the parent, or "" for the root level.
         /// Each level is separated by "_".
         /// </param>
-        private void ScanRecursive(Transform transform, List<ComponentInfo> components, string parentPath)
+        private void ScanRecursive(Transform transform, List<ViewComponentInfo> components, string parentPath)
         {
             if (transform == null) return;
 
@@ -215,13 +215,13 @@ namespace Change.Editor.PSD2UI
         /// Helper that checks for a component on the transform and, if present,
         /// adds a ComponentInfo entry with the given type and eventType.
         /// </summary>
-        private static void AddComponentIfPresent<T>(Transform transform, List<ComponentInfo> components,
+        private static void AddComponentIfPresent<T>(Transform transform, List<ViewComponentInfo> components,
             string name, string type, string eventType)
             where T : Component
         {
             if (transform.GetComponent<T>() != null)
             {
-                components.Add(new ComponentInfo
+                components.Add(new ViewComponentInfo
                 {
                     Name = name,
                     Type = type,
@@ -235,7 +235,7 @@ namespace Change.Editor.PSD2UI
         /// appending a numeric suffix (_1, _2, ...) starting from the second occurrence.
         /// The first occurrence keeps the original name.
         /// </summary>
-        private static void ResolveDuplicateNames(List<ComponentInfo> components)
+        private static void ResolveDuplicateNames(List<ViewComponentInfo> components)
         {
             var nameCounts = new Dictionary<string, int>();
 
