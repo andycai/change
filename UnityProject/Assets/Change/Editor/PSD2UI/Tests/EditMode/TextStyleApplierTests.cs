@@ -31,6 +31,13 @@ namespace Change.Editor.PSD2UI.Tests
     [TestFixture]
     public class TextStyleApplierTests
     {
+        // ---- Constants ----
+
+        private const string DefaultLayerName = "TestLayer";
+        private const float DefaultTestFontSize = 14f;
+
+        // ---- Fields ----
+
         private GameObject _testObject;
         private TextMeshProUGUI _tmpComponent;
         private TestableTextStyleApplier _applier;
@@ -61,15 +68,14 @@ namespace Change.Editor.PSD2UI.Tests
         // ---- Helper Methods ----
 
         /// <summary>
-        /// Creates a TextStylesData with the given alignment strings and a known
-        /// fontSize (always applied). Other properties are left null so they
-        /// are not applied during the test.
+        /// Creates a TextStylesData with the given alignment strings and the default
+        /// fontSize. Other properties are left null so they are not applied.
         /// </summary>
         private static TextStylesData CreateAlignmentData(string horizontal, string vertical)
         {
             return new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 alignment = new AlignmentData
                 {
                     horizontal = horizontal,
@@ -79,13 +85,13 @@ namespace Change.Editor.PSD2UI.Tests
         }
 
         /// <summary>
-        /// Creates a TextStylesData with the given font name and a known fontSize.
+        /// Creates a TextStylesData with the given font name and the default fontSize.
         /// </summary>
         private static TextStylesData CreateFontData(string fontName)
         {
             return new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 fontName = fontName
             };
         }
@@ -98,7 +104,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_LeftTop_MapsToTopLeft()
         {
             var textStyles = CreateAlignmentData("left", "top");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.TopLeft));
         }
 
@@ -106,7 +112,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_CenterMiddle_MapsToCenter()
         {
             var textStyles = CreateAlignmentData("center", "middle");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Center));
         }
 
@@ -114,7 +120,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_RightBottom_MapsToBottomRight()
         {
             var textStyles = CreateAlignmentData("right", "bottom");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.BottomRight));
         }
 
@@ -122,7 +128,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_JustifyTop_MapsToTopJustified()
         {
             var textStyles = CreateAlignmentData("justify", "top");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.TopJustified));
         }
 
@@ -130,7 +136,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_NullValues_DefaultsToCenter()
         {
             var textStyles = CreateAlignmentData(null, null);
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Center));
         }
 
@@ -138,7 +144,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_EmptyStrings_DefaultsToCenter()
         {
             var textStyles = CreateAlignmentData("", "");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Center));
         }
 
@@ -146,7 +152,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_UnknownValues_DefaultsToCenter()
         {
             var textStyles = CreateAlignmentData("foo", "bar");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Center));
         }
 
@@ -154,7 +160,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_LeftMiddle_MapsToLeft()
         {
             var textStyles = CreateAlignmentData("left", "middle");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Left));
         }
 
@@ -162,7 +168,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_RightMiddle_MapsToRight()
         {
             var textStyles = CreateAlignmentData("right", "middle");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Right));
         }
 
@@ -170,7 +176,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_CenterTop_MapsToTop()
         {
             var textStyles = CreateAlignmentData("center", "top");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Top));
         }
 
@@ -178,7 +184,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_CenterBottom_MapsToBottom()
         {
             var textStyles = CreateAlignmentData("center", "bottom");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Bottom));
         }
 
@@ -186,7 +192,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_JustifyMiddle_MapsToJustified()
         {
             var textStyles = CreateAlignmentData("justify", "middle");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Justified));
         }
 
@@ -194,7 +200,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_JustifyBottom_MapsToBottomJustified()
         {
             var textStyles = CreateAlignmentData("justify", "bottom");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.BottomJustified));
         }
 
@@ -202,7 +208,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_LeftBottom_MapsToBottomLeft()
         {
             var textStyles = CreateAlignmentData("left", "bottom");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.BottomLeft));
         }
 
@@ -210,7 +216,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_Alignment_RightTop_MapsToTopRight()
         {
             var textStyles = CreateAlignmentData("right", "top");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.TopRight));
         }
 
@@ -223,13 +229,68 @@ namespace Change.Editor.PSD2UI.Tests
 
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 alignment = null
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
             Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.BottomRight),
                 "Alignment should not change when alignment data is null");
+        }
+
+        [Test]
+        public void ApplyBasicProperties_Alignment_PartialData_VerticalNull_UsesDefault()
+        {
+            // AlignmentData with horizontal provided but vertical null should
+            // handle gracefully by defaulting vertical to "" (→ middle fallback).
+            var textStyles = new TextStylesData
+            {
+                fontSize = DefaultTestFontSize,
+                alignment = new AlignmentData
+                {
+                    horizontal = "right",
+                    vertical = null
+                }
+            };
+
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
+            Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Right),
+                "vertical=null should default to middle, giving Right for horizontal=right");
+        }
+
+        [Test]
+        public void ApplyBasicProperties_Alignment_PartialData_HorizontalNull_UsesDefault()
+        {
+            // AlignmentData with vertical provided but horizontal null should
+            // handle gracefully by defaulting horizontal to "" (→ center fallback).
+            var textStyles = new TextStylesData
+            {
+                fontSize = DefaultTestFontSize,
+                alignment = new AlignmentData
+                {
+                    horizontal = null,
+                    vertical = "top"
+                }
+            };
+
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
+            Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Top),
+                "horizontal=null should default to center, giving Top for vertical=top");
+        }
+
+        // ---- Case-insensitive alignment (parameterized) ----
+
+        [TestCase("LEFT", "TOP", TextAlignmentOptions.TopLeft)]
+        [TestCase("Center", "Middle", TextAlignmentOptions.Center)]
+        [TestCase("RIGHT", "BOTTOM", TextAlignmentOptions.BottomRight)]
+        [TestCase("LeFt", "ToP", TextAlignmentOptions.TopLeft)]
+        [TestCase("JUSTIFY", "middle", TextAlignmentOptions.Justified)]
+        public void ApplyBasicProperties_Alignment_CaseInsensitive(
+            string horizontal, string vertical, TextAlignmentOptions expected)
+        {
+            var textStyles = CreateAlignmentData(horizontal, vertical);
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
+            Assert.That(_tmpComponent.alignment, Is.EqualTo(expected));
         }
 
         // ================================================================
@@ -244,7 +305,7 @@ namespace Change.Editor.PSD2UI.Tests
             _applier.MockFont = mockFont;
 
             var textStyles = CreateFontData("Impact");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.font, Is.SameAs(mockFont),
                 "Font should be set to the mock font returned by FindFont");
@@ -263,7 +324,7 @@ namespace Change.Editor.PSD2UI.Tests
             _applier.MockFont = null;
 
             var textStyles = CreateFontData("MissingFont");
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.font, Is.Null,
                 "Font should be set to null when FindFont returns null");
@@ -271,8 +332,10 @@ namespace Change.Editor.PSD2UI.Tests
             Object.DestroyImmediate(existingFont);
         }
 
-        [Test]
-        public void ApplyBasicProperties_FontName_Empty_DoesNotChangeFont()
+        [TestCase("")]
+        [TestCase(null)]
+        [TestCase("   ")]
+        public void ApplyBasicProperties_FontName_EmptyOrWhitespaceOrNull_DoesNotChangeFont(string fontName)
         {
             var existingFont = ScriptableObject.CreateInstance<TMP_FontAsset>();
             existingFont.name = "PreservedFont";
@@ -280,35 +343,14 @@ namespace Change.Editor.PSD2UI.Tests
 
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
-                fontName = ""
+                fontSize = DefaultTestFontSize,
+                fontName = fontName
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.font, Is.SameAs(existingFont),
-                "Font should not change when fontName is empty");
-
-            Object.DestroyImmediate(existingFont);
-        }
-
-        [Test]
-        public void ApplyBasicProperties_FontName_Null_DoesNotChangeFont()
-        {
-            var existingFont = ScriptableObject.CreateInstance<TMP_FontAsset>();
-            existingFont.name = "PreservedFont";
-            _tmpComponent.font = existingFont;
-
-            var textStyles = new TextStylesData
-            {
-                fontSize = 14f,
-                fontName = null
-            };
-
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
-
-            Assert.That(_tmpComponent.font, Is.SameAs(existingFont),
-                "Font should not change when fontName is null");
+                $"Font should not change when fontName is '{fontName?.Trim() ?? "(null)"}'");
 
             Object.DestroyImmediate(existingFont);
         }
@@ -367,26 +409,31 @@ namespace Change.Editor.PSD2UI.Tests
             var parentLock = parent.AddComponent<PSD2UILock>();
             parentLock.LockChildren = true;
 
-            // Reparent the test object under the locked parent
-            _testObject.transform.SetParent(parent.transform);
-
-            // Set known initial property
-            _tmpComponent.fontSize = 24f;
-
-            var textStyles = new TextStylesData
+            try
             {
-                fontSize = 72f
-            };
+                // Reparent the test object under the locked parent
+                _testObject.transform.SetParent(parent.transform);
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "ChildLayer");
+                // Set known initial property
+                _tmpComponent.fontSize = 24f;
 
-            // fontSize should remain unchanged due to ancestor lock
-            Assert.That(_tmpComponent.fontSize, Is.EqualTo(24f),
-                "fontSize should not change when ancestor has LockChildren enabled");
+                var textStyles = new TextStylesData
+                {
+                    fontSize = 72f
+                };
 
-            // Clean up parent
-            _testObject.transform.SetParent(null);
-            Object.DestroyImmediate(parent);
+                _applier.ApplyBasicProperties(_tmpComponent, textStyles, "ChildLayer");
+
+                // fontSize should remain unchanged due to ancestor lock
+                Assert.That(_tmpComponent.fontSize, Is.EqualTo(24f),
+                    "fontSize should not change when ancestor has LockChildren enabled");
+            }
+            finally
+            {
+                // Ensure cleanup even if the test throws
+                _testObject.transform.SetParent(null);
+                Object.DestroyImmediate(parent);
+            }
         }
 
         // ================================================================
@@ -396,7 +443,7 @@ namespace Change.Editor.PSD2UI.Tests
         [Test]
         public void ApplyBasicProperties_NullTMPComponent_ReturnsEarlyWithoutThrowing()
         {
-            var textStyles = new TextStylesData { fontSize = 14f };
+            var textStyles = new TextStylesData { fontSize = DefaultTestFontSize };
 
             Assert.DoesNotThrow(() =>
             {
@@ -444,7 +491,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_AppliesFontSize()
         {
             var textStyles = new TextStylesData { fontSize = 42f };
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontSize, Is.EqualTo(42f));
         }
@@ -453,7 +500,7 @@ namespace Change.Editor.PSD2UI.Tests
         public void ApplyBasicProperties_AppliesFontSize_Zero()
         {
             var textStyles = new TextStylesData { fontSize = 0f };
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontSize, Is.EqualTo(0f),
                 "fontSize 0 should be applied (always set from textStyles)");
@@ -464,11 +511,11 @@ namespace Change.Editor.PSD2UI.Tests
         {
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 color = new ColorData { r = 0.2f, g = 0.4f, b = 0.6f, a = 0.8f }
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.color.r, Is.EqualTo(0.2f).Within(0.001f));
             Assert.That(_tmpComponent.color.g, Is.EqualTo(0.4f).Within(0.001f));
@@ -481,11 +528,11 @@ namespace Change.Editor.PSD2UI.Tests
         {
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 fontStyle = new FontStyleData { bold = true, italic = false }
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontStyle, Is.EqualTo(FontStyles.Bold));
         }
@@ -495,11 +542,11 @@ namespace Change.Editor.PSD2UI.Tests
         {
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 fontStyle = new FontStyleData { bold = false, italic = true }
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontStyle, Is.EqualTo(FontStyles.Italic));
         }
@@ -509,11 +556,11 @@ namespace Change.Editor.PSD2UI.Tests
         {
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 fontStyle = new FontStyleData { bold = true, italic = true }
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontStyle, Is.EqualTo(FontStyles.Bold | FontStyles.Italic));
         }
@@ -526,11 +573,11 @@ namespace Change.Editor.PSD2UI.Tests
 
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 fontStyle = new FontStyleData { bold = false, italic = false }
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontStyle, Is.EqualTo(FontStyles.Normal));
         }
@@ -542,11 +589,11 @@ namespace Change.Editor.PSD2UI.Tests
 
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 fontStyle = null
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.fontStyle, Is.EqualTo(FontStyles.Italic),
                 "fontStyle should not change when fontStyle data is null");
@@ -559,11 +606,11 @@ namespace Change.Editor.PSD2UI.Tests
 
             var textStyles = new TextStylesData
             {
-                fontSize = 14f,
+                fontSize = DefaultTestFontSize,
                 color = null
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, DefaultLayerName);
 
             Assert.That(_tmpComponent.color, Is.EqualTo(Color.cyan),
                 "color should not change when color data is null");
@@ -596,30 +643,6 @@ namespace Change.Editor.PSD2UI.Tests
             Assert.That(_tmpComponent.font, Is.SameAs(mockFont));
 
             Object.DestroyImmediate(mockFont);
-        }
-
-        [Test]
-        public void ApplyBasicProperties_MixedCaseAlignment_IsCaseInsensitive()
-        {
-            // Test that alignment string matching is case-insensitive
-            var textStyles = new TextStylesData
-            {
-                fontSize = 14f,
-                alignment = new AlignmentData { horizontal = "LEFT", vertical = "TOP" }
-            };
-
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
-            Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.TopLeft));
-
-            textStyles.alignment.horizontal = "Center";
-            textStyles.alignment.vertical = "Middle";
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
-            Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.Center));
-
-            textStyles.alignment.horizontal = "RIGHT";
-            textStyles.alignment.vertical = "BOTTOM";
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "TestLayer");
-            Assert.That(_tmpComponent.alignment, Is.EqualTo(TextAlignmentOptions.BottomRight));
         }
     }
 }
