@@ -644,5 +644,133 @@ namespace Change.Editor.PSD2UI.Tests
 
             Object.DestroyImmediate(mockFont);
         }
+
+        // ================================================================
+        // 6. Effect application tests
+        // ================================================================
+
+        [Test]
+        public void CreateMaterial_ShouldUseCorrectNamingRule()
+        {
+            var textStyles = new TextStylesData
+            {
+                fontSize = 24,
+                color = new ColorData { r = 1, g = 1, b = 1, a = 1 },
+                fontName = "Arial",
+                fontStyle = new FontStyleData { bold = false, italic = false },
+                alignment = new AlignmentData { horizontal = "left", vertical = "top" },
+                effects = new TextEffectData[]
+                {
+                    new StrokeEffectData
+                    {
+                        type = "stroke",
+                        enabled = true,
+                        color = new ColorData { r = 0, g = 0, b = 0, a = 1 },
+                        width = 2,
+                        position = "outside"
+                    }
+                }
+            };
+
+            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "test_layer");
+            _applier.ApplyEffects(_tmpComponent, textStyles.effects, "test_layer", "layer_001");
+
+            Assert.IsNotNull(_tmpComponent.fontSharedMaterial);
+            Assert.IsTrue(_tmpComponent.fontSharedMaterial.name.Contains("TMP_test_layer_layer_001_Material"));
+        }
+
+        [Test]
+        public void ApplyStroke_ShouldSetShaderParameters()
+        {
+            var effects = new TextEffectData[]
+            {
+                new StrokeEffectData
+                {
+                    type = "stroke",
+                    enabled = true,
+                    color = new ColorData { r = 1, g = 0, b = 0, a = 1 },
+                    width = 3,
+                    position = "outside"
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+
+            var mat = _tmpComponent.fontSharedMaterial;
+            Assert.AreEqual(3, mat.GetFloat("_OutlineWidth"));
+            Assert.AreEqual(new Color(1, 0, 0, 1), mat.GetColor("_OutlineColor"));
+        }
+
+        [Test]
+        public void ApplyDropShadow_ShouldSetShaderParameters()
+        {
+            var effects = new TextEffectData[]
+            {
+                new ShadowEffectData
+                {
+                    type = "dropShadow",
+                    enabled = true,
+                    color = new ColorData { r = 0, g = 0, b = 0, a = 0.5f },
+                    offsetX = 2,
+                    offsetY = -2,
+                    blur = 4
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+
+            var mat = _tmpComponent.fontSharedMaterial;
+            Assert.AreEqual(new Color(0, 0, 0, 0.5f), mat.GetColor("_UnderlayColor"));
+            Assert.AreEqual(2f / 100f, mat.GetFloat("_UnderlayOffsetX"), 0.001f);
+            Assert.AreEqual(-2f / 100f, mat.GetFloat("_UnderlayOffsetY"), 0.001f);
+        }
+
+        [Test]
+        public void ApplyOuterGlow_ShouldSetShaderParameters()
+        {
+            var effects = new TextEffectData[]
+            {
+                new GlowEffectData
+                {
+                    type = "outerGlow",
+                    enabled = true,
+                    color = new ColorData { r = 1, g = 1, b = 0, a = 1 },
+                    size = 5,
+                    spread = 0
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+
+            var mat = _tmpComponent.fontSharedMaterial;
+            Assert.AreEqual(new Color(1, 1, 0, 1), mat.GetColor("_GlowColor"));
+            Assert.AreEqual(5f / 10f, mat.GetFloat("_GlowOffset"), 0.001f);
+        }
+
+        [Test]
+        public void ApplyGradient_ShouldEnableVertexGradient()
+        {
+            var effects = new TextEffectData[]
+            {
+                new GradientEffectData
+                {
+                    type = "gradient",
+                    enabled = true,
+                    gradientType = "linear",
+                    angle = 90,
+                    colors = new GradientColorStop[]
+                    {
+                        new GradientColorStop { r = 1, g = 1, b = 0, a = 1, position = 0 },
+                        new GradientColorStop { r = 1, g = 0.5f, b = 0, a = 1, position = 1 }
+                    },
+                    degraded = false
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+
+            Assert.IsTrue(_tmpComponent.enableVertexGradient);
+            Assert.AreEqual(new Color(1, 1, 0, 1), _tmpComponent.colorGradient.topLeft);
+        }
     }
 }
