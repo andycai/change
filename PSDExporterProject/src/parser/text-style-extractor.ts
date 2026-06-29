@@ -19,6 +19,15 @@ export class TextStyleExtractor {
     vertical: 'top'
   };
 
+  /** 颜色通道最大值（用于 0-255 到 0-1 的归一化） */
+  private static readonly MAX_COLOR_CHANNEL = 255;
+
+  /** CMYK 百分比缩放因子（0-1 小数转 0-100 百分比） */
+  private static readonly CMYK_PERCENT_SCALE = 100;
+
+  /** 默认 alpha 值（完全不透明） */
+  private static readonly DEFAULT_ALPHA = 1;
+
   /**
    * 从 ag-psd 的 LayerTextData 提取文本样式
    *
@@ -83,6 +92,24 @@ export class TextStyleExtractor {
   }
 
   /**
+   * 将 RGB 分量值归一化到 0-1 区间
+   *
+   * @param r - 红色分量（0-255）
+   * @param g - 绿色分量（0-255）
+   * @param b - 蓝色分量（0-255）
+   * @param a - alpha 值（0-1），默认为完全不透明
+   * @returns 归一化后的 RGBA 颜色对象
+   */
+  private normalizeRgb(r: number, g: number, b: number, a: number): RGBA {
+    return {
+      r: r / TextStyleExtractor.MAX_COLOR_CHANNEL,
+      g: g / TextStyleExtractor.MAX_COLOR_CHANNEL,
+      b: b / TextStyleExtractor.MAX_COLOR_CHANNEL,
+      a
+    };
+  }
+
+  /**
    * 转换颜色
    *
    * 将 ag-psd 的 Color 联合类型转换为内部 RGBA 格式（归一化到 0-1 区间）。
@@ -108,24 +135,26 @@ export class TextStyleExtractor {
       // 注意：必须先检测 Lab，因为其 a 键与 RGBA 的 a 键在 in 检查中会产生歧义
       if ('l' in color && 'a' in color && 'b' in color) {
         const [r, g, b] = convert.lab.rgb([color.l, color.a, color.b]);
-        return { r: r / 255, g: g / 255, b: b / 255, a: 1 };
+        return this.normalizeRgb(r, g, b, TextStyleExtractor.DEFAULT_ALPHA);
       }
 
       // RGBA / RGB 颜色空间：具有 r、g、b 三个键
       if ('r' in color && 'g' in color && 'b' in color) {
-        const a = 'a' in color ? (color as { a: number }).a / 255 : 1;
-        return { r: color.r / 255, g: color.g / 255, b: color.b / 255, a };
+        const a = 'a' in color
+          ? (color as { a: number }).a / TextStyleExtractor.MAX_COLOR_CHANNEL
+          : TextStyleExtractor.DEFAULT_ALPHA;
+        return this.normalizeRgb(color.r, color.g, color.b, a);
       }
 
       // CMYK 颜色空间：具有 c、m、y、k 四个键
       if ('c' in color && 'm' in color && 'y' in color && 'k' in color) {
         const [r, g, b] = convert.cmyk.rgb([
-          color.c * 100,
-          color.m * 100,
-          color.y * 100,
-          color.k * 100
+          color.c * TextStyleExtractor.CMYK_PERCENT_SCALE,
+          color.m * TextStyleExtractor.CMYK_PERCENT_SCALE,
+          color.y * TextStyleExtractor.CMYK_PERCENT_SCALE,
+          color.k * TextStyleExtractor.CMYK_PERCENT_SCALE
         ]);
-        return { r: r / 255, g: g / 255, b: b / 255, a: 1 };
+        return this.normalizeRgb(r, g, b, TextStyleExtractor.DEFAULT_ALPHA);
       }
 
       // 不支持的颜色空间
@@ -135,7 +164,9 @@ export class TextStyleExtractor {
       return { ...TextStyleExtractor.DEFAULT_COLOR };
     } catch (error) {
       console.error(
-        `[TextStyleExtractor] 颜色转换失败，已回退为默认颜色：${error}`
+        `[TextStyleExtractor] 颜色转换失败，已回退为默认颜色：${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
       return { ...TextStyleExtractor.DEFAULT_COLOR };
     }
