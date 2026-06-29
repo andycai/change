@@ -96,6 +96,32 @@ namespace Change.Editor.PSD2UI
     /// </summary>
     public class TextStyleApplier
     {
+        // ---- Constants ----
+
+        private const string LogPrefix = "[PSD2UI]";
+
+        // Alignment string values from the PSD parser
+        private const string AlignLeft    = "left";
+        private const string AlignCenter  = "center";
+        private const string AlignRight   = "right";
+        private const string AlignJustify = "justify";
+        private const string AlignTop     = "top";
+        private const string AlignMiddle  = "middle";
+        private const string AlignBottom  = "bottom";
+
+        // ---- Helpers ----
+
+        /// <summary>
+        /// The TMP default font asset, or null if TMP Settings are not configured.
+        /// Caches the lookup for repeated calls within a single ApplyBasicProperties run.
+        /// </summary>
+        private static TMP_FontAsset DefaultFontAsset =>
+            TMP_Settings.instance != null
+                ? TMP_Settings.instance.defaultFontAsset
+                : null;
+
+        // ---- Public Methods ----
+
         /// <summary>
         /// Applies basic text properties (font size, color, font style, alignment, font)
         /// from the parsed text styles data onto the target TextMeshProUGUI component.
@@ -117,7 +143,7 @@ namespace Change.Editor.PSD2UI
             if (tmpComponent == null)
             {
                 Debug.LogWarning(
-                    $"[PSD2UI] TextStyleApplier.ApplyBasicProperties: " +
+                    $"{LogPrefix} TextStyleApplier.ApplyBasicProperties: " +
                     $"TextMeshProUGUI component is null for layer '{layerName ?? "(null)"}'.");
                 return;
             }
@@ -125,15 +151,15 @@ namespace Change.Editor.PSD2UI
             if (textStyles == null)
             {
                 Debug.LogWarning(
-                    $"[PSD2UI] TextStyleApplier.ApplyBasicProperties: " +
+                    $"{LogPrefix} TextStyleApplier.ApplyBasicProperties: " +
                     $"textStyles data is null for layer '{layerName ?? "(null)"}'.");
                 return;
             }
 
-            if (HasLock(tmpComponent.gameObject))
+            if (PSD2UILock.HasLock(tmpComponent.gameObject))
             {
                 Debug.Log(
-                    $"[PSD2UI] TextStyleApplier.ApplyBasicProperties: " +
+                    $"{LogPrefix} TextStyleApplier.ApplyBasicProperties: " +
                     $"'{layerName}' is locked (PSD2UILock detected), skipping text style application.");
                 return;
             }
@@ -172,35 +198,61 @@ namespace Change.Editor.PSD2UI
             }
         }
 
-        // ---- Private Helpers ----
+        // ---- Protected / Internal Methods (overridable for tests) ----
 
         /// <summary>
-        /// Checks whether a GameObject is protected by a PSD2UILock component,
-        /// either on itself or on any ancestor with LockChildren enabled.
-        /// Follows the same convention as IncrementalUpdater.HasLock().
+        /// Finds a TMP_FontAsset by font name.
+        ///
+        /// Current implementation (placeholder for Task 10):
+        /// 1. Tries Resources.Load&lt;TMP_FontAsset&gt; by name.
+        /// 2. Checks if TMP_Settings.defaultFontAsset name matches.
+        /// 3. Falls back to TMP_Settings.instance.defaultFontAsset.
+        ///
+        /// Full fuzzy-matching (case-insensitive, partial name, AssetDatabase scan)
+        /// will be added in Task 10.
+        ///
+        /// Marked internal virtual so test assemblies can override it with a custom
+        /// font resolver without requiring a full IFontResolver interface (Task 9).
         /// </summary>
-        /// <param name="go">The GameObject to check.</param>
-        /// <returns>True if the GameObject or any of its ancestors is locked.</returns>
-        private static bool HasLock(GameObject go)
+        /// <param name="fontName">The PSD-reported font family name.</param>
+        /// <returns>
+        /// The matching TMP_FontAsset, or the default font asset as fallback.
+        /// May return null if no default font asset is configured in TMP Settings.
+        /// </returns>
+        internal virtual TMP_FontAsset FindFont(string fontName)
         {
-            if (go == null) return false;
+            if (string.IsNullOrEmpty(fontName))
+                return DefaultFontAsset;
 
-            // Check the GameObject itself for a direct lock
-            if (go.GetComponent<PSD2UILock>() != null)
-                return true;
+            // Attempt direct Resources load by name
+            var font = Resources.Load<TMP_FontAsset>(fontName);
+            if (font != null)
+                return font;
 
-            // Walk up ancestors to check for LockChildren cascading
-            Transform parent = go.transform.parent;
-            while (parent != null)
+            // Check if the default font itself matches the requested name
+            var defaultFont = DefaultFontAsset;
+
+            if (defaultFont != null && defaultFont.name == fontName)
+                return defaultFont;
+
+            // Fallback: use default font asset with a warning
+            if (defaultFont != null)
             {
-                var lockComp = parent.GetComponent<PSD2UILock>();
-                if (lockComp != null && lockComp.LockChildren)
-                    return true;
-                parent = parent.parent;
+                Debug.LogWarning(
+                    $"{LogPrefix} TextStyleApplier.FindFont: " +
+                    $"font '{fontName}' not found, falling back to default '{defaultFont.name}'.");
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"{LogPrefix} TextStyleApplier.FindFont: " +
+                    $"font '{fontName}' not found and no TMP default font asset is configured.");
             }
 
-            return false;
+            return defaultFont;
         }
+
+        // ---- Private Helpers ----
 
         /// <summary>
         /// Maps bold and italic boolean flags to the TMPro FontStyles flags enum.
@@ -227,90 +279,37 @@ namespace Change.Editor.PSD2UI
 
             switch (v)
             {
-                case "top":
+                case AlignTop:
                     switch (h)
                     {
-                        case "left":    return TextAlignmentOptions.TopLeft;
-                        case "right":   return TextAlignmentOptions.TopRight;
-                        case "justify": return TextAlignmentOptions.TopJustified;
-                        case "center":
-                        default:        return TextAlignmentOptions.Top;
+                        case AlignLeft:    return TextAlignmentOptions.TopLeft;
+                        case AlignRight:   return TextAlignmentOptions.TopRight;
+                        case AlignJustify: return TextAlignmentOptions.TopJustified;
+                        case AlignCenter:
+                        default:           return TextAlignmentOptions.Top;
                     }
 
-                case "bottom":
+                case AlignBottom:
                     switch (h)
                     {
-                        case "left":    return TextAlignmentOptions.BottomLeft;
-                        case "right":   return TextAlignmentOptions.BottomRight;
-                        case "justify": return TextAlignmentOptions.BottomJustified;
-                        case "center":
-                        default:        return TextAlignmentOptions.Bottom;
+                        case AlignLeft:    return TextAlignmentOptions.BottomLeft;
+                        case AlignRight:   return TextAlignmentOptions.BottomRight;
+                        case AlignJustify: return TextAlignmentOptions.BottomJustified;
+                        case AlignCenter:
+                        default:           return TextAlignmentOptions.Bottom;
                     }
 
-                case "middle":
+                case AlignMiddle:
                 default:
                     switch (h)
                     {
-                        case "left":    return TextAlignmentOptions.Left;
-                        case "right":   return TextAlignmentOptions.Right;
-                        case "justify": return TextAlignmentOptions.Justified;
-                        case "center":
-                        default:        return TextAlignmentOptions.Center;
+                        case AlignLeft:    return TextAlignmentOptions.Left;
+                        case AlignRight:   return TextAlignmentOptions.Right;
+                        case AlignJustify: return TextAlignmentOptions.Justified;
+                        case AlignCenter:
+                        default:           return TextAlignmentOptions.Center;
                     }
             }
-        }
-
-        /// <summary>
-        /// Finds a TMP_FontAsset by font name.
-        ///
-        /// Current implementation (placeholder for Task 10):
-        /// 1. Tries Resources.Load&lt;TMP_FontAsset&gt; by name.
-        /// 2. Checks if TMP_Settings.defaultFontAsset name matches.
-        /// 3. Falls back to TMP_Settings.instance.defaultFontAsset.
-        ///
-        /// Full fuzzy-matching (case-insensitive, partial name, AssetDatabase scan)
-        /// will be added in Task 10.
-        /// </summary>
-        /// <param name="fontName">The PSD-reported font family name.</param>
-        /// <returns>
-        /// The matching TMP_FontAsset, or the default font asset as fallback.
-        /// May return null if no default font asset is configured in TMP Settings.
-        /// </returns>
-        private static TMP_FontAsset FindFont(string fontName)
-        {
-            if (string.IsNullOrEmpty(fontName))
-                return TMP_Settings.instance != null
-                    ? TMP_Settings.instance.defaultFontAsset
-                    : null;
-
-            // Attempt direct Resources load by name
-            var font = Resources.Load<TMP_FontAsset>(fontName);
-            if (font != null)
-                return font;
-
-            // Check if the default font itself matches the requested name
-            var defaultFont = TMP_Settings.instance != null
-                ? TMP_Settings.instance.defaultFontAsset
-                : null;
-
-            if (defaultFont != null && defaultFont.name == fontName)
-                return defaultFont;
-
-            // Fallback: use default font asset with a warning
-            if (defaultFont != null)
-            {
-                Debug.LogWarning(
-                    $"[PSD2UI] TextStyleApplier.FindFont: " +
-                    $"font '{fontName}' not found, falling back to default '{defaultFont.name}'.");
-            }
-            else
-            {
-                Debug.LogWarning(
-                    $"[PSD2UI] TextStyleApplier.FindFont: " +
-                    $"font '{fontName}' not found and no TMP default font asset is configured.");
-            }
-
-            return defaultFont;
         }
     }
 }
