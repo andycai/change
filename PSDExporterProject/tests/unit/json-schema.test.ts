@@ -5,10 +5,24 @@ import {
   GradientEffectSchema,
   GlowEffectSchema,
   BevelEffectSchema,
-  TextEffectSchema,
   RGBASchema,
   LayerConfigSchema,
 } from '../../src/generator/json-schema';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function validTextStyles(overrides: Record<string, unknown> = {}) {
+  return {
+    fontSize: 36,
+    color: { r: 1, g: 1, b: 1, a: 1 },
+    fontName: 'Arial',
+    fontStyle: { bold: true, italic: false },
+    alignment: { horizontal: 'center' as const, vertical: 'middle' as const },
+    ...overrides,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Group 1: TextStylesSchema – valid inputs
@@ -16,45 +30,31 @@ import {
 describe('TextStylesSchema', () => {
   describe('valid inputs', () => {
     test('accepts valid TextStyles with all required fields', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: 36,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        effects: [],
-      });
+      const result = TextStylesSchema.safeParse(
+        validTextStyles({ effects: [] }),
+      );
       expect(result.success).toBe(true);
     });
 
     test('accepts TextStyles without effects field (optional)', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: 36,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-      });
+      const result = TextStylesSchema.safeParse(validTextStyles());
       expect(result.success).toBe(true);
     });
 
     test('accepts TextStyles with effects containing a stroke effect', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: 36,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        effects: [
-          {
-            type: 'stroke',
-            enabled: true,
-            color: { r: 0, g: 0, b: 0, a: 1 },
-            width: 2,
-            position: 'outside',
-          },
-        ],
-      });
+      const result = TextStylesSchema.safeParse(
+        validTextStyles({
+          effects: [
+            {
+              type: 'stroke',
+              enabled: true,
+              color: { r: 0, g: 0, b: 0, a: 1 },
+              width: 2,
+              position: 'outside',
+            },
+          ],
+        }),
+      );
       expect(result.success).toBe(true);
     });
   });
@@ -64,46 +64,51 @@ describe('TextStylesSchema', () => {
   // -----------------------------------------------------------------------
   describe('rejection rules', () => {
     test('rejects negative fontSize', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: -12,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-      });
+      const result = TextStylesSchema.safeParse(validTextStyles({ fontSize: -12 }));
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('fontSize');
+      }
+    });
+
+    test('rejects zero fontSize', () => {
+      const result = TextStylesSchema.safeParse(validTextStyles({ fontSize: 0 }));
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('fontSize');
+      }
     });
 
     test('rejects color values outside [0,1] range', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: 36,
-        color: { r: 1.5, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-      });
+      const result = TextStylesSchema.safeParse(
+        validTextStyles({ color: { r: 1.5, g: 1, b: 1, a: 1 } }),
+      );
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('color');
+      }
     });
 
     test('rejects invalid horizontal alignment value', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: 36,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'invalid', vertical: 'middle' },
-      });
+      const result = TextStylesSchema.safeParse(
+        validTextStyles({
+          alignment: { horizontal: 'invalid', vertical: 'middle' },
+        }),
+      );
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('alignment');
+      }
     });
 
     test('rejects missing required field (no fontName)', () => {
-      const result = TextStylesSchema.safeParse({
-        fontSize: 36,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-      });
+      const base = validTextStyles();
+      delete (base as Record<string, unknown>).fontName;
+      const result = TextStylesSchema.safeParse(base);
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('fontName');
+      }
     });
   });
 });
@@ -202,6 +207,9 @@ describe('Effect schemas', () => {
         position: 'top',
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('position');
+      }
     });
 
     test('rejects bevel effect with invalid style', () => {
@@ -216,6 +224,9 @@ describe('Effect schemas', () => {
         shadowColor: { r: 0, g: 0, b: 0, a: 0.5 },
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('style');
+      }
     });
 
     test('rejects gradient color with position outside [0,1]', () => {
@@ -231,6 +242,9 @@ describe('Effect schemas', () => {
         degraded: false,
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('colors');
+      }
     });
   });
 });
@@ -269,14 +283,7 @@ describe('TextEffectSchema union', () => {
       },
     ];
 
-    const result = TextStylesSchema.safeParse({
-      fontSize: 36,
-      color: { r: 1, g: 1, b: 1, a: 1 },
-      fontName: 'Arial',
-      fontStyle: { bold: true, italic: false },
-      alignment: { horizontal: 'center', vertical: 'middle' },
-      effects,
-    });
+    const result = TextStylesSchema.safeParse(validTextStyles({ effects }));
     expect(result.success).toBe(true);
   });
 });
@@ -293,13 +300,7 @@ describe('LayerConfigSchema integration', () => {
       bounds: { x: 0, y: 0, width: 200, height: 50 },
       visible: true,
       opacity: 1,
-      textStyles: {
-        fontSize: 24,
-        color: { r: 1, g: 1, b: 1, a: 1 },
-        fontName: 'Arial',
-        fontStyle: { bold: true, italic: false },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-      },
+      textStyles: validTextStyles({ fontSize: 24 }),
     });
     expect(result.success).toBe(true);
   });
@@ -327,6 +328,10 @@ describe('RGBASchema', () => {
   });
 
   test('rejects negative alpha', () => {
-    expect(RGBASchema.safeParse({ r: 0, g: 0, b: 0, a: -0.1 }).success).toBe(false);
+    const result = RGBASchema.safeParse({ r: 0, g: 0, b: 0, a: -0.1 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].path).toContain('a');
+    }
   });
 });
