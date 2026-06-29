@@ -10,7 +10,7 @@ jest.mock('color-convert', () => ({
 import { TextStyleExtractor } from '../../src/parser/text-style-extractor';
 import convert from 'color-convert';
 import type { LayerTextData, Justification } from 'ag-psd';
-import type { Color } from 'ag-psd';
+import type { Color, LayerEffectsInfo } from 'ag-psd';
 
 /** 获取模拟的 convert.cmyk.rgb 以便在测试中断言调用 */
 const mockCmykRgb = convert.cmyk.rgb as unknown as jest.Mock;
@@ -346,6 +346,227 @@ describe('TextStyleExtractor', () => {
       expect(result.color.b).toBeCloseTo(0.0, 5);
       expect(result.color.a).toBeCloseTo(1.0, 5);
       expect(result.alignment).toEqual({ horizontal: 'center', vertical: 'middle' });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // extract() — 效果提取
+  // ---------------------------------------------------------------------------
+  describe('extract() - 效果提取', () => {
+    test('should extract stroke effect', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects: LayerEffectsInfo = {
+        stroke: [
+          {
+            enabled: true,
+            size: { value: 2, units: 'Pixels' },
+            position: 'outside',
+            color: { r: 255, g: 0, b: 0, a: 255 },
+          },
+        ],
+      } as LayerEffectsInfo;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      expect(result.effects![0].type).toBe('stroke');
+      expect((result.effects![0] as any).width).toBe(2);
+    });
+
+    test('should extract multiple effects', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects: LayerEffectsInfo = {
+        stroke: [
+          {
+            enabled: true,
+            size: { value: 2, units: 'Pixels' },
+            position: 'outside',
+            color: { r: 255, g: 0, b: 0, a: 255 },
+          },
+        ],
+        dropShadow: [
+          {
+            enabled: true,
+            size: { value: 5, units: 'Pixels' },
+            angle: 45,
+            distance: { value: 3, units: 'Pixels' },
+            color: { r: 0, g: 0, b: 0, a: 255 },
+          },
+        ],
+        outerGlow: {
+          enabled: true,
+          size: { value: 4, units: 'Pixels' },
+          choke: { value: 0, units: 'Pixels' },
+          color: { r: 255, g: 255, b: 0, a: 255 },
+        },
+      } as LayerEffectsInfo;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(3);
+      const types = result.effects!.map((e) => e.type);
+      expect(types).toEqual(['stroke', 'dropShadow', 'outerGlow']);
+    });
+
+    test('should skip disabled effects', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects: LayerEffectsInfo = {
+        stroke: [
+          {
+            enabled: false,
+            size: { value: 2, units: 'Pixels' },
+            position: 'outside',
+            color: { r: 255, g: 0, b: 0, a: 255 },
+          },
+        ],
+        dropShadow: [
+          {
+            enabled: true,
+            size: { value: 5, units: 'Pixels' },
+            angle: 0,
+            distance: { value: 3, units: 'Pixels' },
+            color: { r: 0, g: 0, b: 0, a: 255 },
+          },
+        ],
+      } as LayerEffectsInfo;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      expect(result.effects![0].type).toBe('dropShadow');
+    });
+
+    test('should degrade radial gradient to linear', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects: LayerEffectsInfo = {
+        gradientOverlay: [
+          {
+            enabled: true,
+            type: 'radial' as any,
+            angle: 0,
+            gradient: {
+              type: 'solid' as const,
+              name: 'test',
+              colorStops: [
+                {
+                  color: { r: 255, g: 0, b: 0, a: 255 } as Color,
+                  location: 0,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 0, b: 255, a: 255 } as Color,
+                  location: 255,
+                  midpoint: 50,
+                },
+              ],
+              opacityStops: [],
+            },
+          },
+        ],
+      } as any;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      const gradEffect = result.effects![0] as any;
+      expect(gradEffect.type).toBe('gradient');
+      expect(gradEffect.gradientType).toBe('linear');
+      expect(gradEffect.degraded).toBe(true);
+    });
+
+    test('should degrade diagonal gradient angle', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects: LayerEffectsInfo = {
+        gradientOverlay: [
+          {
+            enabled: true,
+            type: 'linear' as any,
+            angle: 45,
+            gradient: {
+              type: 'solid' as const,
+              name: 'test',
+              colorStops: [
+                {
+                  color: { r: 255, g: 0, b: 0, a: 255 } as Color,
+                  location: 0,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 0, b: 255, a: 255 } as Color,
+                  location: 255,
+                  midpoint: 50,
+                },
+              ],
+              opacityStops: [],
+            },
+          },
+        ],
+      } as any;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      const gradEffect = result.effects![0] as any;
+      expect(gradEffect.type).toBe('gradient');
+      // 45 snaps to 90 (nearest cardinal)
+      expect(gradEffect.angle).toBe(90);
+      expect(gradEffect.degraded).toBe(true);
+    });
+
+    test('should degrade multi-stop gradient', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects: LayerEffectsInfo = {
+        gradientOverlay: [
+          {
+            enabled: true,
+            type: 'linear' as any,
+            angle: 90,
+            gradient: {
+              type: 'solid' as const,
+              name: 'test',
+              colorStops: [
+                {
+                  color: { r: 255, g: 0, b: 0, a: 255 } as Color,
+                  location: 0,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 255, b: 0, a: 255 } as Color,
+                  location: 128,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 0, b: 255, a: 255 } as Color,
+                  location: 255,
+                  midpoint: 50,
+                },
+              ],
+              opacityStops: [],
+            },
+          },
+        ],
+      } as any;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      const gradEffect = result.effects![0] as any;
+      expect(gradEffect.type).toBe('gradient');
+      // 3 color stops → 2
+      expect(gradEffect.colors.length).toBe(2);
+      expect(gradEffect.degraded).toBe(true);
+    });
+
+    test('no effects key when effects param is not provided', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const result = extractor.extract(textData);
+      expect(result.effects).toBeUndefined();
     });
   });
 });
