@@ -23,19 +23,26 @@ describe('Text Styles Extraction (Integration)', () => {
   const fixturesDir = path.resolve(__dirname, '..', 'fixtures');
   const textSamplePath = path.join(fixturesDir, 'text-sample.psd');
   const largeTextSamplePath = path.join(fixturesDir, 'large-text-sample.psd');
+  const demoPsdPath = path.resolve(__dirname, '..', '..', '..', 'UIArtifacts', 'psd', 'demo.psd');
 
   describe('Integration: parse a PSD with text layers', () => {
     it('should extract textStyles from text layers in a real PSD', async () => {
-      if (!fs.existsSync(textSamplePath)) {
+      // Prefer a dedicated text-sample fixture, fall back to the project demo PSD
+      let psdPath: string;
+      if (fs.existsSync(textSamplePath)) {
+        psdPath = textSamplePath;
+      } else if (fs.existsSync(demoPsdPath)) {
+        psdPath = demoPsdPath;
+      } else {
         console.warn(
-          `[SKIP] Fixture not found: ${textSamplePath}. ` +
-          'Place a PSD with text layers there to enable this test.',
+          `[SKIP] No PSD fixture found. ` +
+          `Place a PSD with text layers at ${textSamplePath} to enable this test.`,
         );
         return;
       }
 
       const parser = new PsdParser();
-      const result: LayerTree = await parser.parse(textSamplePath);
+      const result: LayerTree = await parser.parse(psdPath);
 
       expect(result).toBeDefined();
       expect(result.root).toBeDefined();
