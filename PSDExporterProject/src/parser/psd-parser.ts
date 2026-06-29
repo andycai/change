@@ -1,5 +1,5 @@
 // src/parser/psd-parser.ts
-import { readPsd, initializeCanvas, Psd, Layer as PsdLayer } from 'ag-psd';
+import { readPsd, initializeCanvas, Psd, Layer as PsdLayer, LayerTextData } from 'ag-psd';
 import { createCanvas } from 'canvas';
 import { readFile } from 'fs/promises';
 import { Layer, LayerTree, PsdMetadata, LayerType, Rect } from './layer-tree';
@@ -112,7 +112,7 @@ export class PsdParser {
 
     // If this is a text layer, extract text styles
     if (node.text) {
-      layer.textStyles = this.textStyleExtractor.extract(node.text as any);
+      layer.textStyles = this.textStyleExtractor.extract(node.text as LayerTextData);
     }
 
     // Export rasterized pixel data for image/shape layers when requested
