@@ -1,6 +1,7 @@
 import type { Color, Justification } from 'ag-psd';
 import type { LayerTextData } from 'ag-psd';
 import type { TextStyles, RGBA } from './layer-tree';
+import convert from 'color-convert';
 
 export class TextStyleExtractor {
   /** 默认字体大小 */
@@ -84,32 +85,112 @@ export class TextStyleExtractor {
   /**
    * 转换颜色
    *
-   * 将 ag-psd 的 Color 类型转换为内部 RGBA 格式。
-   * 当前为桩实现，将在后续任务中完善。
+   * 将 ag-psd 的 Color 联合类型转换为内部 RGBA 格式（归一化到 0-1 区间）。
    *
-   * @param _color - ag-psd 中的颜色值，可能为 undefined
-   * @returns 转换后的 RGBA 颜色对象
+   * 支持的颜色空间：
+   * - RGBA / RGB：直接取 r、g、b 分量，除以 255 归一化；
+   *   alpha 取自 a 分量除以 255，若未提供则默认为 1
+   * - CMYK：通过 color-convert 库转换为 RGB 后归一化，alpha 固定为 1
+   * - Lab：通过 color-convert 库转换为 RGB 后归一化，alpha 固定为 1
+   *
+   * 不支持的颜色空间（FRGB、HSB、Grayscale）将输出警告并返回默认颜色。
+   *
+   * @param color - ag-psd 中的颜色值，可能为 undefined
+   * @returns 转换后的 RGBA 颜色对象（各分量 0-1）
    */
-  private convertColor(_color: Color | undefined): RGBA {
-    // 将在任务 5 中实现
-    return { ...TextStyleExtractor.DEFAULT_COLOR };
+  private convertColor(color: Color | undefined): RGBA {
+    if (color === undefined || color === null) {
+      return { ...TextStyleExtractor.DEFAULT_COLOR };
+    }
+
+    try {
+      // Lab 颜色空间：具有 l、a、b 三个键
+      // 注意：必须先检测 Lab，因为其 a 键与 RGBA 的 a 键在 in 检查中会产生歧义
+      if ('l' in color && 'a' in color && 'b' in color) {
+        const [r, g, b] = convert.lab.rgb([color.l, color.a, color.b]);
+        return { r: r / 255, g: g / 255, b: b / 255, a: 1 };
+      }
+
+      // RGBA / RGB 颜色空间：具有 r、g、b 三个键
+      if ('r' in color && 'g' in color && 'b' in color) {
+        const a = 'a' in color ? (color as { a: number }).a / 255 : 1;
+        return { r: color.r / 255, g: color.g / 255, b: color.b / 255, a };
+      }
+
+      // CMYK 颜色空间：具有 c、m、y、k 四个键
+      if ('c' in color && 'm' in color && 'y' in color && 'k' in color) {
+        const [r, g, b] = convert.cmyk.rgb([
+          color.c * 100,
+          color.m * 100,
+          color.y * 100,
+          color.k * 100
+        ]);
+        return { r: r / 255, g: g / 255, b: b / 255, a: 1 };
+      }
+
+      // 不支持的颜色空间
+      console.warn(
+        `[TextStyleExtractor] 不支持的颜色空间，已回退为默认颜色：${JSON.stringify(color)}`
+      );
+      return { ...TextStyleExtractor.DEFAULT_COLOR };
+    } catch (error) {
+      console.error(
+        `[TextStyleExtractor] 颜色转换失败，已回退为默认颜色：${error}`
+      );
+      return { ...TextStyleExtractor.DEFAULT_COLOR };
+    }
   }
 
   /**
    * 转换文本对齐方式
    *
-   * 将 ag-psd 的对齐类型和形状类型转换为内部对齐格式。
-   * 当前为桩实现，将在后续任务中完善。
+   * 将 ag-psd 的 Justification（段落对齐）和 shapeType（文本形状类型）
+   * 映射为内部的水平/垂直对齐格式。
    *
-   * @param _justification - PSD 段落对齐类型，可能为 undefined
-   * @param _shapeType - PSD 文本形状类型（'point' | 'box'），可能为 undefined
+   * 水平映射规则：
+   * - 'center' → 'center'
+   * - 'right' → 'right'
+   * - 'justify-left'/'justify-right'/'justify-center'/'justify-all' → 'justify'
+   * - 'left' 或 undefined / 未知值 → 'left'
+   *
+   * 垂直映射规则：
+   * - shapeType 为 'box' 时 → 'middle'（文本框内垂直居中）
+   * - 其他情况（'point' 或 undefined）→ 'top'
+   *
+   * @param justification - PSD 段落对齐类型，可能为 undefined
+   * @param shapeType - PSD 文本形状类型（'point' | 'box'），可能为 undefined
    * @returns 转换后的对齐方式对象
    */
   private convertAlignment(
-    _justification: Justification | undefined,
-    _shapeType: 'point' | 'box' | undefined
+    justification: Justification | undefined,
+    shapeType: 'point' | 'box' | undefined
   ): TextStyles['alignment'] {
-    // 将在任务 5 中实现
-    return { ...TextStyleExtractor.DEFAULT_ALIGNMENT };
+    let horizontal: TextStyles['alignment']['horizontal'] = 'left';
+
+    if (justification) {
+      switch (justification) {
+        case 'center':
+          horizontal = 'center';
+          break;
+        case 'right':
+          horizontal = 'right';
+          break;
+        case 'justify-left':
+        case 'justify-right':
+        case 'justify-center':
+        case 'justify-all':
+          horizontal = 'justify';
+          break;
+        case 'left':
+        default:
+          horizontal = 'left';
+          break;
+      }
+    }
+
+    const vertical: TextStyles['alignment']['vertical'] =
+      shapeType === 'box' ? 'middle' : 'top';
+
+    return { horizontal, vertical };
   }
 }
