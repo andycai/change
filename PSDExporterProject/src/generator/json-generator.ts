@@ -56,6 +56,7 @@ export class JsonGenerator {
       opacity: layer.opacity,
     };
     if (layer.assetPath) config.assetPath = layer.assetPath;
+    if (layer.textStyles) config.textStyles = layer.textStyles;
     if (layer.children && layer.children.length > 0) {
       config.children = [];
       for (const child of layer.children) {
