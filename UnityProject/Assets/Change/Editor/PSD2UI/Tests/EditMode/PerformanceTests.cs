@@ -42,22 +42,28 @@ namespace Change.Editor.PSD2UI.Tests
             UnityEngine.Debug.Log($"- Generation time: {stopwatch.ElapsedMilliseconds}ms");
             UnityEngine.Debug.Log($"- Avg per component: {stopwatch.ElapsedMilliseconds / (float)textComponents.Length:F2}ms");
 
-            Assert.GreaterOrEqual(textComponents.Length, 50, "Should have at least 50 text components");
-            Assert.Less(stopwatch.ElapsedMilliseconds, 5000, "Should complete in under 5 seconds");
-
-            // Clean up material assets created by ApplyEffects before destroying the root object
-            foreach (var tmp in textComponents)
+            try
             {
-                var mat = tmp.fontSharedMaterial;
-                if (mat != null)
-                {
-                    var assetPath = AssetDatabase.GetAssetPath(mat);
-                    if (!string.IsNullOrEmpty(assetPath))
-                        AssetDatabase.DeleteAsset(assetPath);
-                }
+                Assert.GreaterOrEqual(textComponents.Length, 50, "Should have at least 50 text components");
+                Assert.Less(stopwatch.ElapsedMilliseconds, 5000, "Should complete in under 5 seconds");
             }
+            finally
+            {
+                // Clean up material assets created by ApplyEffects before destroying the root object.
+                // Using finally ensures cleanup runs even when an assertion above fails.
+                foreach (var tmp in textComponents)
+                {
+                    var mat = tmp.fontSharedMaterial;
+                    if (mat != null)
+                    {
+                        var assetPath = AssetDatabase.GetAssetPath(mat);
+                        if (!string.IsNullOrEmpty(assetPath))
+                            AssetDatabase.DeleteAsset(assetPath);
+                    }
+                }
 
-            Object.DestroyImmediate(rootObject);
+                Object.DestroyImmediate(rootObject);
+            }
         }
 
         [Test]
@@ -104,20 +110,26 @@ namespace Change.Editor.PSD2UI.Tests
 
             stopwatch.Stop();
 
-            // 期望：单个组件应用时间 < 100ms
-            Assert.Less(stopwatch.ElapsedMilliseconds, 100,
-                $"Single component should apply in under 100ms, took {stopwatch.ElapsedMilliseconds}ms");
-
-            // Clean up material assets created by ApplyEffects before destroying the game object
-            var mat = tmpComponent.fontSharedMaterial;
-            if (mat != null)
+            try
             {
-                var assetPath = AssetDatabase.GetAssetPath(mat);
-                if (!string.IsNullOrEmpty(assetPath))
-                    AssetDatabase.DeleteAsset(assetPath);
+                // 期望：单个组件应用时间 < 100ms
+                Assert.Less(stopwatch.ElapsedMilliseconds, 100,
+                    $"Single component should apply in under 100ms, took {stopwatch.ElapsedMilliseconds}ms");
             }
+            finally
+            {
+                // Clean up material assets created by ApplyEffects before destroying the game object.
+                // Using finally ensures cleanup runs even when the assertion above fails.
+                var mat = tmpComponent.fontSharedMaterial;
+                if (mat != null)
+                {
+                    var assetPath = AssetDatabase.GetAssetPath(mat);
+                    if (!string.IsNullOrEmpty(assetPath))
+                        AssetDatabase.DeleteAsset(assetPath);
+                }
 
-            Object.DestroyImmediate(gameObject);
+                Object.DestroyImmediate(gameObject);
+            }
         }
     }
 }

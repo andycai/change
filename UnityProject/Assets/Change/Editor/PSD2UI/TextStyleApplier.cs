@@ -367,6 +367,8 @@ namespace Change.Editor.PSD2UI
             ));
             mat.SetFloat("_UnderlayOffsetX", innerShadow.offsetX / 100f);
             mat.SetFloat("_UnderlayOffsetY", innerShadow.offsetY / 100f);
+            // blur maps to underlay softness (same as drop shadow)
+            mat.SetFloat("_UnderlaySoftness", innerShadow.blur / 10f);
         }
 
         private void ApplyOuterGlow(Material mat, GlowEffectData glow)
@@ -382,6 +384,7 @@ namespace Change.Editor.PSD2UI
             mat.SetFloat("_GlowOffset", glow.size / 10f);
             mat.SetFloat("_GlowOuter", 1.0f);
             mat.SetFloat("_GlowPower", 0.75f);
+            mat.SetFloat("_GlowInner", glow.spread / 10f);
         }
 
         private void ApplyGradient(Material mat, TextMeshProUGUI tmp, GradientEffectData gradient)
@@ -429,6 +432,14 @@ namespace Change.Editor.PSD2UI
                 bevel.highlightColor.b,
                 bevel.highlightColor.a
             ));
+            mat.SetFloat("_BevelClamp", bevel.depth / 100f);
+            if (bevel.shadowColor != null)
+                mat.SetColor("_ReflectColor", new Color(
+                    bevel.shadowColor.r,
+                    bevel.shadowColor.g,
+                    bevel.shadowColor.b,
+                    bevel.shadowColor.a
+                ));
         }
 
         /// <summary>
