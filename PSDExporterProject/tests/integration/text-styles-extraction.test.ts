@@ -31,8 +31,6 @@ describe('Text Styles Extraction (Integration)', () => {
 
   describe('Integration: parse a PSD with text layers', () => {
     test('should extract textStyles from text layers in a real PSD', async () => {
-      expect.hasAssertions();
-
       // Prefer a dedicated text-sample fixture, fall back to the project demo PSD
       let psdPath: string;
       if (fs.existsSync(textSamplePath)) {
@@ -44,6 +42,7 @@ describe('Text Styles Extraction (Integration)', () => {
           `[SKIP] No PSD fixture found. ` +
           `Place a PSD with text layers at ${textSamplePath} to enable this test.`,
         );
+        expect.assertions(0);
         return;
       }
 
