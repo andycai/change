@@ -5,6 +5,7 @@ import { LayerTree } from '../../src/parser/layer-tree';
 
 // Mock ag-psd
 jest.mock('ag-psd', () => ({
+  initializeCanvas: jest.fn(),
   readPsd: jest.fn(() => ({
     width: 1920,
     height: 1080,
@@ -16,7 +17,7 @@ jest.mock('ag-psd', () => ({
         top: 50,
         right: 180,
         bottom: 130,
-        opacity: 255,
+        opacity: 1,
         hidden: false,
         children: [
           {
@@ -25,7 +26,7 @@ jest.mock('ag-psd', () => ({
             top: 50,
             right: 180,
             bottom: 130,
-            opacity: 255,
+            opacity: 1,
             imageData: {},
           },
         ],
@@ -44,6 +45,12 @@ jest.mock('fs/promises', () => ({
 jest.mock('fs', () => ({
   existsSync: jest.fn(() => true),
 }));
+
+jest.mock('sharp', () =>
+  jest.fn(() => ({
+    toFile: jest.fn(() => Promise.resolve()),
+  })),
+);
 
 // Import mocked modules for per-test overrides and call verification
 import * as agPsd from 'ag-psd';
@@ -178,9 +185,9 @@ describe('AssetExporter', () => {
         opacity: 1.0,
       };
 
-      // export() still throws "Not implemented" after mkdir — we catch it
-      await expect(exporter.export(layer, '/output')).rejects.toThrow(
-        'Not implemented'
+      await exporter.export(
+        { ...layer, _canvas: { width: 100, height: 100, toBuffer: jest.fn(() => Buffer.from('png')) } },
+        '/output',
       );
       expect(mockedMkdir).toHaveBeenCalledWith('/output', { recursive: true });
     });
@@ -197,8 +204,9 @@ describe('AssetExporter', () => {
         opacity: 1.0,
       };
 
-      await expect(exporter.export(layer, '/output')).rejects.toThrow(
-        'Not implemented'
+      await exporter.export(
+        { ...layer, _canvas: { width: 100, height: 100, toBuffer: jest.fn(() => Buffer.from('png')) } },
+        '/output',
       );
       expect(mockedMkdir).not.toHaveBeenCalled();
     });

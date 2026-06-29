@@ -1,0 +1,1205 @@
+{
+  "metadata": {
+    "psdPath": "../UIArtifacts/psd/demo.psd",
+    "canvasSize": {
+      "x": 0,
+      "y": 0,
+      "width": 750,
+      "height": 1334
+    },
+    "timestamp": "2026-06-29T13:11:29.818Z",
+    "generatedAt": "2026-06-29T13:11:29.972Z",
+    "generator": "psd-exporter",
+    "version": "1.0.0"
+  },
+  "layers": [
+    {
+      "id": "root",
+      "name": "Unnamed",
+      "type": "group",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 750,
+        "height": 1334
+      },
+      "visible": true,
+      "opacity": 1,
+      "children": [
+        {
+          "id": "root_0",
+          "name": "BgColor.fillcolor",
+          "type": "shape",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 750,
+            "height": 1334
+          },
+          "visible": true,
+          "opacity": 1,
+          "assetPath": "../UIArtifacts/ui/BgColor.fillcolor_root_0.png"
+        },
+        {
+          "id": "root_1",
+          "name": "CircleFilled.filled",
+          "type": "shape",
+          "bounds": {
+            "x": 612,
+            "y": 604,
+            "width": 131,
+            "height": 131
+          },
+          "visible": true,
+          "opacity": 1,
+          "assetPath": "../UIArtifacts/ui/CircleFilled.filled_root_1.png"
+        },
+        {
+          "id": "root_2",
+          "name": "Buttons",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_2_0",
+              "name": "BlackBt.tmpbtn",
+              "type": "group",
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0
+              },
+              "visible": true,
+              "opacity": 1,
+              "children": [
+                {
+                  "id": "root_2_0_0",
+                  "name": "ButtonBlack",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 419,
+                    "y": 1183,
+                    "width": 181,
+                    "height": 51
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/ButtonBlack_root_2_0_0.png"
+                },
+                {
+                  "id": "root_2_0_1",
+                  "name": "TMPButton",
+                  "type": "text",
+                  "bounds": {
+                    "x": 426,
+                    "y": 1197,
+                    "width": 164,
+                    "height": 26
+                  },
+                  "visible": true,
+                  "opacity": 1
+                }
+              ]
+            },
+            {
+              "id": "root_2_1",
+              "name": "BlueBt.btn",
+              "type": "group",
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0
+              },
+              "visible": true,
+              "opacity": 1,
+              "children": [
+                {
+                  "id": "root_2_1_0",
+                  "name": "ButtonBule",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 149,
+                    "y": 1186,
+                    "width": 181,
+                    "height": 51
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/ButtonBule_root_2_1_0.png"
+                },
+                {
+                  "id": "root_2_1_1",
+                  "name": "ButtonTxt",
+                  "type": "text",
+                  "bounds": {
+                    "x": 194,
+                    "y": 1201,
+                    "width": 96,
+                    "height": 26
+                  },
+                  "visible": true,
+                  "opacity": 1
+                }
+              ]
+            },
+            {
+              "id": "root_2_2",
+              "name": "RefBlueBt.btn",
+              "type": "group",
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0
+              },
+              "visible": true,
+              "opacity": 1,
+              "children": [
+                {
+                  "id": "root_2_2_0",
+                  "name": "ref ButtonBule",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 280,
+                    "y": 1252,
+                    "width": 181,
+                    "height": 51
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/ref_ButtonBule_root_2_2_0.png"
+                },
+                {
+                  "id": "root_2_2_1",
+                  "name": "ButtonTxt",
+                  "type": "text",
+                  "bounds": {
+                    "x": 325,
+                    "y": 1267,
+                    "width": 96,
+                    "height": 26
+                  },
+                  "visible": true,
+                  "opacity": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "root_3",
+          "name": "ScrollView.sv",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_3_0",
+              "name": "Panel.bg",
+              "type": "shape",
+              "bounds": {
+                "x": 149,
+                "y": 394,
+                "width": 450,
+                "height": 341
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/Panel.bg_root_3_0.png"
+            },
+            {
+              "id": "root_3_1",
+              "name": "ref VbarBG.vbarbg",
+              "type": "shape",
+              "bounds": {
+                "x": 570,
+                "y": 394,
+                "width": 30,
+                "height": 341
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/ref_VbarBG.vbarbg_root_3_1.png"
+            },
+            {
+              "id": "root_3_2",
+              "name": "ref VbarFill.vbar",
+              "type": "shape",
+              "bounds": {
+                "x": 570,
+                "y": 394,
+                "width": 30,
+                "height": 30
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/ref_VbarFill.vbar_root_3_2.png"
+            },
+            {
+              "id": "root_3_3",
+              "name": "Scroll View Title",
+              "type": "text",
+              "bounds": {
+                "x": 187,
+                "y": 526,
+                "width": 352,
+                "height": 62
+              },
+              "visible": true,
+              "opacity": 0.30196078431372547
+            }
+          ]
+        },
+        {
+          "id": "root_4",
+          "name": "Slider.sld",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_4_0",
+              "name": "SliderBg",
+              "type": "shape",
+              "bounds": {
+                "x": 148,
+                "y": 1140,
+                "width": 454,
+                "height": 24
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/SliderBg_root_4_0.png"
+            },
+            {
+              "id": "root_4_1",
+              "name": "SliderFill.fill",
+              "type": "shape",
+              "bounds": {
+                "x": 150,
+                "y": 1142,
+                "width": 30,
+                "height": 20
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/SliderFill.fill_root_4_1.png"
+            },
+            {
+              "id": "root_4_2",
+              "name": "SliderTitle.tmptxt",
+              "type": "text",
+              "bounds": {
+                "x": 310,
+                "y": 1103,
+                "width": 81,
+                "height": 27
+              },
+              "visible": true,
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "id": "root_5",
+          "name": "Gradient.tmptxt",
+          "type": "text",
+          "bounds": {
+            "x": 374,
+            "y": 242,
+            "width": 226,
+            "height": 55
+          },
+          "visible": true,
+          "opacity": 1
+        },
+        {
+          "id": "root_6",
+          "name": "Glow.tmptxt",
+          "type": "text",
+          "bounds": {
+            "x": 120,
+            "y": 242,
+            "width": 128,
+            "height": 55
+          },
+          "visible": true,
+          "opacity": 1
+        },
+        {
+          "id": "root_7",
+          "name": "Bevel.tmptxt",
+          "type": "text",
+          "bounds": {
+            "x": 454,
+            "y": 183,
+            "width": 143,
+            "height": 54
+          },
+          "visible": true,
+          "opacity": 1
+        },
+        {
+          "id": "root_8",
+          "name": "InnerGlow.tmptxt",
+          "type": "text",
+          "bounds": {
+            "x": 120,
+            "y": 176,
+            "width": 268,
+            "height": 55
+          },
+          "visible": true,
+          "opacity": 1
+        },
+        {
+          "id": "root_9",
+          "name": "Shadow",
+          "type": "text",
+          "bounds": {
+            "x": 119,
+            "y": 108,
+            "width": 209,
+            "height": 55
+          },
+          "visible": true,
+          "opacity": 1
+        },
+        {
+          "id": "root_10",
+          "name": "Outline",
+          "type": "text",
+          "bounds": {
+            "x": 412,
+            "y": 109,
+            "width": 186,
+            "height": 55
+          },
+          "visible": true,
+          "opacity": 1
+        },
+        {
+          "id": "root_11",
+          "name": "Logo.img",
+          "type": "shape",
+          "bounds": {
+            "x": 117,
+            "y": 14,
+            "width": 491,
+            "height": 82
+          },
+          "visible": true,
+          "opacity": 1,
+          "assetPath": "../UIArtifacts/ui/Logo.img_root_11.png"
+        },
+        {
+          "id": "root_12",
+          "name": "Toggle.tg",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_12_0",
+              "name": "ToggleBg.bg",
+              "type": "shape",
+              "bounds": {
+                "x": 216,
+                "y": 310,
+                "width": 76,
+                "height": 76
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/ToggleBg.bg_root_12_0.png"
+            },
+            {
+              "id": "root_12_1",
+              "name": "Mark.img.mark",
+              "type": "shape",
+              "bounds": {
+                "x": 232,
+                "y": 319,
+                "width": 41,
+                "height": 61
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/Mark.img.mark_root_12_1.png"
+            },
+            {
+              "id": "root_12_2",
+              "name": "ToggleLabel.label",
+              "type": "text",
+              "bounds": {
+                "x": 303,
+                "y": 328,
+                "width": 156,
+                "height": 52
+              },
+              "visible": true,
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "id": "root_13",
+          "name": "InputField.ipt",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_13_0",
+              "name": "Input.bg",
+              "type": "shape",
+              "bounds": {
+                "x": 148,
+                "y": 755,
+                "width": 452,
+                "height": 60
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/Input.bg_root_13_0.png"
+            },
+            {
+              "id": "root_13_1",
+              "name": "Placeholder.tips",
+              "type": "text",
+              "bounds": {
+                "x": 166,
+                "y": 772,
+                "width": 163,
+                "height": 32
+              },
+              "visible": true,
+              "opacity": 0.30196078431372547
+            },
+            {
+              "id": "root_13_2",
+              "name": "Label.iptlb",
+              "type": "text",
+              "bounds": {
+                "x": 169,
+                "y": 773,
+                "width": 76,
+                "height": 27
+              },
+              "visible": true,
+              "opacity": 0.8
+            }
+          ]
+        },
+        {
+          "id": "root_14",
+          "name": "Dropdown.dpd",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_14_0",
+              "name": "DropdownBg.bg",
+              "type": "shape",
+              "bounds": {
+                "x": 148,
+                "y": 832,
+                "width": 452,
+                "height": 60
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/DropdownBg.bg_root_14_0.png"
+            },
+            {
+              "id": "root_14_1",
+              "name": "DropdownLabel.label",
+              "type": "text",
+              "bounds": {
+                "x": 168,
+                "y": 845,
+                "width": 171,
+                "height": 37
+              },
+              "visible": true,
+              "opacity": 1
+            },
+            {
+              "id": "root_14_2",
+              "name": "Arrow.img.dpdicon",
+              "type": "shape",
+              "bounds": {
+                "x": 553,
+                "y": 843,
+                "width": 31,
+                "height": 45
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/Arrow.img.dpdicon_root_14_2.png"
+            },
+            {
+              "id": "root_14_3",
+              "name": "DropdownListView.sv",
+              "type": "group",
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0
+              },
+              "visible": true,
+              "opacity": 1,
+              "children": [
+                {
+                  "id": "root_14_3_0",
+                  "name": "list.bg",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 148,
+                    "y": 892,
+                    "width": 452,
+                    "height": 200
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/list.bg_root_14_3_0.png"
+                },
+                {
+                  "id": "root_14_3_1",
+                  "name": "ref VbarBG.vbarbg",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 580,
+                    "y": 892,
+                    "width": 20,
+                    "height": 200
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/ref_VbarBG.vbarbg_root_14_3_1.png"
+                },
+                {
+                  "id": "root_14_3_2",
+                  "name": "VbarFill.vbar",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 580,
+                    "y": 892,
+                    "width": 20,
+                    "height": 20
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/VbarFill.vbar_root_14_3_2.png"
+                }
+              ]
+            },
+            {
+              "id": "root_14_4",
+              "name": "DropdownItem.tg",
+              "type": "group",
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0
+              },
+              "visible": true,
+              "opacity": 1,
+              "children": [
+                {
+                  "id": "root_14_4_0",
+                  "name": "ToggleBg.bg",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 163,
+                    "y": 909,
+                    "width": 45,
+                    "height": 45
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/ToggleBg.bg_root_14_4_0.png"
+                },
+                {
+                  "id": "root_14_4_1",
+                  "name": "Mark.img.mark",
+                  "type": "shape",
+                  "bounds": {
+                    "x": 168,
+                    "y": 919,
+                    "width": 33,
+                    "height": 31
+                  },
+                  "visible": true,
+                  "opacity": 1,
+                  "assetPath": "../UIArtifacts/ui/Mark.img.mark_root_14_4_1.png"
+                },
+                {
+                  "id": "root_14_4_2",
+                  "name": "ToggleLabel.label",
+                  "type": "text",
+                  "bounds": {
+                    "x": 227,
+                    "y": 916,
+                    "width": 247,
+                    "height": 37
+                  },
+                  "visible": true,
+                  "opacity": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "root_15",
+          "name": "Common",
+          "type": "group",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "visible": true,
+          "opacity": 1,
+          "children": [
+            {
+              "id": "root_15_0",
+              "name": "VbarBG.sliced",
+              "type": "shape",
+              "bounds": {
+                "x": 666,
+                "y": 864,
+                "width": 20,
+                "height": 20
+              },
+              "visible": true,
+              "opacity": 1,
+              "assetPath": "../UIArtifacts/ui/VbarBG.sliced_root_15_0.png"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "layerId": "root",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_0",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_1",
+      "component": {
+        "type": "Unknown",
+        "imageType": "filled",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_0",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_0_0",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_0_1",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_1",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_1_0",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_1_1",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_2",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_2_0",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_2_2_1",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_3",
+      "component": {
+        "type": "ScrollView",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_3_0",
+      "component": {
+        "type": "Unknown",
+        "role": "bg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_3_1",
+      "component": {
+        "type": "Unknown",
+        "role": "vbarbg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_3_2",
+      "component": {
+        "type": "Unknown",
+        "role": "vbar",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_3_3",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_4",
+      "component": {
+        "type": "Slider",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_4_0",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_4_1",
+      "component": {
+        "type": "Unknown",
+        "role": "fill",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_4_2",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_5",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_6",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_7",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_8",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_9",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_10",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_11",
+      "component": {
+        "type": "Image",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_12",
+      "component": {
+        "type": "Toggle",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_12_0",
+      "component": {
+        "type": "Unknown",
+        "role": "bg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_12_1",
+      "component": {
+        "type": "Image",
+        "role": "mark",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_12_2",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_13",
+      "component": {
+        "type": "InputField",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_13_0",
+      "component": {
+        "type": "Unknown",
+        "role": "bg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_13_1",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_13_2",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14",
+      "component": {
+        "type": "Dropdown",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_0",
+      "component": {
+        "type": "Unknown",
+        "role": "bg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_1",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_2",
+      "component": {
+        "type": "Image",
+        "role": "dpdicon",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_3",
+      "component": {
+        "type": "ScrollView",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_3_0",
+      "component": {
+        "type": "Unknown",
+        "role": "bg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_3_1",
+      "component": {
+        "type": "Unknown",
+        "role": "vbarbg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_3_2",
+      "component": {
+        "type": "Unknown",
+        "role": "vbar",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_4",
+      "component": {
+        "type": "Toggle",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_4_0",
+      "component": {
+        "type": "Unknown",
+        "role": "bg",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_4_1",
+      "component": {
+        "type": "Image",
+        "role": "mark",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_14_4_2",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_15",
+      "component": {
+        "type": "Unknown",
+        "confidence": 0,
+        "source": "ai",
+        "needsReview": false
+      }
+    },
+    {
+      "layerId": "root_15_0",
+      "component": {
+        "type": "Unknown",
+        "imageType": "sliced",
+        "confidence": 1,
+        "source": "tag",
+        "needsReview": false
+      }
+    }
+  ]
+}

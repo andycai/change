@@ -105,7 +105,7 @@ export class PsdParser {
       bounds,
       visible: node.hidden !== true,
       opacity:
-        node.opacity !== undefined ? node.opacity / 255 : 1.0,
+        node.opacity !== undefined ? node.opacity : 1.0,
     };
 
     // Export rasterized pixel data for image/shape layers when requested

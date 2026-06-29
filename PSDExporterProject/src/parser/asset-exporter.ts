@@ -11,6 +11,10 @@ export class AssetExporter {
    * The layer must have a `_canvas` property set by the PSD parser.
    */
   async export(layer: Layer & { _canvas?: unknown }, outputDir: string): Promise<string> {
+    if (layer.type !== 'image' && layer.type !== 'shape') {
+      throw new Error(`Cannot export layer type: ${layer.type}`);
+    }
+
     // Ensure output directory exists
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });

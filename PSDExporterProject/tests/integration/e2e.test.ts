@@ -13,36 +13,39 @@ jest.mock('ag-psd', () => {
     return {
       width: 1920, height: 1080, name: 'main-menu.psd',
       children: [
-        { name: 'panel_bg.img', left: 0, top: 0, right: 1920, bottom: 1080, opacity: 255, hidden: false, imageData: {} },
-        { name: 'title.txt', left: 400, top: 50, right: 1520, bottom: 150, opacity: 255, text: {} },
-        { name: 'button_list.vbox', left: 600, top: 300, right: 1320, bottom: 800, opacity: 255,
+        { name: 'panel_bg.img', left: 0, top: 0, right: 1920, bottom: 1080, opacity: 1, hidden: false, imageData: {} },
+        { name: 'title.txt', left: 400, top: 50, right: 1520, bottom: 150, opacity: 1, text: {} },
+        { name: 'button_list.vbox', left: 600, top: 300, right: 1320, bottom: 800, opacity: 1,
           children: [
-            { name: 'start.bt', left: 600, top: 300, right: 1320, bottom: 400, opacity: 255, imageData: {} },
-            { name: 'settings.bt', left: 600, top: 420, right: 1320, bottom: 520, opacity: 255, imageData: {} },
-            { name: 'quit.bt', left: 600, top: 540, right: 1320, bottom: 640, opacity: 255, imageData: {} },
+            { name: 'start.bt', left: 600, top: 300, right: 1320, bottom: 400, opacity: 1, imageData: {} },
+            { name: 'settings.bt', left: 600, top: 420, right: 1320, bottom: 520, opacity: 1, imageData: {} },
+            { name: 'quit.bt', left: 600, top: 540, right: 1320, bottom: 640, opacity: 1, imageData: {} },
           ],
         },
-        { name: 'shop_list.sv', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 255,
+        { name: 'shop_list.sv', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 1,
           children: [
-            { name: 'items_container', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 255,
+            { name: 'items_container', left: 50, top: 850, right: 1870, bottom: 1050, opacity: 1,
               children: [
-                { name: 'item1.img', left: 50, top: 850, right: 250, bottom: 1050, opacity: 255, imageData: {} },
-                { name: 'item2.img', left: 270, top: 850, right: 470, bottom: 1050, opacity: 255, imageData: {} },
-                { name: 'item3.img', left: 490, top: 850, right: 690, bottom: 1050, opacity: 255, imageData: {} },
+                { name: 'item1.img', left: 50, top: 850, right: 250, bottom: 1050, opacity: 1, imageData: {} },
+                { name: 'item2.img', left: 270, top: 850, right: 470, bottom: 1050, opacity: 1, imageData: {} },
+                { name: 'item3.img', left: 490, top: 850, right: 690, bottom: 1050, opacity: 1, imageData: {} },
               ],
             },
           ],
         },
-        { name: 'search.ipt', left: 200, top: 200, right: 800, bottom: 260, opacity: 255, text: {} },
-        { name: 'debug_tools.hbox', left: 0, top: 0, right: 1920, bottom: 100, opacity: 128, hidden: true,
+        { name: 'search.ipt', left: 200, top: 200, right: 800, bottom: 260, opacity: 1, text: {} },
+        { name: 'debug_tools.hbox', left: 0, top: 0, right: 1920, bottom: 100, opacity: 128 / 255, hidden: true,
           children: [
-            { name: 'debug1.bt', left: 0, top: 0, right: 200, bottom: 100, opacity: 128, hidden: true, imageData: {} },
+            { name: 'debug1.bt', left: 0, top: 0, right: 200, bottom: 100, opacity: 128 / 255, hidden: true, imageData: {} },
           ],
         },
       ],
     };
   }
-  return { readPsd: jest.fn(() => createMockPsd()) };
+  return {
+    initializeCanvas: jest.fn(),
+    readPsd: jest.fn(() => createMockPsd()),
+  };
 });
 
 jest.mock('fs/promises', () => ({
