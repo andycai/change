@@ -3,6 +3,7 @@ using UnityEngine;
 using TMPro;
 using Change.Editor.PSD2UI;
 using Change.Runtime.PSD2UI;
+using UnityEditor;
 
 namespace Change.Editor.PSD2UI.Tests
 {
@@ -55,6 +56,18 @@ namespace Change.Editor.PSD2UI.Tests
         [TearDown]
         public void TearDown()
         {
+            // Clean up Material assets created by CreateMaterial() before
+            // destroying the GameObject, so the material reference is still
+            // valid when we ask AssetDatabase for its path.
+            if (_tmpComponent != null && _tmpComponent.fontSharedMaterial != null)
+            {
+                var matPath = AssetDatabase.GetAssetPath(_tmpComponent.fontSharedMaterial);
+                if (!string.IsNullOrEmpty(matPath))
+                {
+                    AssetDatabase.DeleteAsset(matPath);
+                }
+            }
+
             if (_testObject != null)
             {
                 Object.DestroyImmediate(_testObject);
@@ -655,10 +668,6 @@ namespace Change.Editor.PSD2UI.Tests
             var textStyles = new TextStylesData
             {
                 fontSize = 24,
-                color = new ColorData { r = 1, g = 1, b = 1, a = 1 },
-                fontName = "Arial",
-                fontStyle = new FontStyleData { bold = false, italic = false },
-                alignment = new AlignmentData { horizontal = "left", vertical = "top" },
                 effects = new TextEffectData[]
                 {
                     new StrokeEffectData
@@ -672,11 +681,11 @@ namespace Change.Editor.PSD2UI.Tests
                 }
             };
 
-            _applier.ApplyBasicProperties(_tmpComponent, textStyles, "test_layer");
-            _applier.ApplyEffects(_tmpComponent, textStyles.effects, "test_layer", "layer_001");
+            _applier.ApplyEffects(_tmpComponent, textStyles.effects, "test_layer", "naming_001");
 
-            Assert.IsNotNull(_tmpComponent.fontSharedMaterial);
-            Assert.IsTrue(_tmpComponent.fontSharedMaterial.name.Contains("TMP_test_layer_layer_001_Material"));
+            Assert.IsNotNull(_tmpComponent.fontSharedMaterial,
+                "Material should have been created");
+            Assert.IsTrue(_tmpComponent.fontSharedMaterial.name.Contains("TMP_test_layer_naming_001_Material"));
         }
 
         [Test]
@@ -694,10 +703,11 @@ namespace Change.Editor.PSD2UI.Tests
                 }
             };
 
-            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "stroke_001");
 
             var mat = _tmpComponent.fontSharedMaterial;
-            Assert.AreEqual(3, mat.GetFloat("_OutlineWidth"));
+            Assert.IsNotNull(mat, "Material should have been created");
+            Assert.AreEqual(3f, mat.GetFloat("_OutlineWidth"));
             Assert.AreEqual(new Color(1, 0, 0, 1), mat.GetColor("_OutlineColor"));
         }
 
@@ -717,9 +727,10 @@ namespace Change.Editor.PSD2UI.Tests
                 }
             };
 
-            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "shadow_001");
 
             var mat = _tmpComponent.fontSharedMaterial;
+            Assert.IsNotNull(mat, "Material should have been created");
             Assert.AreEqual(new Color(0, 0, 0, 0.5f), mat.GetColor("_UnderlayColor"));
             Assert.AreEqual(2f / 100f, mat.GetFloat("_UnderlayOffsetX"), 0.001f);
             Assert.AreEqual(-2f / 100f, mat.GetFloat("_UnderlayOffsetY"), 0.001f);
@@ -740,9 +751,10 @@ namespace Change.Editor.PSD2UI.Tests
                 }
             };
 
-            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "glow_001");
 
             var mat = _tmpComponent.fontSharedMaterial;
+            Assert.IsNotNull(mat, "Material should have been created");
             Assert.AreEqual(new Color(1, 1, 0, 1), mat.GetColor("_GlowColor"));
             Assert.AreEqual(5f / 10f, mat.GetFloat("_GlowOffset"), 0.001f);
         }
@@ -767,10 +779,18 @@ namespace Change.Editor.PSD2UI.Tests
                 }
             };
 
-            _applier.ApplyEffects(_tmpComponent, effects, "test", "001");
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "gradient_001");
 
+            Assert.IsNotNull(_tmpComponent.fontSharedMaterial,
+                "Material should have been created");
             Assert.IsTrue(_tmpComponent.enableVertexGradient);
-            Assert.AreEqual(new Color(1, 1, 0, 1), _tmpComponent.colorGradient.topLeft);
+            // angle=90 produces VertexGradient(color1, color1, color2, color2)
+            var color1 = new Color(1, 1, 0, 1);
+            var color2 = new Color(1, 0.5f, 0, 1);
+            Assert.AreEqual(color1, _tmpComponent.colorGradient.topLeft);
+            Assert.AreEqual(color1, _tmpComponent.colorGradient.topRight);
+            Assert.AreEqual(color2, _tmpComponent.colorGradient.bottomLeft);
+            Assert.AreEqual(color2, _tmpComponent.colorGradient.bottomRight);
         }
     }
 }
