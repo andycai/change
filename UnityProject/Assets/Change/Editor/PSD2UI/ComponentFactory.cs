@@ -66,5 +66,19 @@ namespace Change.Editor.PSD2UI
                     return null;
             }
         }
+
+        /// <summary>
+        /// Creates a UI component for the given node if its type is configured
+        /// (non-null, non-empty, and not "Container"). Returns null otherwise.
+        /// </summary>
+        /// <param name="node">The UINodeData describing the UI element.</param>
+        /// <param name="target">The GameObject to add the component to.</param>
+        /// <returns>The created Component, or null if the node has no component type configured.</returns>
+        public Component CreateComponentIfConfigured(UINodeData node, GameObject target)
+        {
+            if (node == null || string.IsNullOrEmpty(node.Type) || node.Type == "Container")
+                return null;
+            return CreateComponent(node.Type, target, node.TextStyles);
+        }
     }
 }

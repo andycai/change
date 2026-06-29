@@ -75,11 +75,7 @@ namespace Change.Editor.PSD2UI
                 rt.sizeDelta = new Vector2(node.Rect.Width, node.Rect.Height);
             }
 
-            // Create UI component if type is specified
-            if (!string.IsNullOrEmpty(node.Type) && node.Type != "Container")
-            {
-                _componentFactory.CreateComponent(node.Type, go, node.textStyles);
-            }
+            _componentFactory.CreateComponentIfConfigured(node, go);
 
             // Recursively create child nodes
             if (node.Children != null)

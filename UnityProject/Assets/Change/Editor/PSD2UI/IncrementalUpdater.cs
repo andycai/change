@@ -245,11 +245,7 @@ namespace Change.Editor.PSD2UI
                 _anchorEngine.ApplyAnchor(rt, preset, nodeData.Rect, parentRect);
             }
 
-            // Create UI component if type is specified
-            if (!string.IsNullOrEmpty(nodeData.Type) && nodeData.Type != "Container")
-            {
-                _componentFactory.CreateComponent(nodeData.Type, go, nodeData.textStyles);
-            }
+            _componentFactory.CreateComponentIfConfigured(nodeData, go);
 
             // Attach layout group if configured
             _layoutManager.AttachLayoutGroup(nodeData, go);
