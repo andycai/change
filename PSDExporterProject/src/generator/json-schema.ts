@@ -40,7 +40,7 @@ export const GradientEffectSchema = z.object({
   enabled: z.boolean(),
   gradientType: z.enum(['linear', 'radial']),
   angle: z.number(),
-  colors: z.array(RGBASchema.extend({ position: z.number() })),
+  colors: z.array(RGBASchema.extend({ position: z.number().min(0).max(1) })),
   degraded: z.boolean(),
 });
 
@@ -80,7 +80,7 @@ export const TextEffectSchema = z.union([
 
 /** 文本样式 */
 export const TextStylesSchema = z.object({
-  fontSize: z.number(),
+  fontSize: z.number().positive(),
   color: RGBASchema,
   fontName: z.string(),
   fontStyle: z.object({
