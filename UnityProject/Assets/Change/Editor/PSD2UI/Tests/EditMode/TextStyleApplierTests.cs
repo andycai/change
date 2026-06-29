@@ -792,5 +792,116 @@ namespace Change.Editor.PSD2UI.Tests
             Assert.AreEqual(color2, _tmpComponent.colorGradient.bottomLeft);
             Assert.AreEqual(color2, _tmpComponent.colorGradient.bottomRight);
         }
+
+        // ================================================================
+        // 7. Multiple effect stacking tests
+        // ================================================================
+
+        [Test]
+        public void ApplyMultipleEffects_StrokeAndShadow()
+        {
+            var effects = new TextEffectData[]
+            {
+                new StrokeEffectData
+                {
+                    type = "stroke",
+                    enabled = true,
+                    color = new ColorData { r = 0f, g = 0f, b = 0f, a = 1f },
+                    width = 2f,
+                    position = "outside"
+                },
+                new ShadowEffectData
+                {
+                    type = "dropShadow",
+                    enabled = true,
+                    color = new ColorData { r = 0f, g = 0f, b = 0f, a = 0.5f },
+                    offsetX = 2f,
+                    offsetY = -2f,
+                    blur = 4f
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "multi_stroke_shadow_001");
+
+            var mat = _tmpComponent.fontSharedMaterial;
+            Assert.IsNotNull(mat, "Material should have been created");
+            Assert.AreEqual(2f, mat.GetFloat("_OutlineWidth"));
+            Assert.AreEqual(new Color(0f, 0f, 0f, 1f), mat.GetColor("_OutlineColor"));
+            Assert.AreEqual(new Color(0f, 0f, 0f, 0.5f), mat.GetColor("_UnderlayColor"));
+            Assert.AreEqual(2f / 100f, mat.GetFloat("_UnderlayOffsetX"), 0.001f);
+        }
+
+        [Test]
+        public void ApplyMultipleEffects_StrokeAndGlow()
+        {
+            var effects = new TextEffectData[]
+            {
+                new StrokeEffectData
+                {
+                    type = "stroke",
+                    enabled = true,
+                    color = new ColorData { r = 1f, g = 1f, b = 1f, a = 1f },
+                    width = 1.5f,
+                    position = "outside"
+                },
+                new GlowEffectData
+                {
+                    type = "outerGlow",
+                    enabled = true,
+                    color = new ColorData { r = 1f, g = 1f, b = 0f, a = 1f },
+                    size = 5f,
+                    spread = 0f
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "multi_stroke_glow_001");
+
+            var mat = _tmpComponent.fontSharedMaterial;
+            Assert.IsNotNull(mat, "Material should have been created");
+            Assert.AreEqual(1.5f, mat.GetFloat("_OutlineWidth"));
+            Assert.AreEqual(new Color(1f, 1f, 0f, 1f), mat.GetColor("_GlowColor"));
+            Assert.AreEqual(0.5f, mat.GetFloat("_GlowOffset"), 0.001f);
+        }
+
+        [Test]
+        public void ApplyMultipleEffects_StrokeShadowGlow()
+        {
+            var effects = new TextEffectData[]
+            {
+                new StrokeEffectData
+                {
+                    type = "stroke",
+                    enabled = true,
+                    color = new ColorData { r = 0f, g = 0f, b = 0f, a = 1f },
+                    width = 2f,
+                    position = "outside"
+                },
+                new ShadowEffectData
+                {
+                    type = "dropShadow",
+                    enabled = true,
+                    color = new ColorData { r = 0f, g = 0f, b = 0f, a = 0.5f },
+                    offsetX = 2f,
+                    offsetY = -2f,
+                    blur = 4f
+                },
+                new GlowEffectData
+                {
+                    type = "outerGlow",
+                    enabled = true,
+                    color = new ColorData { r = 1f, g = 1f, b = 0f, a = 1f },
+                    size = 5f,
+                    spread = 0f
+                }
+            };
+
+            _applier.ApplyEffects(_tmpComponent, effects, "test", "multi_triple_001");
+
+            var mat = _tmpComponent.fontSharedMaterial;
+            Assert.IsNotNull(mat, "Material should have been created");
+            Assert.AreEqual(2f, mat.GetFloat("_OutlineWidth"));
+            Assert.AreEqual(2f / 100f, mat.GetFloat("_UnderlayOffsetX"), 0.001f);
+            Assert.AreEqual(0.5f, mat.GetFloat("_GlowOffset"), 0.001f);
+        }
     }
 }
