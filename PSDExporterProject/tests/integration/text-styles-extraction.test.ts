@@ -1,5 +1,5 @@
 import { PsdParser } from '../../src/parser/psd-parser';
-import { LayerTree, Layer } from '../../src/parser/layer-tree';
+import { LayerTree, Layer, TextStyles } from '../../src/parser/layer-tree';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -23,10 +23,16 @@ describe('Text Styles Extraction (Integration)', () => {
   const fixturesDir = path.resolve(__dirname, '..', 'fixtures');
   const textSamplePath = path.join(fixturesDir, 'text-sample.psd');
   const largeTextSamplePath = path.join(fixturesDir, 'large-text-sample.psd');
-  const demoPsdPath = path.resolve(__dirname, '..', '..', '..', 'UIArtifacts', 'psd', 'demo.psd');
+
+  // Fallback PSD for integration tests: the project keeps a reference demo PSD at
+  // the repo root under UIArtifacts/psd/demo.psd. The path resolves relative to
+  // this test file (tests/integration/) three levels up to the project root.
+  const demoPsdPath = path.resolve(__dirname, '../../../UIArtifacts/psd/demo.psd');
 
   describe('Integration: parse a PSD with text layers', () => {
-    it('should extract textStyles from text layers in a real PSD', async () => {
+    test('should extract textStyles from text layers in a real PSD', async () => {
+      expect.hasAssertions();
+
       // Prefer a dedicated text-sample fixture, fall back to the project demo PSD
       let psdPath: string;
       if (fs.existsSync(textSamplePath)) {
@@ -52,7 +58,7 @@ describe('Text Styles Extraction (Integration)', () => {
       expect(textLayers.length).toBeGreaterThanOrEqual(1);
 
       for (const layer of textLayers) {
-        const ts = layer.textStyles!;
+        const ts = layer.textStyles as TextStyles;
         expect(ts.fontSize).toBeGreaterThan(0);
         expect(ts.color).toHaveProperty('r');
         expect(ts.fontName).toBeTruthy();
@@ -62,12 +68,13 @@ describe('Text Styles Extraction (Integration)', () => {
   });
 
   describe('Performance: 50+ text objects in < 10 seconds', () => {
-    it('should parse a large PSD with 50+ text objects under 10 seconds', async () => {
+    test('should parse a large PSD with 50+ text objects under 10 seconds', async () => {
       if (!fs.existsSync(largeTextSamplePath)) {
         console.warn(
           `[SKIP] Fixture not found: ${largeTextSamplePath}. ` +
           'Place a large PSD with 50+ text layers there to enable this performance test.',
         );
+        expect.assertions(0);
         return;
       }
 
