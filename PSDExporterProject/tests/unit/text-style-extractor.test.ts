@@ -563,6 +563,190 @@ describe('TextStyleExtractor', () => {
       expect(gradEffect.degraded).toBe(true);
     });
 
+    // ---------------------------------------------------------------------------
+    // 渐变降级规则测试 (Gradient degradation rules)
+    // ---------------------------------------------------------------------------
+
+    // 1. 对角线渐变降级（45°→90°）
+    it('should degrade diagonal gradient angle to nearest cardinal (45° → 90°)', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects = {
+        gradientOverlay: [
+          {
+            enabled: true,
+            type: 'linear' as any,
+            angle: 45,
+            gradient: {
+              type: 'solid' as const,
+              name: 'test',
+              colorStops: [
+                {
+                  color: { r: 255, g: 0, b: 0, a: 255 } as Color,
+                  location: 0,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 0, b: 255, a: 255 } as Color,
+                  location: 255,
+                  midpoint: 50,
+                },
+              ],
+              opacityStops: [],
+            },
+          },
+        ],
+      } as any;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      const gradEffect = result.effects![0] as any;
+      expect(gradEffect.type).toBe('gradient');
+      expect(gradEffect.gradientType).toBe('linear');
+      expect(gradEffect.angle).toBe(90);
+      expect(gradEffect.degraded).toBe(true);
+    });
+
+    // 2. 径向渐变降级（radial→linear）
+    it('should degrade radial gradient to linear with angle reset to 90°', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects = {
+        gradientOverlay: [
+          {
+            enabled: true,
+            type: 'radial' as any,
+            angle: 45,
+            gradient: {
+              type: 'solid' as const,
+              name: 'test',
+              colorStops: [
+                {
+                  color: { r: 255, g: 255, b: 0, a: 255 } as Color,
+                  location: 0,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 255, g: 128, b: 0, a: 255 } as Color,
+                  location: 255,
+                  midpoint: 50,
+                },
+              ],
+              opacityStops: [],
+            },
+          },
+        ],
+      } as any;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      const gradEffect = result.effects![0] as any;
+      expect(gradEffect.type).toBe('gradient');
+      expect(gradEffect.gradientType).toBe('linear');
+      expect(gradEffect.angle).toBe(90);
+      expect(gradEffect.degraded).toBe(true);
+    });
+
+    // 3. 多色渐变降级（3→2 色标）
+    it('should reduce gradient color stops from 3 to 2 (keep first and last)', () => {
+      const textData = makeStyledTextData({ fontSize: 16 });
+      const effects = {
+        gradientOverlay: [
+          {
+            enabled: true,
+            type: 'linear' as any,
+            angle: 90,
+            gradient: {
+              type: 'solid' as const,
+              name: 'test',
+              colorStops: [
+                {
+                  color: { r: 255, g: 0, b: 0, a: 255 } as Color,
+                  location: 0,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 255, b: 0, a: 255 } as Color,
+                  location: 128,
+                  midpoint: 50,
+                },
+                {
+                  color: { r: 0, g: 0, b: 255, a: 255 } as Color,
+                  location: 255,
+                  midpoint: 50,
+                },
+              ],
+              opacityStops: [],
+            },
+          },
+        ],
+      } as any;
+
+      const result = extractor.extract(textData, effects);
+
+      expect(result.effects).toBeDefined();
+      expect(result.effects!.length).toBe(1);
+      const gradEffect = result.effects![0] as any;
+      expect(gradEffect.type).toBe('gradient');
+      expect(gradEffect.gradientType).toBe('linear');
+      expect(gradEffect.angle).toBe(90);
+      expect(gradEffect.colors).toHaveLength(2);
+      // First color stop preserved: red at position 0
+      expect(gradEffect.colors[0].r).toBeCloseTo(1.0, 5);
+      expect(gradEffect.colors[0].g).toBeCloseTo(0.0, 5);
+      expect(gradEffect.colors[0].b).toBeCloseTo(0.0, 5);
+      expect(gradEffect.colors[0].position).toBe(0);
+      // Last color stop preserved: blue at position ~1.0
+      expect(gradEffect.colors[1].r).toBeCloseTo(0.0, 5);
+      expect(gradEffect.colors[1].g).toBeCloseTo(0.0, 5);
+      expect(gradEffect.colors[1].b).toBeCloseTo(1.0, 5);
+      expect(gradEffect.colors[1].position).toBeCloseTo(1.0, 5);
+      expect(gradEffect.degraded).toBe(true);
+    });
+
+    // 4. 垂直/水平渐变不降级
+    it('should not degrade vertical/horizontal gradients', () => {
+      const angles = [0, 90, 180, 270];
+
+      angles.forEach(angle => {
+        const textData = makeStyledTextData({ fontSize: 12 });
+        const effects = {
+          gradientOverlay: [
+            {
+              enabled: true,
+              type: 'linear' as any,
+              angle,
+              gradient: {
+                type: 'solid' as const,
+                name: 'test',
+                colorStops: [
+                  {
+                    color: { r: 255, g: 255, b: 0, a: 255 } as Color,
+                    location: 0,
+                    midpoint: 50,
+                  },
+                  {
+                    color: { r: 255, g: 128, b: 0, a: 255 } as Color,
+                    location: 255,
+                    midpoint: 50,
+                  },
+                ],
+                opacityStops: [],
+              },
+            },
+          ],
+        } as any;
+
+        const result = extractor.extract(textData, effects);
+        const gradient = result?.effects?.find(e => e.type === 'gradient') as any;
+
+        expect(gradient.angle).toBe(angle);
+        expect(gradient.degraded).toBe(false);
+      });
+    });
+
     test('no effects key when effects param is not provided', () => {
       const textData = makeStyledTextData({ fontSize: 16 });
       const result = extractor.extract(textData);
