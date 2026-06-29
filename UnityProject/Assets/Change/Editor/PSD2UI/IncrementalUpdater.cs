@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using Change.Runtime.PSD2UI;
 
 namespace Change.Editor.PSD2UI
 {
@@ -164,7 +165,7 @@ namespace Change.Editor.PSD2UI
             {
                 var change = report.Removed[i];
                 var target = FindByPath(root, change.Path);
-                if (target != null && !HasLock(target.gameObject))
+                if (target != null && !PSD2UILock.HasLock(target.gameObject))
                 {
                     Object.DestroyImmediate(target.gameObject);
                 }
@@ -183,7 +184,7 @@ namespace Change.Editor.PSD2UI
                     continue;
                 }
 
-                if (HasLock(parent.gameObject))
+                if (PSD2UILock.HasLock(parent.gameObject))
                 {
                     Debug.Log($"[PSD2UI] IncrementalUpdater: parent '{parentPath}' is locked, skipping addition of '{change.Path}'.");
                     continue;
@@ -202,7 +203,7 @@ namespace Change.Editor.PSD2UI
                     continue;
                 }
 
-                if (HasLock(target.gameObject))
+                if (PSD2UILock.HasLock(target.gameObject))
                 {
                     Debug.Log($"[PSD2UI] IncrementalUpdater: '{change.Path}' is locked, skipping modification.");
                     continue;
@@ -244,11 +245,7 @@ namespace Change.Editor.PSD2UI
                 _anchorEngine.ApplyAnchor(rt, preset, nodeData.Rect, parentRect);
             }
 
-            // Create UI component if type is specified
-            if (!string.IsNullOrEmpty(nodeData.Type) && nodeData.Type != "Container")
-            {
-                _componentFactory.CreateComponent(nodeData.Type, go);
-            }
+            _componentFactory.CreateComponentIfConfigured(nodeData, go);
 
             // Attach layout group if configured
             _layoutManager.AttachLayoutGroup(nodeData, go);
@@ -320,32 +317,6 @@ namespace Change.Editor.PSD2UI
             int lastSlash = path.LastIndexOf('/');
             return lastSlash > 0 ? path.Substring(0, lastSlash) : "";
         }
-
-        /// <summary>
-        /// Checks whether a GameObject is protected by a PSD2UILock component,
-        /// either on itself or on any ancestor with LockChildren enabled.
-        /// </summary>
-        /// <param name="go">The GameObject to check.</param>
-        /// <returns>True if the GameObject or any of its ancestors is locked.</returns>
-        private static bool HasLock(GameObject go)
-        {
-            if (go == null) return false;
-
-            // Check self
-            if (go.GetComponent<Change.Runtime.PSD2UI.PSD2UILock>() != null)
-                return true;
-
-            // Walk up ancestors to check for LockChildren
-            Transform parent = go.transform.parent;
-            while (parent != null)
-            {
-                var lockComp = parent.GetComponent<Change.Runtime.PSD2UI.PSD2UILock>();
-                if (lockComp != null && lockComp.LockChildren)
-                    return true;
-                parent = parent.parent;
-            }
-
-            return false;
-        }
     }
 }
+

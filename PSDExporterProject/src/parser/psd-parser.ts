@@ -1,9 +1,10 @@
 // src/parser/psd-parser.ts
-import { readPsd, initializeCanvas, Psd, Layer as PsdLayer } from 'ag-psd';
+import { readPsd, initializeCanvas, Psd, Layer as PsdLayer, LayerTextData, LayerEffectsInfo } from 'ag-psd';
 import { createCanvas } from 'canvas';
 import { readFile } from 'fs/promises';
 import { Layer, LayerTree, PsdMetadata, LayerType, Rect } from './layer-tree';
 import { AssetExporter } from './asset-exporter';
+import { TextStyleExtractor } from './text-style-extractor';
 
 // Initialize canvas for ag-psd to use when decoding image data.
 // ag-psd's initializeCanvas expects a (width, height) => HTMLCanvasElement-like factory;
@@ -32,11 +33,13 @@ interface PsdNode {
   text?: unknown;
   imageData?: unknown;
   canvas?: unknown;
+  effects?: LayerEffectsInfo;
   children?: PsdNode[];
 }
 
 export class PsdParser {
   private assetExporter = new AssetExporter();
+  private textStyleExtractor = new TextStyleExtractor();
 
   /**
    * Parse a PSD file and return a LayerTree.
@@ -107,6 +110,14 @@ export class PsdParser {
       opacity:
         node.opacity !== undefined ? node.opacity : 1.0,
     };
+
+    // If this is a text layer, extract text styles (including effects)
+    if (node.text) {
+      layer.textStyles = this.textStyleExtractor.extract(
+        node.text as LayerTextData,
+        node.effects,
+      );
+    }
 
     // Export rasterized pixel data for image/shape layers when requested
     if (assetsDir && (layer.type === 'image' || layer.type === 'shape') && node.canvas) {

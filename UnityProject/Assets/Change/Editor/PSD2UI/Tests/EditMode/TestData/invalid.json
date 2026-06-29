@@ -1,21 +1,30 @@
 {
-  "Type": "Panel",
-  "Rect": {
-    "X": 0.0,
-    "Y": 0.0,
-    "Width": 1920.0,
-    "Height": 1080.0
+  "metadata": {
+    "psdPath": "invalid.psd",
+    "canvasSize": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "generatedAt": "2026-01-01T00:00:00.000Z",
+    "generator": "psd-exporter",
+    "version": "1.0.0"
   },
-  "Children": [
+  "layers": [
     {
-      "Type": "Image",
-      "Rect": {
-        "X": 0.0,
-        "Y": 0.0,
-        "Width": 800.0,
-        "Height": 600.0
-      },
-      "Children": []
+      "id": "root",
+      "type": "group",
+      "bounds": { "x": 0.0, "y": 0.0, "width": 1920.0, "height": 1080.0 },
+      "visible": true,
+      "opacity": 1.0,
+      "children": [
+        {
+          "id": "root_0",
+          "type": "image",
+          "bounds": { "x": 0.0, "y": 0.0, "width": 800.0, "height": 600.0 },
+          "visible": true,
+          "opacity": 1.0,
+          "children": []
+        }
+      ]
     }
-  ]
+  ],
+  "components": []
 }

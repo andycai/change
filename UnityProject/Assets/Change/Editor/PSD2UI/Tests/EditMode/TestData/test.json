@@ -1,66 +1,43 @@
 {
-  "Name": "MainPanel",
-  "Type": "Panel",
-  "Rect": {
-    "X": 0.0,
-    "Y": 0.0,
-    "Width": 1920.0,
-    "Height": 1080.0
+  "metadata": {
+    "psdPath": "test.psd",
+    "canvasSize": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "generatedAt": "2026-01-01T00:00:00.000Z",
+    "generator": "psd-exporter",
+    "version": "1.0.0"
   },
-  "SpritePath": "Assets/Textures/MainPanel.png",
-  "Slice": {
-    "Left": 10,
-    "Top": 10,
-    "Right": 10,
-    "Bottom": 10
-  },
-  "Layout": {
-    "Type": "Vertical",
-    "Spacing": 5.0,
-    "Alignment": "TopLeft"
-  },
-  "Children": [
+  "layers": [
     {
-      "Name": "TitleBar",
-      "Type": "Image",
-      "Rect": {
-        "X": 0.0,
-        "Y": 0.0,
-        "Width": 1920.0,
-        "Height": 100.0
-      },
-      "SpritePath": "Assets/Textures/TitleBar.png",
-      "Slice": {
-        "Left": 0,
-        "Top": 0,
-        "Right": 0,
-        "Bottom": 0
-      },
-      "Layout": {
-        "Type": "Horizontal",
-        "Spacing": 0.0,
-        "Alignment": "MiddleCenter"
-      },
-      "Children": []
-    },
-    {
-      "Name": "CloseButton",
-      "Type": "Button",
-      "Rect": {
-        "X": 1820.0,
-        "Y": 10.0,
-        "Width": 80.0,
-        "Height": 80.0
-      },
-      "SpritePath": "Assets/Textures/CloseButton.png",
-      "Slice": {
-        "Left": 5,
-        "Top": 5,
-        "Right": 5,
-        "Bottom": 5
-      },
-      "Layout": null,
-      "Children": []
+      "id": "root",
+      "name": "MainPanel",
+      "type": "group",
+      "bounds": { "x": 0.0, "y": 0.0, "width": 1920.0, "height": 1080.0 },
+      "visible": true,
+      "opacity": 1.0,
+      "children": [
+        {
+          "id": "root_0",
+          "name": "TitleBar",
+          "type": "image",
+          "bounds": { "x": 0.0, "y": 0.0, "width": 1920.0, "height": 100.0 },
+          "visible": true,
+          "opacity": 1.0,
+          "assetPath": "Assets/Textures/TitleBar.png",
+          "children": []
+        },
+        {
+          "id": "root_1",
+          "name": "CloseButton",
+          "type": "shape",
+          "bounds": { "x": 1820.0, "y": 10.0, "width": 80.0, "height": 80.0 },
+          "visible": true,
+          "opacity": 1.0,
+          "assetPath": "Assets/Textures/CloseButton.png",
+          "children": []
+        }
+      ]
     }
-  ]
+  ],
+  "components": []
 }

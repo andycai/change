@@ -29,5 +29,33 @@ namespace Change.Runtime.PSD2UI
         /// </summary>
         [TextArea(3, 5)]
         public string Notes = "锁定原因：";
+
+        /// <summary>
+        /// Checks whether a GameObject is protected by a PSD2UILock component,
+        /// either on itself or on any ancestor with LockChildren enabled.
+        /// This is the canonical lock-detection method shared by all PSD2UI modules.
+        /// </summary>
+        /// <param name="go">The GameObject to check.</param>
+        /// <returns>True if the GameObject or any of its ancestors is locked.</returns>
+        public static bool HasLock(GameObject go)
+        {
+            if (go == null) return false;
+
+            // Check the GameObject itself for a direct lock
+            if (go.GetComponent<PSD2UILock>() != null)
+                return true;
+
+            // Walk up ancestors to check for LockChildren cascading
+            Transform parent = go.transform.parent;
+            while (parent != null)
+            {
+                var lockComp = parent.GetComponent<PSD2UILock>();
+                if (lockComp != null && lockComp.LockChildren)
+                    return true;
+                parent = parent.parent;
+            }
+
+            return false;
+        }
     }
 }

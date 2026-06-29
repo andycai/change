@@ -11,6 +11,8 @@ namespace Change.Editor.PSD2UI
     /// </summary>
     public class ComponentFactory
     {
+        private readonly TextStyleApplier textStyleApplier = new TextStyleApplier();
+
         /// <summary>
         /// Creates a UI component of the specified type on the target GameObject.
         /// </summary>
@@ -23,8 +25,9 @@ namespace Change.Editor.PSD2UI
         /// Optional ComponentInfo with extended attributes (ImageType, TextBackend, Role).
         /// Pass null to use default behavior (backward compatible).
         /// </param>
+        /// <param name="textStyles">Optional text style data from PSD parser; applied when type is "Text".</param>
         /// <returns>The created Component, or null if the type is unrecognized</returns>
-        public Component CreateComponent(string type, GameObject target, ComponentInfo info = null)
+        public Component CreateComponent(string type, GameObject target, ComponentInfo info = null, TextStylesData textStyles = null)
         {
             if (target == null)
             {
@@ -50,7 +53,18 @@ namespace Change.Editor.PSD2UI
                     return target.AddComponent<RawImage>();
 
                 case "Text":
-                    return CreateTextComponent(info?.TextBackend, target);
+                {
+                    var tmp = CreateTextComponent(info?.TextBackend, target) as TextMeshProUGUI;
+                    if (tmp != null && textStyles != null)
+                    {
+                        textStyleApplier.ApplyBasicProperties(tmp, textStyles, target.name);
+                        if (textStyles.effects != null && textStyles.effects.Count > 0)
+                        {
+                            textStyleApplier.ApplyEffects(tmp, textStyles, target.name);
+                        }
+                    }
+                    return tmp ?? CreateTextComponent(info?.TextBackend, target);
+                }
 
                 case "Button":
                     var button = target.AddComponent<Button>();
@@ -94,6 +108,20 @@ namespace Change.Editor.PSD2UI
                     Debug.LogWarning($"[PSD2UI] ComponentFactory: unrecognized component type '{type}'.");
                     return null;
             }
+        }
+
+        /// <summary>
+        /// Creates a UI component for the given node if its type is configured
+        /// (non-null, non-empty, and not "Container"). Returns null otherwise.
+        /// </summary>
+        /// <param name="node">The UINodeData describing the UI element.</param>
+        /// <param name="target">The GameObject to add the component to.</param>
+        /// <returns>The created Component, or null if the node has no component type configured.</returns>
+        public Component CreateComponentIfConfigured(UINodeData node, GameObject target)
+        {
+            if (node == null || string.IsNullOrEmpty(node.Type) || node.Type == "Container")
+                return null;
+            return CreateComponent(node.Type, target, null, node.TextStyles);
         }
 
         /// <summary>

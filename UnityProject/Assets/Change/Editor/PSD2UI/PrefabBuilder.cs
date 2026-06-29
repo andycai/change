@@ -5,6 +5,8 @@ namespace Change.Editor.PSD2UI
 {
     public class PrefabBuilder
     {
+        private readonly ComponentFactory _componentFactory = new ComponentFactory();
+
         public GameObject BuildPrefab(UINodeData root, string savePath)
         {
             if (root == null)
@@ -72,6 +74,8 @@ namespace Change.Editor.PSD2UI
                 rt.anchoredPosition = new Vector2(node.Rect.X, node.Rect.Y);
                 rt.sizeDelta = new Vector2(node.Rect.Width, node.Rect.Height);
             }
+
+            _componentFactory.CreateComponentIfConfigured(node, go);
 
             // Recursively create child nodes
             if (node.Children != null)
