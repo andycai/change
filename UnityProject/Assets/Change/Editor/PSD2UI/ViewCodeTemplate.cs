@@ -15,7 +15,7 @@ namespace Change.Editor.PSD2UI
         /// <param name="moduleName">The extracted module name (e.g., "Quest").</param>
         /// <param name="components">The scanned interactive components.</param>
         /// <returns>The generated C# source code as a string.</returns>
-        public string GenerateClass(string className, string moduleName, List<ComponentInfo> components)
+        public string GenerateClass(string className, string moduleName, List<ViewComponentInfo> components)
         {
             var sb = new StringBuilder();
             sb.AppendLine("// AUTO-GENERATED CODE - DO NOT EDIT MANUALLY");
