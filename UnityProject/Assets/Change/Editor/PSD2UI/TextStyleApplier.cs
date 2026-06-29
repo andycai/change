@@ -192,7 +192,7 @@ namespace Change.Editor.PSD2UI
             }
 
             // 5. Font asset lookup
-            if (!string.IsNullOrEmpty(textStyles.fontName))
+            if (!string.IsNullOrWhiteSpace(textStyles.fontName))
             {
                 tmpComponent.font = FindFont(textStyles.fontName);
             }
@@ -236,10 +236,12 @@ namespace Change.Editor.PSD2UI
                 if (exactNoExt != null) return exactNoExt;
             }
 
-            // 4. Default font name match (case-insensitive)
+            // 4. Default font name match — case-insensitive against both original and extension-stripped name
             var defaultFont = DefaultFontAsset;
             if (defaultFont != null &&
-                string.Equals(defaultFont.name, fontName, System.StringComparison.OrdinalIgnoreCase))
+                (string.Equals(defaultFont.name, fontName, System.StringComparison.OrdinalIgnoreCase) ||
+                 (nameWithoutExt != fontName &&
+                  string.Equals(defaultFont.name, nameWithoutExt, System.StringComparison.OrdinalIgnoreCase))))
                 return defaultFont;
 
             // 5. Fallback to default font with warning
@@ -247,14 +249,14 @@ namespace Change.Editor.PSD2UI
             {
                 Debug.LogWarning(
                     $"{LogPrefix} TextStyleApplier.FindFont: " +
-                    $"未找到字体 '{fontName}'，回退到默认字体 '{defaultFont.name}'");
+                    $"Font '{fontName}' not found in Resources, falling back to default font '{defaultFont.name}'.");
                 return defaultFont;
             }
 
             // 6. No default font; log error and return null
             Debug.LogError(
                 $"{LogPrefix} TextStyleApplier.FindFont: " +
-                $"未找到字体 '{fontName}'，且 TMP Settings 未配置默认字体");
+                $"Font '{fontName}' not found and no TMP default font asset is configured.");
             return null;
         }
 
@@ -273,7 +275,7 @@ namespace Change.Editor.PSD2UI
             {
                 Debug.LogError(
                     $"{LogPrefix} TextStyleApplier.ValidateTMPSettings: " +
-                    "TMP Settings 资源不存在，请通过 Window > TextMeshPro > Settings 创建");
+                    "TMP Settings asset not found. Please create it via Window > TextMeshPro > Settings.");
                 return false;
             }
 
@@ -281,7 +283,7 @@ namespace Change.Editor.PSD2UI
             {
                 Debug.LogWarning(
                     $"{LogPrefix} TextStyleApplier.ValidateTMPSettings: " +
-                    "TMP Settings 未配置默认字体，字体匹配失败时将返回 null");
+                    "TMP Settings has no default font asset configured. Font matching will return null when no match is found.");
                 return false;
             }
 
