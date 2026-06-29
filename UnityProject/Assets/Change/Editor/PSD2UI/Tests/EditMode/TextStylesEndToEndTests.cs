@@ -244,8 +244,10 @@ namespace Change.Editor.PSD2UI.Tests
 
                 Assert.That(tmp.fontSize, Is.EqualTo(24f),
                     "fontSize should NOT change on a locked component");
-                Assert.That(tmp.color.r, Is.EqualTo(0f).Within(0.001f));
-                Assert.That(tmp.color.g, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(tmp.color.r, Is.EqualTo(0f).Within(0.001f),
+                    "color.r should NOT change on a locked component");
+                Assert.That(tmp.color.g, Is.EqualTo(0f).Within(0.001f),
+                    "color.g should NOT change on a locked component");
                 Assert.That(tmp.color.b, Is.EqualTo(1f).Within(0.001f),
                     "color should NOT change on a locked component (still blue)");
                 Assert.That(tmp.fontStyle, Is.EqualTo(FontStyles.Bold),
@@ -309,7 +311,8 @@ namespace Change.Editor.PSD2UI.Tests
             // ---- Step 1: Build initial prefab (NO lock applied) ----
             var builder = new PrefabBuilder();
             var initialPrefab = builder.BuildPrefab(oldConfig, PrefabSavePath);
-            Assert.That(initialPrefab, Is.Not.Null);
+            Assert.That(initialPrefab, Is.Not.Null,
+                "Initial prefab build should succeed");
             Object.DestroyImmediate(initialPrefab);
 
             // ---- Step 2: Run incremental update ----
@@ -321,13 +324,16 @@ namespace Change.Editor.PSD2UI.Tests
             try
             {
                 updatedPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabSavePath);
-                Assert.That(updatedPrefab, Is.Not.Null);
+                Assert.That(updatedPrefab, Is.Not.Null,
+                    "Updated prefab build should succeed");
 
                 var childTransform = updatedPrefab.transform.Find(TextNodeName);
-                Assert.That(childTransform, Is.Not.Null);
+                Assert.That(childTransform, Is.Not.Null,
+                    "Child transform should exist after build");
 
                 var rt = childTransform as RectTransform;
-                Assert.That(rt, Is.Not.Null);
+                Assert.That(rt, Is.Not.Null,
+                    "RectTransform should exist on child");
 
                 Assert.That(rt.anchoredPosition.x, Is.EqualTo(newRect.X).Within(0.001f),
                     "anchoredPosition.x should be updated for unlocked component");
