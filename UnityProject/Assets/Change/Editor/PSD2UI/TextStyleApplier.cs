@@ -203,13 +203,12 @@ namespace Change.Editor.PSD2UI
         /// <summary>
         /// Finds a TMP_FontAsset by font name.
         ///
-        /// Current implementation (placeholder for Task 10):
-        /// 1. Tries Resources.Load&lt;TMP_FontAsset&gt; by name.
-        /// 2. Checks if TMP_Settings.defaultFontAsset name matches.
-        /// 3. Falls back to TMP_Settings.instance.defaultFontAsset.
-        ///
-        /// Full fuzzy-matching (case-insensitive, partial name, AssetDatabase scan)
-        /// will be added in Task 10.
+        /// Lookup order:
+        /// 1. Exact name match via Resources.Load&lt;TMP_FontAsset&gt;.
+        /// 2. Extension-stripped name match (handles .ttf/.otf suffixes).
+        /// 3. Case-insensitive match against TMP_Settings.defaultFontAsset name.
+        /// 4. Fallback to TMP_Settings.defaultFontAsset with a warning.
+        /// 5. Returns null with an error if no default font is configured.
         ///
         /// Marked internal virtual so test assemblies can override it with a custom
         /// font resolver without requiring a full IFontResolver interface (Task 9).
@@ -221,35 +220,72 @@ namespace Change.Editor.PSD2UI
         /// </returns>
         protected internal virtual TMP_FontAsset FindFont(string fontName)
         {
-            if (string.IsNullOrEmpty(fontName))
-                return DefaultFontAsset;
+            // 1. If fontName is empty or whitespace, return null (caller keeps existing font)
+            if (string.IsNullOrWhiteSpace(fontName))
+                return null;
 
-            // Attempt direct Resources load by name
-            var font = Resources.Load<TMP_FontAsset>(fontName);
-            if (font != null)
-                return font;
+            // 2. Exact name match (Resources.Load)
+            var exact = Resources.Load<TMP_FontAsset>(fontName);
+            if (exact != null) return exact;
 
-            // Check if the default font itself matches the requested name
+            // 3. Strip extension and retry exact match (fontName may contain .ttf etc.)
+            var nameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(fontName);
+            if (nameWithoutExt != fontName)
+            {
+                var exactNoExt = Resources.Load<TMP_FontAsset>(nameWithoutExt);
+                if (exactNoExt != null) return exactNoExt;
+            }
+
+            // 4. Default font name match (case-insensitive)
             var defaultFont = DefaultFontAsset;
-
-            if (defaultFont != null && defaultFont.name == fontName)
+            if (defaultFont != null &&
+                string.Equals(defaultFont.name, fontName, System.StringComparison.OrdinalIgnoreCase))
                 return defaultFont;
 
-            // Fallback: use default font asset with a warning
+            // 5. Fallback to default font with warning
             if (defaultFont != null)
             {
                 Debug.LogWarning(
                     $"{LogPrefix} TextStyleApplier.FindFont: " +
-                    $"font '{fontName}' not found, falling back to default '{defaultFont.name}'.");
-            }
-            else
-            {
-                Debug.LogWarning(
-                    $"{LogPrefix} TextStyleApplier.FindFont: " +
-                    $"font '{fontName}' not found and no TMP default font asset is configured.");
+                    $"未找到字体 '{fontName}'，回退到默认字体 '{defaultFont.name}'");
+                return defaultFont;
             }
 
-            return defaultFont;
+            // 6. No default font; log error and return null
+            Debug.LogError(
+                $"{LogPrefix} TextStyleApplier.FindFont: " +
+                $"未找到字体 '{fontName}'，且 TMP Settings 未配置默认字体");
+            return null;
+        }
+
+        // ---- Public Static Helpers ----
+
+        /// <summary>
+        /// Checks that TMP Settings configuration is complete.
+        /// Call during editor menu or PSD2UI tool initialization to catch
+        /// configuration problems early.
+        /// </summary>
+        /// <returns>true if configuration is complete; false if issues exist.</returns>
+        public static bool ValidateTMPSettings()
+        {
+            var settings = TMP_Settings.instance;
+            if (settings == null)
+            {
+                Debug.LogError(
+                    $"{LogPrefix} TextStyleApplier.ValidateTMPSettings: " +
+                    "TMP Settings 资源不存在，请通过 Window > TextMeshPro > Settings 创建");
+                return false;
+            }
+
+            if (settings.defaultFontAsset == null)
+            {
+                Debug.LogWarning(
+                    $"{LogPrefix} TextStyleApplier.ValidateTMPSettings: " +
+                    "TMP Settings 未配置默认字体，字体匹配失败时将返回 null");
+                return false;
+            }
+
+            return true;
         }
 
         // ---- Private Helpers ----
