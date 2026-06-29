@@ -1,6 +1,8 @@
 using TMPro;
 using UnityEngine;
 using Change.Runtime.PSD2UI;
+using System.IO;
+using UnityEditor;
 
 namespace Change.Editor.PSD2UI
 {
@@ -83,6 +85,58 @@ namespace Change.Editor.PSD2UI
 
         /// <summary>Whether this effect is enabled.</summary>
         public bool enabled;
+    }
+
+    [System.Serializable]
+    public class StrokeEffectData : TextEffectData
+    {
+        public ColorData color;
+        public float width;
+        public string position;
+    }
+
+    [System.Serializable]
+    public class ShadowEffectData : TextEffectData
+    {
+        public ColorData color;
+        public float offsetX;
+        public float offsetY;
+        public float blur;
+    }
+
+    [System.Serializable]
+    public class GradientEffectData : TextEffectData
+    {
+        public string gradientType;
+        public float angle;
+        public GradientColorStop[] colors;
+        public bool degraded;
+    }
+
+    [System.Serializable]
+    public class GradientColorStop
+    {
+        public float r, g, b, a;
+        public float position;
+    }
+
+    [System.Serializable]
+    public class GlowEffectData : TextEffectData
+    {
+        public ColorData color;
+        public float size;
+        public float spread;
+    }
+
+    [System.Serializable]
+    public class BevelEffectData : TextEffectData
+    {
+        public string style;
+        public float depth;
+        public float size;
+        public float angle;
+        public ColorData highlightColor;
+        public ColorData shadowColor;
     }
 
     // ---- Main Applier Class ----
@@ -198,7 +252,184 @@ namespace Change.Editor.PSD2UI
             }
         }
 
+        public void ApplyEffects(
+            TextMeshProUGUI tmpComponent,
+            TextEffectData[] effects,
+            string layerName,
+            string layerId)
+        {
+            if (effects == null || effects.Length == 0)
+            {
+                return;
+            }
+
+            // Create independent Material
+            var material = CreateMaterial(layerName, layerId);
+            if (material == null) return;
+            tmpComponent.fontSharedMaterial = material;
+
+            // Apply each effect
+            foreach (var effect in effects)
+            {
+                if (!effect.enabled) continue;
+
+                switch (effect.type)
+                {
+                    case "stroke":
+                        ApplyStroke(material, effect as StrokeEffectData);
+                        break;
+                    case "dropShadow":
+                        ApplyDropShadow(material, effect as ShadowEffectData);
+                        break;
+                    case "innerShadow":
+                        ApplyInnerShadow(material, effect as ShadowEffectData);
+                        break;
+                    case "gradient":
+                        ApplyGradient(material, tmpComponent, effect as GradientEffectData);
+                        break;
+                    case "outerGlow":
+                        ApplyOuterGlow(material, effect as GlowEffectData);
+                        break;
+                    case "bevel":
+                        ApplyBevel(material, effect as BevelEffectData);
+                        break;
+                }
+            }
+        }
+
         // ---- Protected / Internal Methods (overridable for tests) ----
+
+        private Material CreateMaterial(string layerName, string layerId)
+        {
+            var shader = Shader.Find("TextMeshPro/Distance Field");
+            if (shader == null)
+            {
+                Debug.LogError("[TextStyleApplier] TMP_SDF shader not found");
+                return null;
+            }
+
+            var material = new Material(shader);
+            material.name = $"TMP_{layerName}_{layerId}_Material";
+
+            var materialPath = $"Assets/GameRes/Materials/UI/PSD2UI/{material.name}.mat";
+            var directory = Path.GetDirectoryName(materialPath);
+
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            AssetDatabase.CreateAsset(material, materialPath);
+            AssetDatabase.SaveAssets();
+
+            return material;
+        }
+
+        private void ApplyStroke(Material mat, StrokeEffectData stroke)
+        {
+            if (mat == null || stroke == null) return;
+
+            mat.SetFloat("_OutlineWidth", stroke.width);
+            mat.SetColor("_OutlineColor", new Color(
+                stroke.color.r,
+                stroke.color.g,
+                stroke.color.b,
+                stroke.color.a
+            ));
+            mat.SetFloat("_OutlineSoftness", 0);
+        }
+
+        private void ApplyDropShadow(Material mat, ShadowEffectData shadow)
+        {
+            if (mat == null || shadow == null) return;
+
+            mat.SetColor("_UnderlayColor", new Color(
+                shadow.color.r,
+                shadow.color.g,
+                shadow.color.b,
+                shadow.color.a
+            ));
+            mat.SetFloat("_UnderlayOffsetX", shadow.offsetX / 100f);
+            mat.SetFloat("_UnderlayOffsetY", shadow.offsetY / 100f);
+            mat.SetFloat("_UnderlaySoftness", shadow.blur / 10f);
+        }
+
+        private void ApplyInnerShadow(Material mat, ShadowEffectData innerShadow)
+        {
+            if (mat == null || innerShadow == null) return;
+
+            mat.SetFloat("_UnderlayDilate", -0.5f);
+            mat.SetColor("_UnderlayColor", new Color(
+                innerShadow.color.r,
+                innerShadow.color.g,
+                innerShadow.color.b,
+                innerShadow.color.a
+            ));
+            mat.SetFloat("_UnderlayOffsetX", innerShadow.offsetX / 100f);
+            mat.SetFloat("_UnderlayOffsetY", innerShadow.offsetY / 100f);
+        }
+
+        private void ApplyOuterGlow(Material mat, GlowEffectData glow)
+        {
+            if (mat == null || glow == null) return;
+
+            mat.SetColor("_GlowColor", new Color(
+                glow.color.r,
+                glow.color.g,
+                glow.color.b,
+                glow.color.a
+            ));
+            mat.SetFloat("_GlowOffset", glow.size / 10f);
+            mat.SetFloat("_GlowOuter", 1.0f);
+            mat.SetFloat("_GlowPower", 0.75f);
+        }
+
+        private void ApplyGradient(Material mat, TextMeshProUGUI tmp, GradientEffectData gradient)
+        {
+            if (mat == null || gradient == null || gradient.colors == null || gradient.colors.Length < 2)
+                return;
+
+            mat.SetFloat("_GradientScale", 1.0f);
+
+            var color1 = new Color(
+                gradient.colors[0].r,
+                gradient.colors[0].g,
+                gradient.colors[0].b,
+                gradient.colors[0].a
+            );
+            var color2 = new Color(
+                gradient.colors[1].r,
+                gradient.colors[1].g,
+                gradient.colors[1].b,
+                gradient.colors[1].a
+            );
+
+            if (gradient.angle == 90 || gradient.angle == 270)
+            {
+                tmp.enableVertexGradient = true;
+                tmp.colorGradient = new VertexGradient(color1, color1, color2, color2);
+            }
+            else
+            {
+                tmp.enableVertexGradient = true;
+                tmp.colorGradient = new VertexGradient(color1, color2, color1, color2);
+            }
+        }
+
+        private void ApplyBevel(Material mat, BevelEffectData bevel)
+        {
+            if (mat == null || bevel == null) return;
+
+            mat.SetFloat("_Bevel", 1.0f);
+            mat.SetFloat("_BevelWidth", bevel.size / 10f);
+            mat.SetFloat("_LightAngle", bevel.angle);
+            mat.SetColor("_SpecularColor", new Color(
+                bevel.highlightColor.r,
+                bevel.highlightColor.g,
+                bevel.highlightColor.b,
+                bevel.highlightColor.a
+            ));
+        }
 
         /// <summary>
         /// Finds a TMP_FontAsset by font name.
