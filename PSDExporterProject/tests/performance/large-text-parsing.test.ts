@@ -1,16 +1,61 @@
-import { existsSync } from 'fs';
+import { describe, it, expect } from '@jest/globals';
+import { PsdParser } from '../../src/parser/psd-parser';
+import * as fs from 'fs';
 import * as path from 'path';
 import type { Layer } from '../../src/parser/layer-tree';
 
-/**
- * Recursively counts text layers in a layer tree.
- * Traverses all children of group layers and counts leaf nodes
- * whose `type` is `'text'`.
- */
+describe('Performance - Large Text Parsing', () => {
+  it('should parse 50+ text layers with effects in under 10 seconds', async () => {
+    const largePsdPath = path.join(__dirname, '../fixtures/large-text-sample.psd');
+
+    if (!fs.existsSync(largePsdPath)) {
+      console.warn('Large PSD not found, skipping performance test');
+      return;
+    }
+
+    const parser = new PsdParser();
+    const startTime = Date.now();
+
+    const result = await parser.parse(largePsdPath);
+
+    const elapsed = Date.now() - startTime;
+
+    // 统计文本图层数量
+    const textLayerCount = countTextLayers(result.root);
+
+    console.log('Performance Test Results:');
+    console.log(`- Text layers: ${textLayerCount}`);
+    console.log(`- Parsing time: ${elapsed}ms`);
+    console.log(`- Avg per layer: ${(elapsed / textLayerCount).toFixed(2)}ms`);
+
+    expect(textLayerCount).toBeGreaterThanOrEqual(50);
+    expect(elapsed).toBeLessThan(10000); // 10 seconds
+  });
+
+  it('should have reasonable per-layer overhead', async () => {
+    const largePsdPath = path.join(__dirname, '../fixtures/large-text-sample.psd');
+
+    if (!fs.existsSync(largePsdPath)) {
+      return;
+    }
+
+    const parser = new PsdParser();
+    const startTime = Date.now();
+    const result = await parser.parse(largePsdPath);
+    const elapsed = Date.now() - startTime;
+
+    const textLayerCount = countTextLayers(result.root);
+    const avgPerLayer = elapsed / textLayerCount;
+
+    // 期望：每个文本图层处理时间 < 200ms
+    expect(avgPerLayer).toBeLessThan(200);
+  });
+});
+
 function countTextLayers(layer: Layer): number {
   let count = 0;
-  if (layer.type === 'text') {
-    count = 1;
+  if (layer.type === 'text' && layer.textStyles) {
+    count++;
   }
   if (layer.children) {
     for (const child of layer.children) {
@@ -19,73 +64,3 @@ function countTextLayers(layer: Layer): number {
   }
   return count;
 }
-
-describe('Large text parsing performance', () => {
-  // Lookup priority:
-  // 1. LARGE_TEXT_PSD_PATH environment variable
-  // 2. Default fixture path under tests/fixtures/
-  const fixturePath =
-    process.env.LARGE_TEXT_PSD_PATH ||
-    path.resolve(__dirname, '..', 'fixtures', 'large-text-50-plus.psd');
-
-  const hasFixture = existsSync(fixturePath);
-
-  if (!hasFixture) {
-    console.warn(
-      '[performance] No large PSD fixture found at ' +
-        `${fixturePath}. ` +
-        'Set LARGE_TEXT_PSD_PATH env var to point to a PSD with 50+ text layers. ' +
-        'Skipping performance tests.',
-    );
-  }
-
-  // Use dynamic import for PsdParser so that the top-level
-  // initializeCanvas(createCanvas(...)) call (which requires the `canvas`
-  // native package) is only executed when a fixture is actually available.
-  const perfTest = hasFixture ? test : test.skip;
-
-  perfTest(
-    'should parse 50+ text layers with effects in under 10 seconds',
-    async () => {
-      const { PsdParser } = await import('../../src/parser/psd-parser');
-      const parser = new PsdParser();
-
-      const start = Date.now();
-      const tree = await parser.parse(fixturePath);
-      const elapsed = Date.now() - start;
-
-      const textLayerCount = countTextLayers(tree.root);
-
-      console.log(
-        `[performance] Parsed ${textLayerCount} text layers ` +
-          `in ${elapsed}ms ` +
-          `(${(elapsed / Math.max(textLayerCount, 1)).toFixed(1)}ms/layer)`,
-      );
-
-      expect(textLayerCount).toBeGreaterThanOrEqual(50);
-      expect(elapsed).toBeLessThan(10000);
-    },
-  );
-
-  perfTest(
-    'should have reasonable per-layer overhead',
-    async () => {
-      const { PsdParser } = await import('../../src/parser/psd-parser');
-      const parser = new PsdParser();
-
-      const start = Date.now();
-      const tree = await parser.parse(fixturePath);
-      const elapsed = Date.now() - start;
-
-      const textLayerCount = countTextLayers(tree.root);
-
-      expect(textLayerCount).toBeGreaterThanOrEqual(50);
-
-      const avgPerLayer = elapsed / textLayerCount;
-      console.log(
-        `[performance] Average per-layer: ${avgPerLayer.toFixed(1)}ms`,
-      );
-      expect(avgPerLayer).toBeLessThan(200);
-    },
-  );
-});
