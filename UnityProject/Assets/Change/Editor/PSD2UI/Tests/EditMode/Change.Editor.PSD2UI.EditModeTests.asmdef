@@ -3,6 +3,7 @@
     "rootNamespace": "Change.Editor.PSD2UI.Tests",
     "references": [
         "Change.Editor.PSD2UI",
+        "Change.Runtime",
         "UnityEngine.UI",
         "Unity.TextMeshPro"
     ],

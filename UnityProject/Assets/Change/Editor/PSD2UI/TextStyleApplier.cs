@@ -219,7 +219,7 @@ namespace Change.Editor.PSD2UI
         /// The matching TMP_FontAsset, or the default font asset as fallback.
         /// May return null if no default font asset is configured in TMP Settings.
         /// </returns>
-        internal virtual TMP_FontAsset FindFont(string fontName)
+        protected internal virtual TMP_FontAsset FindFont(string fontName)
         {
             if (string.IsNullOrEmpty(fontName))
                 return DefaultFontAsset;
