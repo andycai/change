@@ -25,7 +25,13 @@
 3. 在当前任务中立即应用该教训
 4. 回复 `已记录教训：<标题>`
 
-详细协议见 `Skill: mz-learn`。
+详细协议见 `Skill: mozi-learn`。
+
+## Agent Notes
+
+本仓库采用 `.mozi/notes/` 记录非平凡变更中的决策、权衡、被否决方案和长期约束。除纯机械编辑和不涉及决策内容的局部编辑外，所有非平凡变更都必须在同一变更中新增或更新至少一份 Agent Note；这是代理行为约定，不接入自动门禁。[`.mozi/notes/README.md`](.mozi/notes/README.md) 是生命周期、分类、Markdown-only 格式和归档合同的唯一权威规范；[`.mozi/notes/AGENTS.md`](.mozi/notes/AGENTS.md) 及生命周期目录中的 `AGENTS.md` 只补充对应作用域的操作约束，不重新定义格式合同。
+
+Agent Note 的唯一生命周期入口是 `mozi-agent-notes`。写入或迁移后运行其 `scripts/validate_agent_notes.py`；归档使用同一技能的 `scripts/archive_agent_note.py`，默认 dry-run，必须显式 `--apply` 才执行移动。
 
 ### 结束前检查
 
