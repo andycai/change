@@ -1,6 +1,6 @@
-# PSD Exporter - PSD 转 Unity UGUI JSON 转换工具
+# PSD Exporter - PSD 转 Unity UGUI 导出工具
 
-一个 Node.js 工具，用于解析 PSD 文件并通过标签解析和 AI 识别自动分析 UI 组件属性，输出用于 Unity UGUI 的 JSON 配置文件。
+一个 Node.js 工具，用于解析 PSD 文件并通过标签解析和 AI 识别自动分析 UI 组件属性，输出用于 Unity UGUI 的 JSON 配置文件、图层切图和完整排版 HTML 预览。
 
 ## 功能特性
 
@@ -10,6 +10,7 @@
   - 第二级：使用 Claude Vision API 的 AI 识别
 - **资产导出**：使用 sharp 将图像图层导出为 PNG 文件
 - **JSON 生成**：通过 Zod schema 验证生成结构化 JSON 配置
+- **HTML 交互预览**：按 PSD 图层坐标拼装 DOM，以切图作为视觉皮肤，并为 Button、Toggle、InputField、Slider、Dropdown、ScrollView 生成真实可操作控件
 - **CLI 接口**：易于使用的命令行界面
 - **可配置**：支持配置文件和环境变量
 - **结构化日志**：带详细日志的调试模式
@@ -64,10 +65,10 @@ node dist/cli/index.js parse <psd文件路径> -o <输出目录>
 
 ```bash
 选项:
-  -o, --output <path>   JSON 输出目录 (默认: "./output")
-  -c, --config <path>   配置文件路径 (默认: "./psd-exporter.config.json")
+  -o, --output <path>   JSON 输出文件或目录 (默认: "output.json")
+  -c, --config <path>   配置文件路径
   -d, --debug          启用调试模式
-  --assets <path>      资产输出目录 (默认: "./output/assets")
+  -a, --assets <path>  切图输出目录
   -h, --help           显示帮助信息
 ```
 
@@ -80,12 +81,17 @@ node dist/cli/index.js parse ./test.psd
 # 使用自定义输出目录解析
 node dist/cli/index.js parse ./test.psd -o ./my-output
 
+# 同时导出切图；生成 my-output/test.json、my-output/test.html 和 assets 下的 PNG
+node dist/cli/index.js parse ./test.psd -o ./my-output -a ./my-output/assets
+
 # 使用调试模式解析
 node dist/cli/index.js parse ./test.psd -d
 
 # 使用自定义配置解析
 node dist/cli/index.js parse ./test.psd -c ./my-config.json
 ```
+
+每次成功导出都会在 JSON 旁生成同基础名的 HTML。例如 `-o ./build/menu.json` 会同时生成 `./build/menu.html`。HTML 使用 PSD 图层坐标、文本内容和导出的 PNG 切图拼装页面，因此需要保留 `-a` 指定的切图目录；直接用浏览器打开即可操作按钮、开关、输入框、Slider、Dropdown 和 ScrollView。
 
 ## PSD 图层命名规范（兼容 PSD2UGUI）
 
@@ -156,6 +162,8 @@ ref icon.img          → 引用预制体（prefix='ref'，baseName='icon'）
 **前缀支持：** `ref` / `refp` 前缀（用空格分隔在标签最前）用于引用预制体或脚本，如 `ref icon.img` → `prefix='ref'`, `baseName='icon'`。
 
 > 旧版 `btn_` / `txt_` / `img_` 等下划线前缀写法已被点号后缀语法取代。
+
+为兼容已有 PSD 资源，解析器也接受以下点号别名：`btn`/`tmpbtn` → Button、`tmptxt` → Text、`fillcolor` → FillColor、`tips` → InputField placeholder、`iptlb` → InputField text、`label` → Toggle/Dropdown label。
 
 ## 输出格式
 
@@ -235,11 +243,14 @@ npm run format
 ### 管道架构
 
 ```
-PSD 文件 → 解析器 → 组件识别器 → JSON 生成器 → 输出
-                        ↓
-                   标签解析器
-                        ↓
-                   AI 识别器
+PSD 文件 → 解析器 → 图层树 + 文本 + 切图
+                         │
+                  组件识别器
+                    │       │
+                    ↓       ↓
+              JSON 生成器  HTML 交互预览生成器
+                    ↓       ↓
+                  JSON     HTML
 ```
 
 ### 二级识别策略
@@ -258,7 +269,7 @@ PSD 文件 → 解析器 → 组件识别器 → JSON 生成器 → 输出
 
 - `src/parser/`：PSD 解析和资产导出
 - `src/recognizer/`：组件识别（标签 + AI）
-- `src/generator/`：使用 Zod 验证的 JSON 生成
+- `src/generator/`：使用 Zod 验证的 JSON 生成和基于图层 DOM 的 HTML 交互预览生成
 - `src/config/`：配置加载器
 - `src/utils/`：日志工具
 - `src/cli/`：命令行接口
