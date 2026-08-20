@@ -9,6 +9,14 @@ import { TagConfig } from './tag-config-loader';
  */
 export class TagParser {
   private familyMaps: Map<string, Set<string>>;
+  private static readonly legacyAliases: Record<string, Partial<TagParseResult['families']>> = {
+    btn: { main: 'bt' },
+    tmpbtn: { main: 'bt', textBackend: 'tmp' },
+    tmptxt: { main: 'txt', textBackend: 'tmp' },
+    fillcolor: { main: 'col' },
+    tips: { role: 'placeholder' },
+    iptlb: { role: 'ipttxt' },
+  };
 
   constructor(config: TagConfig) {
     // Build family lookup maps for O(1) tag classification
@@ -50,6 +58,16 @@ export class TagParser {
 
     for (let i = tokens.length - 1; i >= 0; i--) {
       const token = tokens[i];
+      const legacyFamilies = this.getLegacyFamilies(token, remaining);
+      if (legacyFamilies) {
+        for (const [familyName, familyValue] of Object.entries(legacyFamilies)) {
+          if (!families[familyName as keyof typeof families]) {
+            families[familyName as keyof typeof families] = familyValue;
+          }
+        }
+        classifiedIndices.add(i);
+        continue;
+      }
       let found = false;
 
       // Try to classify this token into a family
@@ -114,6 +132,18 @@ export class TagParser {
       baseName,
       families,
     };
+  }
+
+  private getLegacyFamilies(
+    token: string,
+    layerName: string,
+  ): Partial<TagParseResult['families']> | undefined {
+    if (token.toLowerCase() === 'label') {
+      return /dropdownlabel/i.test(layerName)
+        ? { role: 'dpdlb' }
+        : { role: 'tglb' };
+    }
+    return TagParser.legacyAliases[token.toLowerCase()];
   }
 
   /**

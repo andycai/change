@@ -7,6 +7,7 @@ import { PsdParser } from '../parser/psd-parser';
 import { ComponentRecognizer } from '../recognizer/component-recognizer';
 import { AiIdentifier } from '../recognizer/ai-identifier';
 import { JsonGenerator } from '../generator/json-generator';
+import { HtmlPreviewGenerator } from '../generator/html-preview-generator';
 import { ConfigLoader } from '../config/config-loader';
 import { Logger } from '../utils/logger';
 import { LayerTree } from '../parser/layer-tree';
@@ -16,12 +17,12 @@ const program = new Command();
 
 program
   .name('psd-exporter')
-  .description('PSD to Unity UGUI JSON exporter')
+  .description('PSD to Unity UGUI JSON and HTML preview exporter')
   .version('1.0.0');
 
 program
   .command('parse')
-  .description('Parse a PSD file and generate JSON output')
+  .description('Parse a PSD file and generate JSON and HTML preview output')
   .argument('<psdPath>', 'Path to the PSD file')
   .option('-o, --output <path>', 'Output JSON file path', 'output.json')
   .option('-c, --config <path>', 'Path to config file')
@@ -81,7 +82,7 @@ program
         unknown: unknownCount, needsReview: reviewCount,
       });
 
-      logger.info('Generating JSON output...');
+      logger.info('Generating JSON and HTML output...');
       const generator = new JsonGenerator();
       const jsonConfig = generator.generate(layerTree, components);
 
@@ -101,8 +102,18 @@ program
         }
       }
 
+      const htmlGenerator = new HtmlPreviewGenerator();
+      const htmlOutputPath = path.join(
+        path.dirname(outputPath),
+        `${path.basename(outputPath, path.extname(outputPath))}.html`,
+      );
+      const htmlPreview = htmlGenerator.generate(layerTree, components, htmlOutputPath);
+
       await generator.save(jsonConfig, outputPath);
       logger.info(`JSON output saved to: ${outputPath}`);
+
+      await htmlGenerator.save(htmlPreview, htmlOutputPath);
+      logger.info(`HTML preview saved to: ${htmlOutputPath}`);
 
       logger.info('PSD export completed successfully!');
     } catch (error) {

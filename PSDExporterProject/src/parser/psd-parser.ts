@@ -78,7 +78,6 @@ export class PsdParser {
     };
 
     const root = await this.convertLayer(psd as unknown as PsdNode, 'root', assetsDir);
-
     return {
       root,
       metadata,
@@ -113,10 +112,11 @@ export class PsdParser {
 
     // If this is a text layer, extract text styles (including effects)
     if (node.text) {
-      layer.textStyles = this.textStyleExtractor.extract(
-        node.text as LayerTextData,
-        node.effects,
-      );
+      const textData = node.text as LayerTextData;
+      layer.textStyles = this.textStyleExtractor.extract(textData, node.effects);
+      if (typeof textData.text === 'string') {
+        layer.text = textData.text;
+      }
     }
 
     // Export rasterized pixel data for image/shape layers when requested

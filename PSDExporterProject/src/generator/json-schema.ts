@@ -103,6 +103,7 @@ export const LayerConfigSchema: z.ZodType<any> = z.lazy(() =>
     visible: z.boolean(),
     opacity: z.number().min(0).max(1),
     children: z.array(LayerConfigSchema).optional(),
+    text: z.string().optional(),
     assetPath: z.string().optional(),
     textStyles: TextStylesSchema.optional(),
   })

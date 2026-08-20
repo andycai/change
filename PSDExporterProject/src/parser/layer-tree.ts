@@ -34,6 +34,7 @@ export interface Layer {
   visible: boolean; // 可见性
   opacity: number; // 不透明度 0-1
   children?: Layer[]; // 子图层（仅 group 类型）
+  text?: string; // 文本内容（仅 text 类型）
   assetPath?: string; // 导出的图片路径（仅 image/shape 类型）
   textStyles?: TextStyles; // 文本样式（仅 text 类型）
 }

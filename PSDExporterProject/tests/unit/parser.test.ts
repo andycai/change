@@ -95,6 +95,25 @@ describe('PsdParser', () => {
     expect(mockedReadFile).toHaveBeenCalledWith('/path/to/test.psd');
   });
 
+  test('should preserve PSD text content', async () => {
+    mockedReadPsd.mockReturnValueOnce({
+      width: 200,
+      height: 100,
+      children: [{
+        name: 'title.tmptxt',
+        left: 10,
+        top: 20,
+        right: 190,
+        bottom: 60,
+        text: { text: '开始游戏' },
+      }],
+    });
+
+    const tree = await parser.parse('/path/to/text.psd');
+
+    expect(tree.root.children![0].text).toBe('开始游戏');
+  });
+
   test('should handle nested layers', async () => {
     const tree = await parser.parse('/path/to/test.psd');
     const parentLayer = tree.root.children![0];

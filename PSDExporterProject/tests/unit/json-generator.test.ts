@@ -70,6 +70,15 @@ describe('JsonGenerator', () => {
       expect(config.layers[0].assetPath).toBe('/assets/icon.png');
     });
 
+    test('should include text content when present', () => {
+      const tree: LayerTree = {
+        root: makeLayer({ id: 'root', name: 'title', type: 'text', text: '开始游戏' }),
+        metadata: { psdPath: '/t.psd', canvasSize: { x: 0, y: 0, width: 100, height: 100 }, timestamp: 't' },
+      };
+      const config = generator.generate(tree, new Map());
+      expect(config.layers[0].text).toBe('开始游戏');
+    });
+
     test('should not include assetPath when not set', () => {
       const tree: LayerTree = {
         root: makeLayer({ id: 'root', name: 'icon', type: 'image' }),

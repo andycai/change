@@ -37,6 +37,20 @@ describe('TagParser', () => {
       expect(result!.families.imageType).toBe('sliced');
     });
 
+    test('should normalize legacy demo PSD aliases', () => {
+      expect(parser.parse('BlackBt.tmpbtn')!.families).toMatchObject({
+        main: 'bt',
+        textBackend: 'tmp',
+      });
+      expect(parser.parse('SliderTitle.tmptxt')!.families).toMatchObject({
+        main: 'txt',
+        textBackend: 'tmp',
+      });
+      expect(parser.parse('BgColor.fillcolor')!.families.main).toBe('col');
+      expect(parser.parse('Placeholder.tips')!.families.role).toBe('placeholder');
+      expect(parser.parse('DropdownLabel.label')!.families.role).toBe('dpdlb');
+    });
+
     test('should parse four-family full stack: panel.bt.tmp.sliced.bg', () => {
       const result = parser.parse('panel.bt.tmp.sliced.bg');
 
