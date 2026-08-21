@@ -7,7 +7,7 @@ module.exports = {
     '^.+\\.tsx?$': 'ts-jest',
     '^.+\\.js$': 'ts-jest',
   },
-  transformIgnorePatterns: ['/node_modules/(?!(color-convert|color-name))'],
+  transformIgnorePatterns: ['/node_modules/(?!(color-convert|color-name|commander))'],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

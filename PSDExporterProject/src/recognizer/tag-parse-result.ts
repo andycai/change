@@ -25,4 +25,14 @@ export interface TagParseResult {
     /** 角色标签 (bg, press, placeholder, etc.) */
     role?: string;
   };
+
+  directives: {
+    component?: boolean;
+    scale9?: {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    };
+  };
 }

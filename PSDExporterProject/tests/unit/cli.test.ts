@@ -33,7 +33,20 @@ describe('CLI Integration', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockConfig = { aiThreshold: 0.7, cvConfidenceMin: 0.6, enableAI: true, claudeApiKey: 'sk-ant-test', debug: false };
+    mockConfig = {
+      aiThreshold: 0.7,
+      cvConfidenceMin: 0.6,
+      enableAI: true,
+      claudeApiKey: 'sk-ant-test',
+      debug: false,
+      fairyGui: {
+        packageName: 'PSDImport',
+        defaultScale9: { unit: 'ratio', left: 0.3, top: 0.3, right: 0.3, bottom: 0.3 },
+        fontMappings: {},
+        references: { local: {}, external: {} },
+        pages: {},
+      },
+    };
     (ConfigLoader.load as jest.Mock).mockReturnValue(mockConfig);
     MockedPsdParser.mockImplementation(() => ({ parse: jest.fn().mockResolvedValue(makeMockLayerTree()) }) as any);
     MockedJsonGenerator.mockImplementation(() => ({ generate: jest.fn().mockReturnValue({ metadata: {}, layers: [], components: [] }), save: jest.fn().mockResolvedValue(undefined) }) as any);
@@ -73,7 +86,7 @@ describe('CLI Integration', () => {
       expect(ConfigLoader.load().aiThreshold).toBe(0.7);
     });
     test('should handle missing config', () => {
-      (ConfigLoader.load as jest.Mock).mockReturnValueOnce({ aiThreshold: 0.7, cvConfidenceMin: 0.6, enableAI: false, debug: false });
+      (ConfigLoader.load as jest.Mock).mockReturnValueOnce({ ...mockConfig, enableAI: false });
       expect(ConfigLoader.load().enableAI).toBe(false);
     });
   });

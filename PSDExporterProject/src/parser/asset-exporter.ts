@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
 import { Layer } from './layer-tree';
+import { RasterSource } from './psd-document';
 
 export class AssetExporter {
   /**
@@ -42,6 +43,34 @@ export class AssetExporter {
     const pngBuffer = canvas.toBuffer('image/png');
 
     await (sharp as unknown as (input: Buffer) => { toFile: (path: string) => Promise<unknown> })(pngBuffer).toFile(outputPath);
+
+    return outputPath;
+  }
+
+  async exportRaster(layer: Layer, rasterSource: RasterSource, outputDir: string): Promise<string> {
+    if (layer.type !== 'image' && layer.type !== 'shape') {
+      throw new Error(`Cannot export layer type: ${layer.type}`);
+    }
+
+    if (!existsSync(outputDir)) {
+      await mkdir(outputDir, { recursive: true });
+    }
+
+    const sanitizedName = this.sanitizeFileName(layer.name);
+    const outputPath = join(outputDir, `${sanitizedName}_${layer.id}.png`);
+    const input = Buffer.from(
+      rasterSource.rgba.buffer,
+      rasterSource.rgba.byteOffset,
+      rasterSource.rgba.byteLength,
+    );
+
+    await sharp(input, {
+      raw: {
+        width: rasterSource.width,
+        height: rasterSource.height,
+        channels: 4,
+      },
+    }).png().toFile(outputPath);
 
     return outputPath;
   }

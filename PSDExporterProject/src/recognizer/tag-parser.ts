@@ -54,10 +54,23 @@ export class TagParser {
     // Each token is checked against all families. If a match is found and
     // that family slot is not yet filled, assign it (rightmost wins).
     const families: TagParseResult['families'] = {};
+    const directives: TagParseResult['directives'] = {};
     const classifiedIndices = new Set<number>();
 
     for (let i = tokens.length - 1; i >= 0; i--) {
       const token = tokens[i];
+      if (token === 'comp') {
+        directives.component = true;
+        classifiedIndices.add(i);
+        continue;
+      }
+
+      const scale9 = this.parseScale9(token);
+      if (scale9) {
+        directives.scale9 = scale9;
+        classifiedIndices.add(i);
+        continue;
+      }
       const legacyFamilies = this.getLegacyFamilies(token, remaining);
       if (legacyFamilies) {
         for (const [familyName, familyValue] of Object.entries(legacyFamilies)) {
@@ -86,7 +99,7 @@ export class TagParser {
     }
 
     // Step 4: Return null if no valid families found
-    if (Object.keys(families).length === 0) {
+    if (!prefix && Object.keys(families).length === 0 && Object.keys(directives).length === 0) {
       return null;
     }
 
@@ -131,6 +144,19 @@ export class TagParser {
       prefix,
       baseName,
       families,
+      directives,
+    };
+  }
+
+  private parseScale9(token: string): TagParseResult['directives']['scale9'] | undefined {
+    const match = /^s9-(\d+)-(\d+)-(\d+)-(\d+)$/.exec(token);
+    if (!match) return undefined;
+
+    return {
+      left: Number(match[1]),
+      top: Number(match[2]),
+      right: Number(match[3]),
+      bottom: Number(match[4]),
     };
   }
 

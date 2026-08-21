@@ -37,6 +37,23 @@ describe('TagParser', () => {
       expect(result!.families.imageType).toBe('sliced');
     });
 
+    test('should parse FairyGUI component directive', () => {
+      const result = parser.parse('Header.comp');
+
+      expect(result).not.toBeNull();
+      expect(result!.baseName).toBe('Header');
+      expect(result!.directives.component).toBe(true);
+    });
+
+    test('should parse explicit scale9 margins', () => {
+      const result = parser.parse('Panel.img.s9-20-12-20-12');
+
+      expect(result).not.toBeNull();
+      expect(result!.baseName).toBe('Panel');
+      expect(result!.families.main).toBe('img');
+      expect(result!.directives.scale9).toEqual({ left: 20, top: 12, right: 20, bottom: 12 });
+    });
+
     test('should normalize legacy demo PSD aliases', () => {
       expect(parser.parse('BlackBt.tmpbtn')!.families).toMatchObject({
         main: 'bt',

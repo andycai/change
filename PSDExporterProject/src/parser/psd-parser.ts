@@ -1,10 +1,11 @@
 // src/parser/psd-parser.ts
-import { readPsd, initializeCanvas, Psd, Layer as PsdLayer, LayerTextData, LayerEffectsInfo } from 'ag-psd';
+import { readPsd, initializeCanvas, Psd, LayerTextData, LayerEffectsInfo, PixelData } from 'ag-psd';
 import { createCanvas } from 'canvas';
 import { readFile } from 'fs/promises';
 import { Layer, LayerTree, PsdMetadata, LayerType, Rect } from './layer-tree';
 import { AssetExporter } from './asset-exporter';
 import { TextStyleExtractor } from './text-style-extractor';
+import { ParsedPsdDocument, RasterMaskSource, RasterSource } from './psd-document';
 
 // Initialize canvas for ag-psd to use when decoding image data.
 // ag-psd's initializeCanvas expects a (width, height) => HTMLCanvasElement-like factory;
@@ -21,6 +22,7 @@ initializeCanvas(createCanvas as unknown as Parameters<typeof initializeCanvas>[
  * pixel data for image/shape layers when `initializeCanvas` has been set up.
  */
 interface PsdNode {
+  id?: number;
   name?: string;
   left?: number;
   top?: number;
@@ -30,10 +32,20 @@ interface PsdNode {
   height?: number;
   hidden?: boolean;
   opacity?: number;
+  blendMode?: string;
+  clipping?: boolean;
   text?: unknown;
-  imageData?: unknown;
+  imageData?: PixelData;
   canvas?: unknown;
+  vectorMask?: unknown;
   effects?: LayerEffectsInfo;
+  mask?: {
+    left?: number;
+    top?: number;
+    right?: number;
+    bottom?: number;
+    imageData?: PixelData;
+  };
   children?: PsdNode[];
 }
 
@@ -50,11 +62,25 @@ export class PsdParser {
    *   `assetPath` is populated with the written file path.
    */
   async parse(psdPath: string, assetsDir?: string): Promise<LayerTree> {
+    const document = await this.parseDocument(psdPath);
+
+    if (assetsDir) {
+      await this.exportAssets(document, assetsDir);
+    }
+
+    return document.tree;
+  }
+
+  async parseDocument(psdPath: string): Promise<ParsedPsdDocument> {
     const buffer = await readFile(psdPath);
 
     let psd: Psd;
     try {
-      psd = readPsd(buffer);
+      psd = readPsd(buffer, {
+        useImageData: true,
+        skipCompositeImageData: true,
+        skipThumbnail: true,
+      });
     } catch (cause) {
       throw new Error(
         `Failed to parse PSD file: ${psdPath}`,
@@ -77,11 +103,19 @@ export class PsdParser {
       timestamp: new Date().toISOString(),
     };
 
-    const root = await this.convertLayer(psd as unknown as PsdNode, 'root', assetsDir);
+    const rasterSources = new Map<string, RasterSource>();
+    const root = this.convertLayer(psd as unknown as PsdNode, 'root', rasterSources);
     return {
-      root,
-      metadata,
+      tree: {
+        root,
+        metadata,
+      },
+      rasterSources,
     };
+  }
+
+  async exportAssets(document: ParsedPsdDocument, assetsDir: string): Promise<void> {
+    await this.exportLayerAssets(document.tree.root, document.rasterSources, assetsDir);
   }
 
   /**
@@ -90,7 +124,11 @@ export class PsdParser {
    * The Psd root has `width`/`height` but no `left`/`top`/`right`/`bottom`,
    * while child Layer nodes have `left`/`top`/`right`/`bottom`.
    */
-  private async convertLayer(node: PsdNode, layerId: string, assetsDir?: string): Promise<Layer> {
+  private convertLayer(
+    node: PsdNode,
+    layerId: string,
+    rasterSources: Map<string, RasterSource>,
+  ): Layer {
     const bounds: Rect = {
       x: node.left || 0,
       y: node.top || 0,
@@ -102,12 +140,16 @@ export class PsdParser {
 
     const layer: Layer = {
       id: layerId,
+      sourceId: node.id,
       name: node.name || 'Unnamed',
       type: this.determineLayerType(node),
       bounds,
       visible: node.hidden !== true,
       opacity:
         node.opacity !== undefined ? node.opacity : 1.0,
+      maskType: node.vectorMask ? 'vector' : node.mask?.imageData ? 'raster' : undefined,
+      blendMode: node.blendMode,
+      clipping: node.clipping,
     };
 
     // If this is a text layer, extract text styles (including effects)
@@ -119,29 +161,75 @@ export class PsdParser {
       }
     }
 
-    // Export rasterized pixel data for image/shape layers when requested
-    if (assetsDir && (layer.type === 'image' || layer.type === 'shape') && node.canvas) {
-      try {
-        const exportable = layer as Layer & { _canvas?: unknown };
-        exportable._canvas = node.canvas;
-        layer.assetPath = await this.assetExporter.export(exportable, assetsDir);
-      } catch (err) {
-        // Leave assetPath unset if export fails (e.g. zero-size or no canvas)
-        console.error(`[AssetExport] failed for layer "${layer.id}" (${layer.name}): ${err}`);
-      }
+    if (node.imageData && this.isValidPixelData(node.imageData)) {
+      rasterSources.set(layerId, {
+        layerId,
+        photoshopLayerId: node.id,
+        width: node.imageData.width,
+        height: node.imageData.height,
+        rgba: this.normalizePixelData(node.imageData),
+        mask: this.createMaskSource(node.mask),
+      });
     }
 
     // Process child layers
     if (node.children && node.children.length > 0) {
-      layer.children = await Promise.all(
-        node.children.map(
-          (child, index) =>
-            this.convertLayer(child, `${layerId}_${index}`, assetsDir),
-        ),
+      layer.children = node.children.map(
+        (child, index) => this.convertLayer(child, `${layerId}_${index}`, rasterSources),
       );
     }
 
     return layer;
+  }
+
+  private async exportLayerAssets(
+    layer: Layer,
+    rasterSources: Map<string, RasterSource>,
+    assetsDir: string,
+  ): Promise<void> {
+    const rasterSource = rasterSources.get(layer.id);
+    if (rasterSource && (layer.type === 'image' || layer.type === 'shape')) {
+      try {
+        layer.assetPath = await this.assetExporter.exportRaster(layer, rasterSource, assetsDir);
+      } catch (error) {
+        console.error(`[AssetExport] failed for layer "${layer.id}" (${layer.name}): ${error}`);
+      }
+    }
+
+    for (const child of layer.children ?? []) {
+      await this.exportLayerAssets(child, rasterSources, assetsDir);
+    }
+  }
+
+  private isValidPixelData(pixelData: PixelData): boolean {
+    return Number.isInteger(pixelData.width)
+      && pixelData.width > 0
+      && Number.isInteger(pixelData.height)
+      && pixelData.height > 0
+      && ArrayBuffer.isView(pixelData.data)
+      && pixelData.data.BYTES_PER_ELEMENT === 1
+      && pixelData.data.byteLength >= pixelData.width * pixelData.height * 4;
+  }
+
+  private createMaskSource(mask: PsdNode['mask']): RasterMaskSource | undefined {
+    if (!mask?.imageData || !this.isValidPixelData(mask.imageData)) {
+      return undefined;
+    }
+
+    return {
+      x: mask.left ?? 0,
+      y: mask.top ?? 0,
+      width: mask.imageData.width,
+      height: mask.imageData.height,
+      rgba: this.normalizePixelData(mask.imageData),
+    };
+  }
+
+  private normalizePixelData(pixelData: PixelData): Uint8ClampedArray {
+    if (pixelData.data instanceof Uint8ClampedArray) {
+      return pixelData.data;
+    }
+    return Uint8ClampedArray.from(pixelData.data as ArrayLike<number>);
   }
 
   /**

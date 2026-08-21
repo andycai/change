@@ -28,6 +28,7 @@ export interface Rect {
  */
 export interface Layer {
   id: string; // 唯一标识符
+  sourceId?: number; // Photoshop 图层 ID，用于跨重新导出保持稳定身份
   name: string; // 图层名称
   type: LayerType; // 图层类型
   bounds: Rect; // 位置和大小
@@ -37,6 +38,9 @@ export interface Layer {
   text?: string; // 文本内容（仅 text 类型）
   assetPath?: string; // 导出的图片路径（仅 image/shape 类型）
   textStyles?: TextStyles; // 文本样式（仅 text 类型）
+  maskType?: 'raster' | 'vector'; // 蒙版来源，用于 FairyGUI 降级诊断
+  blendMode?: string; // PSD 混合模式，用于无法表达时的降级诊断
+  clipping?: boolean; // 是否属于剪贴链
 }
 
 /**

@@ -2,6 +2,7 @@
 import { PsdParser } from '../../src/parser/psd-parser';
 import { AssetExporter } from '../../src/parser/asset-exporter';
 import { LayerTree } from '../../src/parser/layer-tree';
+import { runInNewContext } from 'vm';
 
 // Mock ag-psd
 jest.mock('ag-psd', () => ({
@@ -95,6 +96,59 @@ describe('PsdParser', () => {
     expect(mockedReadFile).toHaveBeenCalledWith('/path/to/test.psd');
   });
 
+  test('should expose stable PSD layer ids and raster sources', async () => {
+    const rgba = new Uint8ClampedArray([255, 0, 0, 255]);
+    mockedReadPsd.mockReturnValueOnce({
+      width: 1,
+      height: 1,
+      children: [{
+        id: 42,
+        name: 'icon.img',
+        left: 0,
+        top: 0,
+        right: 1,
+        bottom: 1,
+        imageData: { width: 1, height: 1, data: rgba },
+      }],
+    });
+
+    const document = await parser.parseDocument('/path/to/icon.psd');
+
+    expect(document.tree.root.children![0].sourceId).toBe(42);
+    expect(document.rasterSources.get('root_0')).toEqual({
+      layerId: 'root_0',
+      photoshopLayerId: 42,
+      width: 1,
+      height: 1,
+      rgba,
+    });
+    expect(mockedReadPsd).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      expect.objectContaining({ useImageData: true }),
+    );
+  });
+
+  test('should accept pixel arrays created in another VM realm', async () => {
+    const foreignPixels = runInNewContext('new Uint8ClampedArray([1, 2, 3, 255])') as Uint8ClampedArray;
+    mockedReadPsd.mockReturnValueOnce({
+      width: 1,
+      height: 1,
+      children: [{
+        id: 99,
+        name: 'foreign.img',
+        left: 0,
+        top: 0,
+        right: 1,
+        bottom: 1,
+        imageData: { width: 1, height: 1, data: foreignPixels },
+      }],
+    });
+
+    const document = await parser.parseDocument('/path/to/foreign.psd');
+
+    expect(document.rasterSources.get('root_0')?.rgba).toEqual(new Uint8ClampedArray([1, 2, 3, 255]));
+  });
+
   test('should preserve PSD text content', async () => {
     mockedReadPsd.mockReturnValueOnce({
       width: 200,
@@ -112,6 +166,31 @@ describe('PsdParser', () => {
     const tree = await parser.parse('/path/to/text.psd');
 
     expect(tree.root.children![0].text).toBe('开始游戏');
+  });
+
+  test('should preserve vector mask, blend mode, and clipping metadata', async () => {
+    mockedReadPsd.mockReturnValueOnce({
+      width: 100,
+      height: 100,
+      children: [{
+        name: 'masked.img',
+        left: 0,
+        top: 0,
+        right: 100,
+        bottom: 100,
+        vectorMask: { paths: [] },
+        blendMode: 'multiply',
+        clipping: true,
+      }],
+    });
+
+    const tree = await parser.parse('/path/to/masked.psd');
+
+    expect(tree.root.children![0]).toEqual(expect.objectContaining({
+      maskType: 'vector',
+      blendMode: 'multiply',
+      clipping: true,
+    }));
   });
 
   test('should handle nested layers', async () => {

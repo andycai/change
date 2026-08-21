@@ -19,6 +19,41 @@ describe('ConfigLoader', () => {
     expect(config.enableAI).toBe(true);
     expect(config.debug).toBe(false);
     expect(config.claudeApiKey).toBeUndefined();
+    expect(config.fairyGui.packageName).toBe('PSDImport');
+    expect(config.fairyGui.defaultScale9).toEqual({
+      unit: 'ratio', left: 0.3, top: 0.3, right: 0.3, bottom: 0.3,
+    });
+  });
+
+  test('should load FairyGUI config and merge nested defaults', () => {
+    writeFileSync(testConfigPath, JSON.stringify({
+      fairyGui: {
+        projectPath: '../UIProject',
+        packageName: 'Menus',
+        sourceRoot: '../UIArtifacts/psd',
+        defaultScale9: { unit: 'pixels', left: 10, top: 12, right: 10, bottom: 12 },
+        fontMappings: {
+          'PingFang SC': { default: 'PingFang SC', tmp: 'ui://fontpkgfont01' },
+        },
+        references: {
+          external: {
+            CommonClose: { packageId: 'common01', resourceId: 'close001' },
+          },
+        },
+      },
+    }));
+
+    const config = ConfigLoader.load(testConfigPath);
+
+    expect(config.fairyGui.projectPath).toBe('../UIProject');
+    expect(config.fairyGui.packageName).toBe('Menus');
+    expect(config.fairyGui.sourceRoot).toBe('../UIArtifacts/psd');
+    expect(config.fairyGui.defaultScale9.unit).toBe('pixels');
+    expect(config.fairyGui.fontMappings['PingFang SC'].tmp).toBe('ui://fontpkgfont01');
+    expect(config.fairyGui.references.external.CommonClose).toEqual({
+      packageId: 'common01', resourceId: 'close001',
+    });
+    expect(config.fairyGui.references.local).toEqual({});
   });
 
   test('should load config from a file and merge with defaults', () => {

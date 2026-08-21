@@ -1,127 +1,105 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import * as path from 'path';
-import * as fs from 'fs';
-import { PsdParser } from '../parser/psd-parser';
-import { ComponentRecognizer } from '../recognizer/component-recognizer';
-import { AiIdentifier } from '../recognizer/ai-identifier';
-import { JsonGenerator } from '../generator/json-generator';
-import { HtmlPreviewGenerator } from '../generator/html-preview-generator';
+import { Command, Option } from 'commander';
 import { ConfigLoader } from '../config/config-loader';
+import { ExportService, ExportTarget } from '../export/export-service';
 import { Logger } from '../utils/logger';
-import { LayerTree } from '../parser/layer-tree';
-import { ComponentInfo } from '../recognizer/component-types';
 
-const program = new Command();
+interface CliDependencies {
+  exportServiceFactory?: () => ExportService;
+}
 
-program
-  .name('psd-exporter')
-  .description('PSD to Unity UGUI JSON and HTML preview exporter')
-  .version('1.0.0');
+interface ParseOptions {
+  output: string;
+  config?: string;
+  debug: boolean;
+  assets?: string;
+  target: ExportTarget;
+  fairyguiProject?: string;
+  fairyguiPackage?: string;
+  fairyguiComponent?: string;
+  fairyguiPageId?: string;
+  fairyguiSourceRoot?: string;
+  fairyguiAdoptExisting?: boolean;
+}
 
-program
-  .command('parse')
-  .description('Parse a PSD file and generate JSON and HTML preview output')
-  .argument('<psdPath>', 'Path to the PSD file')
-  .option('-o, --output <path>', 'Output JSON file path', 'output.json')
-  .option('-c, --config <path>', 'Path to config file')
-  .option('-d, --debug', 'Enable debug logging', false)
-  .option('-a, --assets <dir>', 'Asset output directory')
-  .action(async (psdPath: string, options: {
-    output: string;
-    config?: string;
-    debug: boolean;
-    assets?: string;
-  }) => {
-    const logger = new Logger(options.debug);
+export function createProgram(dependencies: CliDependencies = {}): Command {
+  const program = new Command();
 
-    try {
-      logger.info(`Starting PSD parsing: ${psdPath}`);
+  program
+    .name('psd-exporter')
+    .description('PSD to Unity UGUI and FairyGUI source project exporter')
+    .version('1.0.0');
 
-      const config = ConfigLoader.load(options.config);
-      if (options.debug) config.debug = true;
-      logger.info('Configuration loaded', {
-        aiThreshold: config.aiThreshold,
-        cvConfidenceMin: config.cvConfidenceMin,
-        enableAI: config.enableAI,
-      });
+  program
+    .command('parse')
+    .description('Parse one PSD and export the selected target')
+    .argument('<psdPath>', 'Path to the PSD file')
+    .option('-o, --output <path>', 'UGUI JSON output file or directory', 'output.json')
+    .option('-c, --config <path>', 'Path to config file')
+    .option('-d, --debug', 'Enable debug logging', false)
+    .option('-a, --assets <dir>', 'UGUI/HTML asset output directory')
+    .addOption(new Option('--target <target>', 'Export target').choices(['ugui', 'fairygui', 'all']).default('ugui'))
+    .option('--fairygui-project <dir>', 'FairyGUI project directory')
+    .option('--fairygui-package <name>', 'FairyGUI package name')
+    .option('--fairygui-component <name>', 'FairyGUI root component name')
+    .option('--fairygui-page-id <id>', 'Stable FairyGUI managed page id')
+    .option('--fairygui-source-root <dir>', 'Source root used to derive stable page paths')
+    .option('--fairygui-adopt-existing', 'Adopt an existing manual root component', false)
+    .action(async (psdPath: string, options: ParseOptions) => {
+      const logger = new Logger(options.debug);
+      try {
+        const config = ConfigLoader.load(options.config);
+        if (options.debug) config.debug = true;
+        logger.info(`Starting PSD export: ${psdPath}`, { target: options.target });
 
-      logger.info('Parsing PSD file...');
-      const parser = new PsdParser();
-      const layerTree: LayerTree = await parser.parse(psdPath, options.assets);
-      logger.info('PSD parsed successfully', { canvasSize: layerTree.metadata.canvasSize });
+        const service = dependencies.exportServiceFactory?.() ?? new ExportService();
+        const result = await service.export({
+          psdPath,
+          target: options.target,
+          outputPath: options.output,
+          assetsDir: options.assets,
+          fairyGui: {
+            projectPath: options.fairyguiProject,
+            packageName: options.fairyguiPackage,
+            componentName: options.fairyguiComponent,
+            pageId: options.fairyguiPageId,
+            sourceRoot: options.fairyguiSourceRoot,
+            adoptExisting: options.fairyguiAdoptExisting,
+          },
+        }, config);
 
-      let aiIdentifier: AiIdentifier | null = null;
-      if (config.enableAI && config.claudeApiKey) {
-        aiIdentifier = new AiIdentifier(config.claudeApiKey);
-        logger.info('AI identification enabled');
-      } else if (config.enableAI) {
-        logger.warn('AI identification enabled but no API key configured. Running without AI.');
-      }
-
-      const recognizer = new ComponentRecognizer(aiIdentifier, {
-        enableAI: config.enableAI,
-        aiThreshold: config.aiThreshold,
-        cvConfidenceMin: config.cvConfidenceMin,
-      });
-
-      logger.info('Recognizing components...');
-      const components: Map<string, ComponentInfo> =
-        await recognizer.recognizeTree(layerTree.root, options.assets);
-
-      let tagCount = 0, aiCount = 0, unknownCount = 0, reviewCount = 0;
-      for (const [, info] of components) {
-        if (info.source === 'tag') tagCount++;
-        else if (info.source === 'ai') aiCount++;
-        if (info.type === 'Unknown') unknownCount++;
-        if (info.needsReview) reviewCount++;
-      }
-      logger.info('Component recognition complete', {
-        total: components.size, tagged: tagCount, aiIdentified: aiCount,
-        unknown: unknownCount, needsReview: reviewCount,
-      });
-
-      logger.info('Generating JSON and HTML output...');
-      const generator = new JsonGenerator();
-      const jsonConfig = generator.generate(layerTree, components);
-
-      let outputPath = options.output;
-      const isExistingDir = fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory();
-      const looksLikeDir = !isExistingDir && !path.extname(outputPath);
-      if (isExistingDir || looksLikeDir) {
-        if (!fs.existsSync(outputPath)) {
-          fs.mkdirSync(outputPath, { recursive: true });
+        if (result.jsonPath) logger.info(`JSON output saved to: ${result.jsonPath}`);
+        if (result.htmlPath) logger.info(`HTML preview saved to: ${result.htmlPath}`);
+        if (result.fairyGui) {
+          logger.info(`FairyGUI page exported: ${result.fairyGui.rootComponentPath}`, {
+            packageId: result.fairyGui.packageId,
+            rootComponentId: result.fairyGui.rootComponentId,
+            diagnostics: result.fairyGui.diagnostics.length,
+            reportStatus: result.fairyGui.reportStatus,
+            ...(result.fairyGui.reportError ? { reportError: result.fairyGui.reportError } : {}),
+          });
         }
-        const baseName = path.basename(psdPath, path.extname(psdPath));
-        outputPath = path.join(outputPath, `${baseName}.json`);
-      } else {
-        const dir = path.dirname(outputPath);
-        if (dir && !fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
+        logger.info('PSD export completed successfully!');
+      } catch (error) {
+        logger.error('PSD export failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
       }
+    });
 
-      const htmlGenerator = new HtmlPreviewGenerator();
-      const htmlOutputPath = path.join(
-        path.dirname(outputPath),
-        `${path.basename(outputPath, path.extname(outputPath))}.html`,
-      );
-      const htmlPreview = htmlGenerator.generate(layerTree, components, htmlOutputPath);
+  return program;
+}
 
-      await generator.save(jsonConfig, outputPath);
-      logger.info(`JSON output saved to: ${outputPath}`);
+export async function runCli(argv = process.argv, dependencies: CliDependencies = {}): Promise<void> {
+  try {
+    await createProgram(dependencies).parseAsync(argv);
+  } catch {
+    process.exitCode = 1;
+  }
+}
 
-      await htmlGenerator.save(htmlPreview, htmlOutputPath);
-      logger.info(`HTML preview saved to: ${htmlOutputPath}`);
-
-      logger.info('PSD export completed successfully!');
-    } catch (error) {
-      logger.error('PSD export failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      process.exit(1);
-    }
-  });
-
-program.parse(process.argv);
+if (require.main === module) {
+  void runCli();
+}
