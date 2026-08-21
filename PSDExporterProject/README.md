@@ -1,6 +1,6 @@
 # PSD Exporter - PSD 转 Unity UGUI 导出工具
 
-一个 Node.js 工具，用于解析 PSD 文件并通过标签解析和 AI 识别自动分析 UI 组件属性，输出用于 Unity UGUI 的 JSON 配置文件、图层切图和完整排版 HTML 预览。
+一个 Node.js 工具，用于解析 PSD 文件并通过标签解析和 AI 识别自动分析 UI 组件属性，输出用于 Unity UGUI 的 JSON 配置文件、图层切图、完整排版 HTML 预览，以及 FairyGUI Editor 6.x 可继续编辑的源工程。
 
 ## 功能特性
 
@@ -11,6 +11,7 @@
 - **资产导出**：使用 sharp 将图像图层导出为 PNG 文件
 - **JSON 生成**：通过 Zod schema 验证生成结构化 JSON 配置
 - **HTML 交互预览**：按 PSD 图层坐标拼装 DOM，以切图作为视觉皮肤，并为 Button、Toggle、InputField、Slider、Dropdown、ScrollView 生成真实可操作控件
+- **FairyGUI 源工程**：生成或安全接入 FairyGUI 6.x 工程；一个包可容纳多个 PSD 页面，受管清单保护人工资源和其他页面
 - **CLI 接口**：易于使用的命令行界面
 - **可配置**：支持配置文件和环境变量
 - **结构化日志**：带详细日志的调试模式
@@ -34,6 +35,15 @@ npm install
   "cvConfidenceMin": 0.6,
   "enableAI": true,
   "debug": false,
+  "fairyGui": {
+    "projectPath": "../UIProject",
+    "packageName": "PSDImport",
+    "sourceRoot": "../UIArtifacts/psd",
+    "defaultScale9": { "unit": "ratio", "left": 0.3, "top": 0.3, "right": 0.3, "bottom": 0.3 },
+    "fontMappings": {},
+    "references": { "local": {}, "external": {} },
+    "pages": {}
+  },
   "claudeApiKey": "YOUR_CLAUDE_API_KEY_HERE"
 }
 ```
@@ -69,6 +79,13 @@ node dist/cli/index.js parse <psd文件路径> -o <输出目录>
   -c, --config <path>   配置文件路径
   -d, --debug          启用调试模式
   -a, --assets <path>  切图输出目录
+  --target <target>    导出目标：ugui、fairygui 或 all（默认 ugui）
+  --fairygui-project <dir>    FairyGUI 工程目录（fairygui/all 必填，除非配置已提供）
+  --fairygui-package <name>   FairyGUI 包名
+  --fairygui-component <name> 根组件名
+  --fairygui-page-id <id>     稳定页面 ID
+  --fairygui-source-root <dir> 页面源路径根目录
+  --fairygui-adopt-existing   显式接管同名人工根组件
   -h, --help           显示帮助信息
 ```
 
@@ -89,7 +106,23 @@ node dist/cli/index.js parse ./test.psd -d
 
 # 使用自定义配置解析
 node dist/cli/index.js parse ./test.psd -c ./my-config.json
+
+# 只生成 FairyGUI Editor 6.x 源工程
+node dist/cli/index.js parse ./test.psd \
+  --target fairygui \
+  --fairygui-project ../UIProject \
+  --fairygui-package PSDImport \
+  --fairygui-page-id main-menu
+
+# 单次解析，同时生成旧 UGUI/HTML 产物和 FairyGUI 源工程
+node dist/cli/index.js parse ./test.psd \
+  --target all -o ./build -a ./build/assets \
+  --fairygui-project ../UIProject
 ```
+
+FairyGUI 导出不会自动调用发布器，也不会生成 Unity 运行时发布资源；在 FairyGUI Editor 中打开 `.fairy` 工程后继续人工检查和发布。受管页面以 PSD 为事实源，重导会重建该页面，但保留同包中的人工资源、其他 PSD 页面和未知 `package.xml` 属性。同一个 `pageId` 不能被不同 PSD 静默复用；历史相对 `sourcePath` 只有在当前显式 `sourceRoot` 下能精确解析时才允许迁移，若 manifest 已记录 `sourceRoot` 则两者还必须一致，否则在提交前阻断。
+
+每页的清单、报告和事务状态位于工程 `.psd-exporter/`。重导前会核对旧 manifest 中的资源 ID、包路径、文件路径和内容 hash，损坏或篡改的 sidecar 不能取得人工资源清理权；自动发现和显式配置的本地组件引用都必须存在对应 XML。generation 只签入当前页面实际消费的引用目标及其内容 hash，其他页面或无关人工资源不会触发换代。JSON/Markdown 报告包含逐层 FairyGUI 映射、结构化 AI 建议、字体回退、文本栅格化、九宫格推断、引用降级和受管文件；没有 Photoshop `sourceId` 的图层使用祖先名称与几何路径生成稳定身份并报告降级，截断哈希碰撞使用确定性 salt 重算。报告在工程提交后原子写入；若报告写入失败，API 返回 `reportStatus: "failed"` 和 `REPORT_WRITE_FAILED`，不会把已经提交成功的 FairyGUI 工程误报为整体失败。
 
 每次成功导出都会在 JSON 旁生成同基础名的 HTML。例如 `-o ./build/menu.json` 会同时生成 `./build/menu.html`。HTML 使用 PSD 图层坐标、文本内容和导出的 PNG 切图拼装页面，因此需要保留 `-a` 指定的切图目录；直接用浏览器打开即可操作按钮、开关、输入框、Slider、Dropdown 和 ScrollView。
 
@@ -243,14 +276,16 @@ npm run format
 ### 管道架构
 
 ```
-PSD 文件 → 解析器 → 图层树 + 文本 + 切图
-                         │
-                  组件识别器
-                    │       │
-                    ↓       ↓
-              JSON 生成器  HTML 交互预览生成器
-                    ↓       ↓
-                  JSON     HTML
+PSD 文件 → PsdParser → ParsedPsdDocument（图层树 + RGBA + mask）
+                              │
+                        ExportService
+                       ╱             ╲
+              UGUI / HTML             FairyGUI
+           组件识别 → JSON/DOM    组件识别 → FairyScene
+                                      ↓
+                           XML Writer + 事务提交
+                                      ↓
+                         工程资源 + manifest + 报告
 ```
 
 ### 二级识别策略
@@ -269,7 +304,9 @@ PSD 文件 → 解析器 → 图层树 + 文本 + 切图
 
 - `src/parser/`：PSD 解析和资产导出
 - `src/recognizer/`：组件识别（标签 + AI）
+- `src/export/`：复用单次解析结果并编排 UGUI、HTML 与 FairyGUI 导出目标
 - `src/generator/`：使用 Zod 验证的 JSON 生成和基于图层 DOM 的 HTML 交互预览生成
+- `src/fairygui/`：场景构建、稳定身份、组件 XML、资源处理、事务提交与结构化报告
 - `src/config/`：配置加载器
 - `src/utils/`：日志工具
 - `src/cli/`：命令行接口
@@ -280,7 +317,7 @@ PSD 文件 → 解析器 → 图层树 + 文本 + 切图
 
 - 所有模块的单元测试
 - 端到端工作流的集成测试
-- 总计：148 个测试通过
+- 当前全量回归：26 个测试套件、310 个测试通过
 
 ```bash
 npm test

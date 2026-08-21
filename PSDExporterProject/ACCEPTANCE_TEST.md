@@ -276,14 +276,41 @@ npm test
 
 所有以下条件必须满足：
 
-- ✅ 所有单元测试通过（148/148）
+- ✅ 全部自动化测试通过（310/310，26 个测试套件）
 - ✅ 能够成功解析真实的 PSD 文件
 - ✅ 标签识别准确率 100%（对于正确命名的图层）
 - ✅ AI 识别准确率 > 70%（Phase 1 目标）
 - ✅ JSON 输出格式符合 schema
 - ✅ 错误处理优雅，不崩溃
 - ✅ 日志输出清晰，可追踪
+- ✅ `--target fairygui` 生成 FairyGUI Editor 6.x 源工程，`--target all` 只解析 PSD 一次
 - ✅ CLI 界面友好，帮助信息完整
+
+### FairyGUI 源工程验收
+
+```bash
+cd PSDExporterProject
+npm run build
+node dist/cli/index.js parse ../UIArtifacts/psd/demo.psd \
+  --target fairygui \
+  --fairygui-project ../UIArtifacts/psd/demo-fairygui \
+  --fairygui-package PSDImport \
+  --fairygui-page-id demo
+```
+
+- [x] 工程根目录存在唯一 `.fairy`，FairyGUI Editor 6.0.5 已打开根页面
+- [x] `assets/PSDImport/package.xml` 包含导出页面和图片资源，人工资源未被清空
+- [x] `.psd-exporter/pages/demo.json`、`reports/demo.json`、`reports/demo.md` 已生成
+- [x] 重复执行后页面 ID、资源 ID、组件文件名和其他 PSD 页面保持稳定
+- [x] 相对 `sourcePath` 仅在显式 `sourceRoot` 可精确解析时迁移，同名不同根 PSD 不会复用 pageId
+- [x] 篡改 manifest 的资源 ID、路径或内容 hash 会在改写 `package.xml` 前阻断
+- [x] 自动发现的本地 `ref` 必须存在对应组件 XML，引用组件内容变化会触发当前页 generation 换代
+- [x] 受管页面包含可编辑的 Button、Toggle、Slider、Input、Dropdown、ScrollView/ScrollBar 原生结构
+- [x] Button 状态由 group 承载时保留完整状态子树；普通 image/group 的 vector mask、混合模式和剪贴链生成明确降级诊断
+- [x] 文本栅格化、字体回退、九宫格推断、逐层映射、AI 建议和降级均出现在报告中
+- [x] 报告写入失败时工程和 manifest 保持已提交状态，返回值明确标记 `reportStatus: failed`
+- [x] FairyGUI Editor 6.0.5 能打开页面且机器预检没有悬空组件/图片引用
+- [ ] 截图级视觉对照：当前终端会话没有显示捕获权限，需在有屏幕录制权限的交互会话补充截图证据
 
 ## 下一步
 

@@ -1,0 +1,6 @@
+ M .mozi/memories/lessons/3-bug-postmortems.md
+?? .mozi/artifacts/psd-fairygui-export/
+?? .mozi/notes/proposed/
+?? UIArtifacts/psd/demo-export-20260820-132639/
+?? UIArtifacts/psd/demo-interactive-20260820-135304/
+?? UIArtifacts/psd/demo-interactive-final-20260820-140043/
